@@ -2,6 +2,7 @@ from src.expense_tracker import (
     add_expense,
     view_expenses,
     calculate_total,
+    load_expenses,
 )
 
 
@@ -14,6 +15,8 @@ def show_menu():
 
 
 def main():
+    load_expenses()
+
     while True:
         show_menu()
         choice = input("Choose an option: ")

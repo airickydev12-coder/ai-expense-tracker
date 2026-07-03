@@ -1,5 +1,23 @@
 expenses = []
+import json
+from pathlib import Path
 
+
+DATA_FILE = Path("data/expenses.json")
+expenses = []
+
+
+def load_expenses():
+    global expenses
+
+    if DATA_FILE.exists():
+        with open(DATA_FILE, "r") as file:
+            expenses = json.load(file)
+
+
+def save_expenses():
+    with open(DATA_FILE, "w") as file:
+        json.dump(expenses, file, indent=4)
 
 def add_expense():
     name = input("Expense name: ")
@@ -19,6 +37,7 @@ def add_expense():
     }
 
     expenses.append(expense)
+    save_expenses()
     print("Expense added successfully!")
 
 
