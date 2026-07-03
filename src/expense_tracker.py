@@ -53,7 +53,29 @@ def view_expenses():
             f"{expense['category']} | "
             f"${expense['amount']:.2f}"
         )
+def delete_expense():
+    if not expenses:
+        print("No expenses to delete.")
+        return
 
+    view_expenses()
+
+    choice = input("Enter the expense number to delete: ")
+
+    try:
+        index = int(choice) - 1
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+        return
+
+    if index < 0 or index >= len(expenses):
+        print("Invalid expense number.")
+        return
+
+    deleted_expense = expenses.pop(index)
+    save_expenses()
+
+    print(f"Deleted expense: {deleted_expense['name']}")
 
 def calculate_total():
     total = 0

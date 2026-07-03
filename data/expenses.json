@@ -3,5 +3,10 @@
         "name": "Tea",
         "category": "Food",
         "amount": 4.0
+    },
+    {
+        "name": "pizza",
+        "category": "Food",
+        "amount": 4.25
     }
 ]
