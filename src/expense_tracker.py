@@ -1,9 +1,8 @@
-expenses = []
 import json
-from pathlib import Path
+
+from src.config import DATA_FILE
 
 
-DATA_FILE = Path("data/expenses.json")
 expenses = []
 
 
