@@ -4,6 +4,7 @@ from src.expense_tracker import (
     calculate_total,
     load_expenses,
     delete_expense,
+    update_expense,
 )
 
 
@@ -13,7 +14,8 @@ def show_menu():
     print("2. View expenses")
     print("3. View total spending")
     print("4. Delete expense")
-    print("5. Exit")
+    print("5. Update expense")
+    print("6. Exit")
 
 
 def main():
@@ -32,6 +34,8 @@ def main():
         elif choice == "4":
             delete_expense()
         elif choice == "5":
+            update_expense()
+        elif choice == "6":
             print("Goodbye!")
             break
         else:

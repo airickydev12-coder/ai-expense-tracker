@@ -8,5 +8,15 @@
         "name": "pizza",
         "category": "Food",
         "amount": 4.25
+    },
+    {
+        "name": "Bread",
+        "category": "Food",
+        "amount": 6.0
+    },
+    {
+        "name": "Tea",
+        "category": "Food",
+        "amount": 4.25
     }
 ]
