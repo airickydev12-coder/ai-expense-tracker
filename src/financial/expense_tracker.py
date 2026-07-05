@@ -56,10 +56,17 @@ def add_expense(name: str, category: str, amount: float) -> Expense:
     Returns:
         Expense: The newly created Expense object.
     """
-    expense = Expense(name=name, category=category, amount=amount)
+    expense = Expense(
+        id=get_next_expense_id(),
+        name=name,
+        category=category,
+        amount=amount,
+    )
 
     expenses.append(expense)
     save_expenses()
+
+    return expense
 
     return expense
 
@@ -179,6 +186,21 @@ def update_expense() -> None:
 
     save_expenses()
     print("Expense updated successfully!")
+
+def get_next_expense_id() -> int:
+    """
+    Get the next available expense ID.
+
+    IDs are never reused. The next ID is always one greater than
+    the highest existing expense ID.
+
+    Returns:
+        int: The next expense ID.
+    """
+    if not expenses:
+        return 1
+
+    return max(expense.id for expense in expenses) + 1
 
 
 def get_total() -> float:

@@ -1,37 +1,26 @@
 [
     {
-        "name": "Tea",
-        "category": "Food",
-        "amount": 4.0
-    },
-    {
+        "id": 1,
         "name": "Pizza",
         "category": "Food",
         "amount": 4.25
     },
     {
-        "name": "Bread",
+        "id": 2,
+        "name": "Gas",
+        "category": "Transportation",
+        "amount": 78.34
+    },
+    {
+        "id": 3,
+        "name": "Hamburger",
         "category": "Food",
         "amount": 6.0
     },
     {
-        "name": "Tea",
-        "category": "Food",
-        "amount": 4.25
-    },
-    {
-        "name": "Sandwich",
-        "category": "Food",
-        "amount": 3.75
-    },
-    {
-        "name": "Pizza",
-        "category": "Food",
-        "amount": 4.25
-    },
-    {
-        "name": "Hamburger",
-        "category": "Food",
-        "amount": 5.5
+        "id": 4,
+        "name": "Nike shoes",
+        "category": "Clothing",
+        "amount": 136.87
     }
 ]
