@@ -1,4 +1,4 @@
-from src.expense_tracker import (
+from src.financial.expense_tracker import (
     add_expense,
     view_expenses,
     calculate_total,
@@ -28,17 +28,34 @@ def run_cli() -> None:
         choice = input("Choose an option: ")
 
         if choice == "1":
-            add_expense()
+            name = input("Expense name: ")
+            category = input("Category: ")
+            amount_text = input("Amount: ")
+
+            try:
+                amount = float(amount_text)
+            except ValueError:
+                print("Invalid amount. Please enter a number.")
+                continue
+
+            add_expense(name, category, amount)
+            print("Expense added successfully!")
+
         elif choice == "2":
             view_expenses()
+
         elif choice == "3":
             calculate_total()
+
         elif choice == "4":
             delete_expense()
+
         elif choice == "5":
             update_expense()
+
         elif choice == "6":
             print("Goodbye!")
             break
+
         else:
             print("Invalid option. Please choose 1, 2, 3, 4, 5, or 6.")

@@ -18,5 +18,15 @@
         "name": "Tea",
         "category": "Food",
         "amount": 4.25
+    },
+    {
+        "name": "sandwich",
+        "category": "Food",
+        "amount": 3.75
+    },
+    {
+        "name": "Pizza",
+        "category": "Food",
+        "amount": 4.25
     }
 ]

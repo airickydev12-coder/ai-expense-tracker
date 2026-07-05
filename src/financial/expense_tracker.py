@@ -1,6 +1,6 @@
 import json
 
-from src.config import DATA_FILE
+from src.core.config import DATA_FILE
 
 
 expenses = []
@@ -31,41 +31,26 @@ def save_expenses() -> None:
     """
     Save all recorded expenses to the JSON data file.
 
-    Writes the current contents of the expenses list to the
-    JSON file specified by DATA_FILE. The data is formatted
-    with indentation to make the file more readable.
-
     Returns:
         None
     """
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     with open(DATA_FILE, "w") as file:
         json.dump(expenses, file, indent=4)
 
-def add_expense() -> None:
+def add_expense(name: str, category: str, amount: float) -> dict:
     """
-    Add a new expense to the expense tracker.
+    Add a new expense.
 
-    Prompts the user to enter an expense name, category, and amount.
-    The amount is validated to ensure it can be converted to a float.
-    If the amount is invalid, an error message is displayed and the
-    expense is not added.
-
-    When a valid expense is entered, it is added to the expenses list,
-    saved to the JSON file, and a confirmation message is displayed.
+    Args:
+        name: The expense name.
+        category: The expense category.
+        amount: The expense amount.
 
     Returns:
-        None
+        dict: The newly created expense.
     """
-    name = input("Expense name: ")
-    category = input("Category: ")
-    amount_text = input("Amount: ")
-
-    try:
-        amount = float(amount_text)
-    except ValueError:
-        print("Invalid amount. Please enter a number.")
-        return
-
     expense = {
         "name": name,
         "category": category,
@@ -74,7 +59,8 @@ def add_expense() -> None:
 
     expenses.append(expense)
     save_expenses()
-    print("Expense added successfully!")
+
+    return expense
 
 
 def view_expenses() -> None:

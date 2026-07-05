@@ -1,4 +1,4 @@
-from src.expense_tracker import expenses, get_total
+from src.financial.expense_tracker import expenses, get_total
 
 
 def test_get_total():
