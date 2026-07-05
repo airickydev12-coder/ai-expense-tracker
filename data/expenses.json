@@ -5,7 +5,7 @@
         "amount": 4.0
     },
     {
-        "name": "pizza",
+        "name": "Pizza",
         "category": "Food",
         "amount": 4.25
     },
@@ -20,7 +20,7 @@
         "amount": 4.25
     },
     {
-        "name": "sandwich",
+        "name": "Sandwich",
         "category": "Food",
         "amount": 3.75
     },
@@ -28,5 +28,10 @@
         "name": "Pizza",
         "category": "Food",
         "amount": 4.25
+    },
+    {
+        "name": "Hamburger",
+        "category": "Food",
+        "amount": 5.5
     }
 ]
