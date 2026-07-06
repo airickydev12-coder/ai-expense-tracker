@@ -1,67 +1,18 @@
 from src.financial.analytics import get_total
-from src.financial.categories import ExpenseCategory
+from src.presentation.input_handlers import select_category
 from src.financial.expense_tracker import (
     add_expense,
+    delete_expense,
     get_expenses,
     load_expenses,
-    delete_expense,
     update_expense,
 )
-
-
-def show_menu() -> None:
-    """Display the main menu."""
-    print("\nFinancial Core")
-    print("1. Add expense")
-    print("2. View expenses")
-    print("3. View total spending")
-    print("4. Delete expense")
-    print("5. Update expense")
-    print("6. Exit")
-
-
-def display_categories() -> None:
-    """Display available expense categories."""
-    print("\nCategories:")
-    for index, category in enumerate(ExpenseCategory, start=1):
-        print(f"{index}. {category.value}")
-
-
-def select_category() -> ExpenseCategory | None:
-    """Prompt the user to select an expense category."""
-    display_categories()
-    choice = input("Choose a category number: ")
-
-    try:
-        index = int(choice) - 1
-    except ValueError:
-        print("Invalid category. Please enter a number.")
-        return None
-
-    categories = list(ExpenseCategory)
-
-    if index < 0 or index >= len(categories):
-        print("Invalid category number.")
-        return None
-
-    return categories[index]
-
-
-def display_expenses() -> None:
-    """Display all recorded expenses."""
-    expenses = get_expenses()
-
-    if not expenses:
-        print("No expenses recorded yet.")
-        return
-
-    print("\nExpenses:")
-    for expense in expenses:
-        print(
-            f"ID {expense.id}: {expense.name} | "
-            f"{expense.category.value} | "
-            f"${expense.amount:.2f}"
-        )
+from src.presentation.views import (
+    display_category_totals,
+    display_categories,
+    display_expenses,
+    show_menu,
+)
 
 
 def run_cli() -> None:
@@ -166,8 +117,11 @@ def run_cli() -> None:
                 print(f"Updated expense: {updated_expense.name}")
 
         elif choice == "6":
+            display_category_totals()
+
+        elif choice == "7":
             print("Goodbye!")
             break
 
         else:
-            print("Invalid option. Please choose 1, 2, 3, 4, 5, or 6.")
+            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, or 7.")
