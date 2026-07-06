@@ -89,9 +89,6 @@ def update_expense(
     return None
 
 
-def get_total() -> float:
-    """Calculate the total amount of all recorded expenses."""
-    return sum(expense.amount for expense in expenses)
 
 
 def calculate_total() -> None:

@@ -28,5 +28,23 @@
         "name": "Nails and Screws",
         "category": "Maintenance",
         "amount": 9.99
+    },
+    {
+        "id": 6,
+        "name": "Coffee Cups",
+        "category": "Food",
+        "amount": 8.25
+    },
+    {
+        "id": 7,
+        "name": "lunch meat",
+        "category": "Food",
+        "amount": 5.25
+    },
+    {
+        "id": 8,
+        "name": "Lil Debbies Cupcakes",
+        "category": "Food",
+        "amount": 10.0
     }
 ]

@@ -1,7 +1,8 @@
+from src.financial.analytics import get_total
+from src.financial.categories import ExpenseCategory
 from src.financial.expense_tracker import (
     add_expense,
     get_expenses,
-    get_total,
     load_expenses,
     delete_expense,
     update_expense,
@@ -19,6 +20,33 @@ def show_menu() -> None:
     print("6. Exit")
 
 
+def display_categories() -> None:
+    """Display available expense categories."""
+    print("\nCategories:")
+    for index, category in enumerate(ExpenseCategory, start=1):
+        print(f"{index}. {category.value}")
+
+
+def select_category() -> ExpenseCategory | None:
+    """Prompt the user to select an expense category."""
+    display_categories()
+    choice = input("Choose a category number: ")
+
+    try:
+        index = int(choice) - 1
+    except ValueError:
+        print("Invalid category. Please enter a number.")
+        return None
+
+    categories = list(ExpenseCategory)
+
+    if index < 0 or index >= len(categories):
+        print("Invalid category number.")
+        return None
+
+    return categories[index]
+
+
 def display_expenses() -> None:
     """Display all recorded expenses."""
     expenses = get_expenses()
@@ -31,7 +59,7 @@ def display_expenses() -> None:
     for expense in expenses:
         print(
             f"ID {expense.id}: {expense.name} | "
-            f"{expense.category} | "
+            f"{expense.category.value} | "
             f"${expense.amount:.2f}"
         )
 
@@ -46,7 +74,11 @@ def run_cli() -> None:
 
         if choice == "1":
             name = input("Expense name: ")
-            category = input("Category: ")
+            category = select_category()
+
+            if category is None:
+                continue
+
             amount_text = input("Amount: ")
 
             try:
@@ -62,7 +94,7 @@ def run_cli() -> None:
             display_expenses()
 
         elif choice == "3":
-            total = get_total()
+            total = get_total(get_expenses())
             print(f"Total spending: ${total:.2f}")
 
         elif choice == "4":
@@ -95,11 +127,19 @@ def run_cli() -> None:
                 continue
 
             new_name = input("New name (press Enter to keep unchanged): ")
-            new_category = input("New category (press Enter to keep unchanged): ")
+
+            print("Choose a new category, or press Enter to keep unchanged.")
+            category_input = input("Change category? (y/n): ").lower().strip()
+
+            category = None
+            if category_input == "y":
+                category = select_category()
+                if category is None:
+                    continue
+
             new_amount_text = input("New amount (press Enter to keep unchanged): ")
 
             name = new_name.strip() if new_name.strip() else None
-            category = new_category.strip() if new_category.strip() else None
             amount = None
 
             if new_amount_text.strip():
