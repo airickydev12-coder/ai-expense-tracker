@@ -1,6 +1,6 @@
 from src.financial.expense_tracker import (
     add_expense,
-    view_expenses,
+    get_expenses,
     calculate_total,
     load_expenses,
     delete_expense,
@@ -17,6 +17,22 @@ def show_menu() -> None:
     print("4. Delete expense")
     print("5. Update expense")
     print("6. Exit")
+
+def display_expenses() -> None:
+    """Display all recorded expenses."""
+    expenses = get_expenses()
+
+    if not expenses:
+        print("No expenses recorded yet.")
+        return
+
+    print("\nExpenses:")
+    for expense in expenses:
+        print(
+            f"ID {expense.id}: {expense.name} | "
+            f"{expense.category} | "
+            f"${expense.amount:.2f}"
+        )
 
 
 def run_cli() -> None:
@@ -42,13 +58,13 @@ def run_cli() -> None:
             print("Expense added successfully!")
 
         elif choice == "2":
-            view_expenses()
+            display_expenses()
 
         elif choice == "3":
             calculate_total()
 
         elif choice == "4":
-            view_expenses()
+            display_expenses()
 
             expense_id_text = input("Enter the expense ID to delete: ")
 
@@ -66,7 +82,46 @@ def run_cli() -> None:
                 print(f"Deleted expense: {deleted_expense.name}")
 
         elif choice == "5":
-            update_expense()
+            display_expenses()
+
+            expense_id_text = input("Enter the expense ID to update: ")
+
+            try:
+                expense_id = int(expense_id_text)
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                continue
+
+            new_name = input("New name (press Enter to keep unchanged): ")
+            new_category = input("New category (press Enter to keep unchanged): ")
+            new_amount_text = input("New amount (press Enter to keep unchanged): ")
+
+            name = new_name.strip() if new_name.strip() else None
+            category = new_category.strip() if new_category.strip() else None
+            amount = None
+
+            if new_amount_text.strip():
+                try:
+                    amount = float(new_amount_text)
+                except ValueError:
+                    print("Invalid amount. Please enter a number.")
+                    continue
+
+                if amount < 0:
+                    print("Amount cannot be negative.")
+                    continue
+
+            updated_expense = update_expense(
+                expense_id=expense_id,
+                name=name,
+                category=category,
+                amount=amount,
+            )
+
+            if updated_expense is None:
+                print("Expense not found.")
+            else:
+                print(f"Updated expense: {updated_expense.name}")
 
         elif choice == "6":
             print("Goodbye!")
