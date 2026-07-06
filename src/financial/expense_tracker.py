@@ -75,9 +75,6 @@ def view_expenses() -> None:
     """
     Display all recorded expenses.
 
-    Prints each expense in the expenses list along with its
-    number, name, category, and amount formatted as currency.
-
     Returns:
         None
     """
@@ -86,15 +83,14 @@ def view_expenses() -> None:
         return
 
     print("\nExpenses:")
-    for index, expense in enumerate(expenses, start=1):
+    for expense in expenses:
         print(
-            f"{index}. {expense.name} | "
+            f"ID {expense.id}: {expense.name} | "
             f"{expense.category} | "
             f"${expense.amount:.2f}"
         )
 
-
-def delete_expense() -> None:
+def delete_expense(expense_id: int) -> Expense | None:
     """
     Delete an expense from the expense tracker.
 

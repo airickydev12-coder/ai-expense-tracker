@@ -48,7 +48,22 @@ def run_cli() -> None:
             calculate_total()
 
         elif choice == "4":
-            delete_expense()
+            view_expenses()
+
+            expense_id_text = input("Enter the expense ID to delete: ")
+
+            try:
+                expense_id = int(expense_id_text)
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                continue
+
+            deleted_expense = delete_expense(expense_id)
+
+            if deleted_expense is None:
+                print("Expense not found.")
+            else:
+                print(f"Deleted expense: {deleted_expense.name}")
 
         elif choice == "5":
             update_expense()

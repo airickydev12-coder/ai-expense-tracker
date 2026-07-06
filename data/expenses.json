@@ -22,5 +22,11 @@
         "name": "Nike shoes",
         "category": "Clothing",
         "amount": 136.87
+    },
+    {
+        "id": 5,
+        "name": "Nails",
+        "category": "Maintenance",
+        "amount": 9.99
     }
 ]
