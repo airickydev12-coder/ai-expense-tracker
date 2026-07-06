@@ -35,3 +35,40 @@ def get_highest_expense(expenses: list[Expense]) -> Expense | None:
         return None
 
     return max(expenses, key=lambda expense: expense.amount)
+
+def get_lowest_expense(expenses: list[Expense]) -> Expense | None:
+    """
+    Find the expense with the lowest amount.
+
+    Args:
+        expenses: List of expenses.
+
+    Returns:
+        Expense | None: The lowest expense, or None if the list is empty.
+    """
+    if not expenses:
+        return None
+
+    return min(expenses, key=lambda expense: expense.amount)
+
+def get_category_totals(expenses: list[Expense]) -> dict[str, float]:
+    """
+    Calculate total spending by category.
+
+    Args:
+        expenses: List of expenses.
+
+    Returns:
+        dict[str, float]: Category names mapped to total spending.
+    """
+    totals: dict[str, float] = {}
+
+    for expense in expenses:
+        category_name = expense.category.value
+
+        if category_name not in totals:
+            totals[category_name] = 0.0
+
+        totals[category_name] += expense.amount
+
+    return totals
