@@ -20,3 +20,18 @@ def get_average(expenses: list[Expense]) -> float:
         return 0.0
 
     return get_total(expenses) / len(expenses)
+
+def get_highest_expense(expenses: list[Expense]) -> Expense | None:
+    """
+    Find the expense with the highest amount.
+
+    Args:
+        expenses: List of expenses.
+
+    Returns:
+        Expense | None: The highest expense, or None if the list is empty.
+    """
+    if not expenses:
+        return None
+
+    return max(expenses, key=lambda expense: expense.amount)
