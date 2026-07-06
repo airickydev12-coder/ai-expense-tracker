@@ -13,9 +13,9 @@
     },
     {
         "id": 3,
-        "name": "Hamburger",
+        "name": "Hamburger with Cheese",
         "category": "Food",
-        "amount": 6.0
+        "amount": 6.75
     },
     {
         "id": 4,

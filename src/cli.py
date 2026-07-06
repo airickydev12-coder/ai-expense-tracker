@@ -1,7 +1,7 @@
 from src.financial.expense_tracker import (
     add_expense,
     get_expenses,
-    calculate_total,
+    get_total,
     load_expenses,
     delete_expense,
     update_expense,
@@ -17,6 +17,7 @@ def show_menu() -> None:
     print("4. Delete expense")
     print("5. Update expense")
     print("6. Exit")
+
 
 def display_expenses() -> None:
     """Display all recorded expenses."""
@@ -61,7 +62,8 @@ def run_cli() -> None:
             display_expenses()
 
         elif choice == "3":
-            calculate_total()
+            total = get_total()
+            print(f"Total spending: ${total:.2f}")
 
         elif choice == "4":
             display_expenses()
