@@ -26,3 +26,23 @@ def get_budget_variance(
     )
 
     return budget.limit - spent
+
+def get_budget_status(
+    budget: Budget,
+    expenses: list[Expense],
+) -> str:
+    """
+    Return budget status based on remaining budget.
+
+    Returns:
+        str: "Under Budget", "On Budget", or "Over Budget".
+    """
+    variance = get_budget_variance(budget, expenses)
+
+    if variance > 0:
+        return "Under Budget"
+
+    if variance < 0:
+        return "Over Budget"
+
+    return "On Budget"
