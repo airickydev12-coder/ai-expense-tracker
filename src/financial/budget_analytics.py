@@ -1,7 +1,6 @@
 from src.financial.budget_models import Budget
 from src.financial.models import Expense
 
-
 def get_budget_variance(
     budget: Budget,
     expenses: list[Expense],
@@ -46,3 +45,33 @@ def get_budget_status(
         return "Over Budget"
 
     return "On Budget"
+
+def get_budget_summary(
+    budget: Budget,
+    expenses: list[Expense],
+) -> dict:
+    """
+    Return a summary of budget performance.
+
+    Args:
+        budget: Budget to evaluate.
+        expenses: Expenses to compare.
+
+    Returns:
+        dict: Budget summary data.
+    """
+    spent = sum(
+        expense.amount
+        for expense in expenses
+        if expense.category == budget.category
+    )
+    remaining = get_budget_variance(budget, expenses)
+    status = get_budget_status(budget, expenses)
+
+    return {
+        "category": budget.category.value,
+        "limit": budget.limit,
+        "spent": spent,
+        "remaining": remaining,
+        "status": status,
+    }

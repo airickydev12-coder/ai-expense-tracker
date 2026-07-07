@@ -4,6 +4,7 @@ from src.financial.categories import ExpenseCategory
 from src.financial.models import Expense
 from src.financial.budget_analytics import (
     get_budget_status,
+    get_budget_summary,
     get_budget_variance,
 )
 
@@ -97,3 +98,18 @@ def test_get_budget_status_on_budget():
     ]
 
     assert get_budget_status(budget, expenses) == "On Budget"
+
+def test_get_budget_summary():
+    budget = Budget(category=ExpenseCategory.FOOD, limit=100)
+    expenses = [
+        Expense(id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=5),
+        Expense(id=2, name="Lunch", category=ExpenseCategory.FOOD, amount=15),
+    ]
+
+    summary = get_budget_summary(budget, expenses)
+
+    assert summary["category"] == "Food"
+    assert summary["limit"] == 100
+    assert summary["spent"] == 20
+    assert summary["remaining"] == 80
+    assert summary["status"] == "Under Budget"
