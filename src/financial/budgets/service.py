@@ -57,3 +57,13 @@ def get_budget_by_category(
             return budget
 
     return None
+
+def delete_budget(category: ExpenseCategory) -> Budget | None:
+    """Delete a budget by category."""
+    for index, budget in enumerate(budgets):
+        if budget.category == category:
+            deleted_budget = budgets.pop(index)
+            save_budgets()
+            return deleted_budget
+
+    return None

@@ -3,6 +3,7 @@ from src.financial.budgets.service import (
     budgets,
     get_budget_by_category,
     get_budgets,
+    delete_budget,
 )
 
 from src.financial.shared.categories import ExpenseCategory
@@ -45,3 +46,14 @@ def test_get_budget_by_category():
 
     assert budget is not None
     assert budget.limit == 500
+
+def test_delete_budget():
+    budgets.clear()
+
+    add_budget(ExpenseCategory.FOOD, 500)
+
+    deleted_budget = delete_budget(ExpenseCategory.FOOD)
+
+    assert deleted_budget is not None
+    assert deleted_budget.category == ExpenseCategory.FOOD
+    assert len(get_budgets()) == 0
