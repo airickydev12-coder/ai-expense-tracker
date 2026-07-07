@@ -8,6 +8,7 @@ from src.financial.expenses.models import Expense
 from src.financial.goals.models import Goal
 from src.financial.income.analytics import get_total_income
 from src.financial.income.models import Income
+from src.financial.insights.insight_engine import generate_insights
 from src.financial.reports.budget_report import build_budget_report
 
 
@@ -41,6 +42,15 @@ def build_financial_snapshot(
 
     health_status = get_health_status(health_score)
 
+    insights = generate_insights(
+        {
+            "net_cash_flow": net_cash_flow,
+            "total_debt": total_debt,
+            "total_account_balance": total_account_balance,
+            "health_score": health_score,
+        }
+    )
+
     return {
         "total_income": total_income,
         "total_expenses": total_expenses,
@@ -52,4 +62,5 @@ def build_financial_snapshot(
         "budget_report": budget_report,
         "health_score": health_score,
         "health_status": health_status,
+        "insights": insights,
     }
