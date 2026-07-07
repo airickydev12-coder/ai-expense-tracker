@@ -1,6 +1,6 @@
 from src.financial.budgets.analytics import get_budget_variance
 from src.financial.budgets.models import Budget
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 from src.financial.expenses.models import Expense
 from src.financial.budgets.analytics import (
     get_budget_status,

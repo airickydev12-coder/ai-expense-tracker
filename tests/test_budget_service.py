@@ -5,7 +5,7 @@ from src.financial.budgets.service import (
     get_budgets,
 )
 
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 
 
 def test_add_budget():
@@ -29,6 +29,7 @@ def test_get_budgets():
     )
 
     assert len(get_budgets()) == 1
+
 
 def test_get_budget_by_category():
     budgets.clear()

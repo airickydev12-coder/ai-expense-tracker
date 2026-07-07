@@ -3,7 +3,7 @@ from src.financial.budgets.repository import (
     load_budgets_from_file,
     save_budgets_to_file,
 )
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 
 
 budgets: list[Budget] = []
@@ -38,6 +38,7 @@ def add_budget(category: ExpenseCategory, limit: float) -> Budget:
     save_budgets()
 
     return budget
+
 
 def get_budget_by_category(
     category: ExpenseCategory,

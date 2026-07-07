@@ -1,4 +1,4 @@
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 from src.financial.expenses.models import Expense
 from src.financial.expenses.service import expenses
 from src.financial.expenses.analytics import (

@@ -6,7 +6,7 @@ from src.financial.expenses.analytics import (
 )
 from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import get_budgets
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 from src.financial.expenses.service import get_expenses
 
 

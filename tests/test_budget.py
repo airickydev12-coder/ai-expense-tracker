@@ -1,7 +1,7 @@
 import pytest
 
 from src.financial.budgets.models import Budget
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 
 
 def test_budget_creation():

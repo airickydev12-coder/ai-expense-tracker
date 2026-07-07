@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 
 
 @dataclass

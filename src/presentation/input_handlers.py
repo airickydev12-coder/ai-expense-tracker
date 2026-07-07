@@ -1,4 +1,4 @@
-from src.financial.categories import ExpenseCategory
+from src.financial.shared.categories import ExpenseCategory
 from src.presentation.views import display_categories
 
 
