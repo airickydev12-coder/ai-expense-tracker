@@ -12,6 +12,7 @@ from src.presentation.input_handlers import select_category
 from src.presentation.views import (
     display_budget_summary,
     display_category_totals,
+    display_current_budgets,
     display_dashboard,
     display_expenses,
     display_saved_budget_summaries,
@@ -126,6 +127,8 @@ def run_cli() -> None:
             display_category_totals()
 
         elif choice == "7":
+            display_current_budgets()
+
             print("\nManage Budgets")
             print("1. Create / Update Budget")
             print("2. Delete Budget")

@@ -124,3 +124,20 @@ def display_saved_budget_summaries() -> None:
             f"Remaining ${summary['remaining']:.2f} | "
             f"{summary['status']}"
         )
+
+def display_current_budgets() -> None:
+    """Display all configured budgets."""
+    budgets = get_budgets()
+
+    if not budgets:
+        print("\nNo budgets have been created yet.")
+        return
+
+    print("\nCurrent Budgets")
+    print("----------------")
+
+    for budget in budgets:
+        print(
+            f"{budget.category.value:<20}"
+            f"${budget.limit:>8.2f}"
+        )
