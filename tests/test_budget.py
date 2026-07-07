@@ -1,6 +1,6 @@
 import pytest
 
-from src.financial.budget_models import Budget
+from src.financial.budgets.models import Budget
 from src.financial.categories import ExpenseCategory
 
 

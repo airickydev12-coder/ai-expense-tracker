@@ -1,13 +1,14 @@
 from src.financial.categories import ExpenseCategory
-from src.financial.models import Expense
-from src.financial.expense_tracker import expenses
-from src.financial.analytics import (
+from src.financial.expenses.models import Expense
+from src.financial.expenses.service import expenses
+from src.financial.expenses.analytics import (
     get_average,
     get_category_totals,
     get_highest_expense,
     get_lowest_expense,
     get_total,
 )
+
 
 def test_get_total():
     expenses.clear()
@@ -22,6 +23,7 @@ def test_get_total():
     total = get_total(expenses)
 
     assert total == 9.25
+
 
 def test_get_average():
     expenses.clear()
@@ -47,6 +49,7 @@ def test_get_average():
     average = get_average(expenses)
 
     assert average == 10.00
+
 
 def test_get_highest_expense():
     expenses.clear()
@@ -75,6 +78,7 @@ def test_get_highest_expense():
     assert highest.name == "Shoes"
     assert highest.amount == 120.00
 
+
 def test_get_lowest_expense():
     expenses.clear()
 
@@ -101,6 +105,7 @@ def test_get_lowest_expense():
     assert lowest is not None
     assert lowest.name == "Coffee"
     assert lowest.amount == 5.00
+
 
 def test_get_category_totals():
     expenses.clear()
@@ -136,4 +141,3 @@ def test_get_category_totals():
 
     assert totals["Food"] == 20.00
     assert totals["Transportation"] == 40.00
-

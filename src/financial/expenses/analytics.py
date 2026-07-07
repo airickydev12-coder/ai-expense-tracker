@@ -1,4 +1,4 @@
-from src.financial.models import Expense
+from src.financial.expenses.models import Expense
 
 
 def get_total(expenses: list[Expense]) -> float:
@@ -21,6 +21,7 @@ def get_average(expenses: list[Expense]) -> float:
 
     return get_total(expenses) / len(expenses)
 
+
 def get_highest_expense(expenses: list[Expense]) -> Expense | None:
     """
     Find the expense with the highest amount.
@@ -36,6 +37,7 @@ def get_highest_expense(expenses: list[Expense]) -> Expense | None:
 
     return max(expenses, key=lambda expense: expense.amount)
 
+
 def get_lowest_expense(expenses: list[Expense]) -> Expense | None:
     """
     Find the expense with the lowest amount.
@@ -50,6 +52,7 @@ def get_lowest_expense(expenses: list[Expense]) -> Expense | None:
         return None
 
     return min(expenses, key=lambda expense: expense.amount)
+
 
 def get_category_totals(expenses: list[Expense]) -> dict[str, float]:
     """

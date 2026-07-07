@@ -1,7 +1,7 @@
 import json
 
 from src.core.config import DATA_FILE
-from src.financial.models import Expense
+from src.financial.expenses.models import Expense
 
 
 def load_expenses_from_file() -> list[Expense]:

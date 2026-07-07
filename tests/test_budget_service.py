@@ -1,8 +1,10 @@
-from src.financial.budget_service import (
+from src.financial.budgets.service import (
     add_budget,
     budgets,
+    get_budget_by_category,
     get_budgets,
 )
+
 from src.financial.categories import ExpenseCategory
 
 
@@ -27,3 +29,18 @@ def test_get_budgets():
     )
 
     assert len(get_budgets()) == 1
+
+def test_get_budget_by_category():
+    budgets.clear()
+
+    add_budget(
+        ExpenseCategory.FOOD,
+        500,
+    )
+
+    budget = get_budget_by_category(
+        ExpenseCategory.FOOD,
+    )
+
+    assert budget is not None
+    assert budget.limit == 500

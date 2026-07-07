@@ -1,13 +1,14 @@
-from src.financial.categories import ExpenseCategory
-from src.financial.expense_tracker import get_expenses
-from src.financial.analytics import (
+from src.financial.expenses.analytics import (
     get_average,
     get_category_totals,
     get_highest_expense,
     get_total,
 )
-from src.financial.budget_service import get_budgets
-from src.financial.budget_analytics import get_budget_summary
+from src.financial.budgets.analytics import get_budget_summary
+from src.financial.budgets.service import get_budgets
+from src.financial.categories import ExpenseCategory
+from src.financial.expenses.service import get_expenses
+
 
 def display_dashboard() -> None:
     """Display a financial dashboard summary."""
@@ -35,22 +36,27 @@ def display_dashboard() -> None:
 
     if category_totals:
         top_category = max(category_totals, key=category_totals.get)
-        print(f"Top Category:       {top_category} - ${category_totals[top_category]:.2f}")
+        print(
+            f"Top Category:       {top_category} - "
+            f"${category_totals[top_category]:.2f}"
+        )
 
     print("==============================")
+
 
 def show_menu() -> None:
     """Display the main menu."""
     print("\nFinancial Core")
-    print("1. Add expense")
-    print("2. View expenses")
-    print("3. View total spending")
-    print("4. Delete expense")
-    print("5. Update expense")
-    print("6. View category totals")
-    print("7. View budget summary")
-    print("8. View saved budget summaries")
+    print("1. Add Expense")
+    print("2. View Expenses")
+    print("3. View Total Spending")
+    print("4. Delete Expense")
+    print("5. Update Expense")
+    print("6. View Category Totals")
+    print("7. Manage Budgets")
+    print("8. View Budget Report")
     print("9. Exit")
+
 
 def display_categories() -> None:
     """Display available expense categories."""
@@ -88,6 +94,7 @@ def display_category_totals() -> None:
     for category, total in totals.items():
         print(f"{category}: ${total:.2f}")
 
+
 def display_budget_summary(summary: dict) -> None:
     """Display a budget summary report."""
     print("\nBudget Summary:")
@@ -96,6 +103,8 @@ def display_budget_summary(summary: dict) -> None:
     print(f"Spent:     ${summary['spent']:.2f}")
     print(f"Remaining: ${summary['remaining']:.2f}")
     print(f"Status:    {summary['status']}")
+
+
 def display_saved_budget_summaries() -> None:
     """Display summaries for all saved budgets."""
     budgets = get_budgets()
@@ -105,7 +114,7 @@ def display_saved_budget_summaries() -> None:
         print("No budgets configured yet.")
         return
 
-    print("\nSaved Budget Summaries:")
+    print("\nBudget Report:")
     for budget in budgets:
         summary = get_budget_summary(budget, expenses)
         print(

@@ -1,5 +1,5 @@
-from src.financial.models import Expense
-from src.financial.repository import (
+from src.financial.expenses.models import Expense
+from src.financial.expenses.repository import (
     load_expenses_from_file,
     save_expenses_to_file,
 )
@@ -87,8 +87,6 @@ def update_expense(
             return expense
 
     return None
-
-
 
 
 def calculate_total() -> None:

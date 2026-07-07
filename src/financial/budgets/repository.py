@@ -1,7 +1,7 @@
 import json
 
 from src.core.config import DATA_DIR
-from src.financial.budget_models import Budget
+from src.financial.budgets.models import Budget
 
 
 BUDGET_FILE = DATA_DIR / "budgets.json"
