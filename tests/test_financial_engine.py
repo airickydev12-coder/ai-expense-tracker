@@ -62,3 +62,5 @@ def test_build_financial_snapshot():
     assert snapshot["total_debt"] == 1000
     assert snapshot["net_worth"] == 3500
     assert len(snapshot["budget_report"]) == 1
+    assert snapshot["health_score"] == 85
+    assert snapshot["health_status"] == "Excellent"

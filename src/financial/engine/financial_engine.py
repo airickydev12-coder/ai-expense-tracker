@@ -1,6 +1,8 @@
 from src.financial.accounts.models import Account
 from src.financial.budgets.models import Budget
 from src.financial.debt.models import Debt
+from src.financial.engine.health_score import calculate_health_score
+from src.financial.engine.health_status import get_health_status
 from src.financial.expenses.analytics import get_total
 from src.financial.expenses.models import Expense
 from src.financial.goals.models import Goal
@@ -27,6 +29,18 @@ def build_financial_snapshot(
     net_worth = total_account_balance + total_goal_progress - total_debt
     budget_report = build_budget_report(budgets, expenses)
 
+    health_score = calculate_health_score(
+        {
+            "net_cash_flow": net_cash_flow,
+            "total_debt": total_debt,
+            "total_account_balance": total_account_balance,
+            "total_goal_progress": total_goal_progress,
+            "net_worth": net_worth,
+        }
+    )
+
+    health_status = get_health_status(health_score)
+
     return {
         "total_income": total_income,
         "total_expenses": total_expenses,
@@ -36,4 +50,6 @@ def build_financial_snapshot(
         "total_debt": total_debt,
         "net_worth": net_worth,
         "budget_report": budget_report,
+        "health_score": health_score,
+        "health_status": health_status,
     }
