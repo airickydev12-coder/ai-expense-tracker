@@ -8,7 +8,7 @@ from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import get_budgets
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.expenses.service import get_expenses
-
+from src.financial.reports.budget_report import build_budget_report
 
 def display_dashboard() -> None:
     """Display a financial dashboard summary."""
@@ -114,9 +114,10 @@ def display_saved_budget_summaries() -> None:
         print("No budgets configured yet.")
         return
 
+    report = build_budget_report(budgets, expenses)
+
     print("\nBudget Report:")
-    for budget in budgets:
-        summary = get_budget_summary(budget, expenses)
+    for summary in report:
         print(
             f"{summary['category']}: "
             f"Limit ${summary['limit']:.2f} | "
