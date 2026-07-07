@@ -86,3 +86,11 @@ def display_category_totals() -> None:
     for category, total in totals.items():
         print(f"{category}: ${total:.2f}")
 
+def display_budget_summary(summary: dict) -> None:
+    """Display a budget summary report."""
+    print("\nBudget Summary:")
+    print(f"Category:  {summary['category']}")
+    print(f"Limit:     ${summary['limit']:.2f}")
+    print(f"Spent:     ${summary['spent']:.2f}")
+    print(f"Remaining: ${summary['remaining']:.2f}")
+    print(f"Status:    {summary['status']}")

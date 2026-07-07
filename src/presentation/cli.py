@@ -8,9 +8,10 @@ from src.financial.expense_tracker import (
     update_expense,
 )
 from src.presentation.views import (
+    display_budget_summary,
+    display_categories,
     display_category_totals,
     display_dashboard,
-    display_categories,
     display_expenses,
     show_menu,
 )
@@ -123,8 +124,6 @@ def run_cli() -> None:
         elif choice == "6":
             display_category_totals()
 
-        elif choice == "7":
-            print("View budget summary")
         
         elif choice == "7":
             category = select_category()
@@ -143,12 +142,7 @@ def run_cli() -> None:
             budget = Budget(category=category, limit=limit)
             summary = get_budget_summary(budget, get_expenses())
 
-            print("\nBudget Summary:")
-            print(f"Category:  {summary['category']}")
-            print(f"Limit:     ${summary['limit']:.2f}")
-            print(f"Spent:     ${summary['spent']:.2f}")
-            print(f"Remaining: ${summary['remaining']:.2f}")
-            print(f"Status:    {summary['status']}")
+            display_budget_summary(summary)
 
         elif choice == "8":
             print("Goodbye!")
