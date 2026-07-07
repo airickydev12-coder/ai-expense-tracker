@@ -1,6 +1,6 @@
 from src.financial.expenses.analytics import get_total
 from src.financial.budgets.analytics import get_budget_summary
-from src.financial.budgets.service import add_budget, load_budgets
+from src.financial.budgets.service import add_budget, delete_budget, load_budgets
 from src.financial.expenses.service import (
     add_expense,
     delete_expense,
@@ -126,23 +126,51 @@ def run_cli() -> None:
             display_category_totals()
 
         elif choice == "7":
-            category = select_category()
+            print("\nManage Budgets")
+            print("1. Create / Update Budget")
+            print("2. Delete Budget")
+            print("3. Back")
 
-            if category is None:
+            budget_choice = input("Choose an option: ")
+
+            if budget_choice == "1":
+                category = select_category()
+
+                if category is None:
+                    continue
+
+                limit_text = input("Enter budget limit: ")
+
+                try:
+                    limit = float(limit_text)
+                except ValueError:
+                    print("Invalid budget limit. Please enter a number.")
+                    continue
+
+                budget = add_budget(category, limit)
+                summary = get_budget_summary(budget, get_expenses())
+
+                print("\nBudget saved successfully.")
+                display_budget_summary(summary)
+
+            elif budget_choice == "2":
+                category = select_category()
+
+                if category is None:
+                    continue
+
+                deleted_budget = delete_budget(category)
+
+                if deleted_budget is None:
+                    print("Budget not found.")
+                else:
+                    print(f"Deleted budget for {deleted_budget.category.value}.")
+
+            elif budget_choice == "3":
                 continue
 
-            limit_text = input("Budget limit: ")
-
-            try:
-                limit = float(limit_text)
-            except ValueError:
-                print("Invalid budget limit. Please enter a number.")
-                continue
-
-            budget = add_budget(category, limit)
-            summary = get_budget_summary(budget, get_expenses())
-
-            display_budget_summary(summary)
+            else:
+                print("Invalid budget option.")
 
         elif choice == "8":
             display_saved_budget_summaries()
