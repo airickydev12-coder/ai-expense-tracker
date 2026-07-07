@@ -6,7 +6,6 @@ from src.financial.analytics import (
     get_highest_expense,
     get_total,
 )
-from src.financial.expense_tracker import get_expenses
 
 def display_dashboard() -> None:
     """Display a financial dashboard summary."""
@@ -47,7 +46,8 @@ def show_menu() -> None:
     print("4. Delete expense")
     print("5. Update expense")
     print("6. View category totals")
-    print("7. Exit")
+    print("7. View budget summary")
+    print("8. Exit")
 
 
 def display_categories() -> None:

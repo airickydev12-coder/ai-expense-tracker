@@ -15,6 +15,8 @@ from src.presentation.views import (
     show_menu,
 )
 
+from src.financial.budget_analytics import get_budget_summary
+from src.financial.budget_models import Budget
 
 def run_cli() -> None:
     """Run the command-line interface."""
@@ -122,8 +124,39 @@ def run_cli() -> None:
             display_category_totals()
 
         elif choice == "7":
+            print("View budget summary")
+        
+        elif choice == "7":
+            category = select_category()
+
+            if category is None:
+                continue
+
+            limit_text = input("Budget limit: ")
+
+            try:
+                limit = float(limit_text)
+            except ValueError:
+                print("Invalid budget limit. Please enter a number.")
+                continue
+
+            budget = Budget(category=category, limit=limit)
+            summary = get_budget_summary(budget, get_expenses())
+
+            print("\nBudget Summary:")
+            print(f"Category:  {summary['category']}")
+            print(f"Limit:     ${summary['limit']:.2f}")
+            print(f"Spent:     ${summary['spent']:.2f}")
+            print(f"Remaining: ${summary['remaining']:.2f}")
+            print(f"Status:    {summary['status']}")
+
+        elif choice == "8":
             print("Goodbye!")
             break
 
+        elif choice == "8":
+            print("Exit")
+            break
+
         else:
-            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, or 7.")
+            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, 7, or 8.")
