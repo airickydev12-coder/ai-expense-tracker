@@ -6,6 +6,8 @@ from src.financial.analytics import (
     get_highest_expense,
     get_total,
 )
+from src.financial.budget_service import get_budgets
+from src.financial.budget_analytics import get_budget_summary
 
 def display_dashboard() -> None:
     """Display a financial dashboard summary."""
@@ -47,8 +49,8 @@ def show_menu() -> None:
     print("5. Update expense")
     print("6. View category totals")
     print("7. View budget summary")
-    print("8. Exit")
-
+    print("8. View saved budget summaries")
+    print("9. Exit")
 
 def display_categories() -> None:
     """Display available expense categories."""
@@ -94,3 +96,22 @@ def display_budget_summary(summary: dict) -> None:
     print(f"Spent:     ${summary['spent']:.2f}")
     print(f"Remaining: ${summary['remaining']:.2f}")
     print(f"Status:    {summary['status']}")
+def display_saved_budget_summaries() -> None:
+    """Display summaries for all saved budgets."""
+    budgets = get_budgets()
+    expenses = get_expenses()
+
+    if not budgets:
+        print("No budgets configured yet.")
+        return
+
+    print("\nSaved Budget Summaries:")
+    for budget in budgets:
+        summary = get_budget_summary(budget, expenses)
+        print(
+            f"{summary['category']}: "
+            f"Limit ${summary['limit']:.2f} | "
+            f"Spent ${summary['spent']:.2f} | "
+            f"Remaining ${summary['remaining']:.2f} | "
+            f"{summary['status']}"
+        )

@@ -1,3 +1,4 @@
+from src.financial.budget_service import load_budgets
 from src.financial.analytics import get_total
 from src.presentation.input_handlers import select_category
 from src.financial.expense_tracker import (
@@ -7,12 +8,14 @@ from src.financial.expense_tracker import (
     load_expenses,
     update_expense,
 )
+
 from src.presentation.views import (
     display_budget_summary,
     display_categories,
     display_category_totals,
     display_dashboard,
     display_expenses,
+    display_saved_budget_summaries,
     show_menu,
 )
 
@@ -22,6 +25,7 @@ from src.financial.budget_models import Budget
 def run_cli() -> None:
     """Run the command-line interface."""
     load_expenses()
+    load_budgets()
     display_dashboard()
 
     while True:
@@ -145,12 +149,11 @@ def run_cli() -> None:
             display_budget_summary(summary)
 
         elif choice == "8":
-            print("Goodbye!")
-            break
+            display_saved_budget_summaries()
 
-        elif choice == "8":
+        elif choice == "9":
             print("Exit")
             break
 
         else:
-            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, 7, or 8.")
+            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, 7, 8, or 9.")
