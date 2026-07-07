@@ -9,6 +9,7 @@ from src.financial.expense_tracker import (
 )
 from src.presentation.views import (
     display_category_totals,
+    display_dashboard,
     display_categories,
     display_expenses,
     show_menu,
@@ -18,6 +19,7 @@ from src.presentation.views import (
 def run_cli() -> None:
     """Run the command-line interface."""
     load_expenses()
+    display_dashboard()
 
     while True:
         show_menu()
