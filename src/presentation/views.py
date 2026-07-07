@@ -23,6 +23,8 @@ def display_dashboard() -> None:
     average = get_average(expenses)
     highest = get_highest_expense(expenses)
     category_totals = get_category_totals(expenses)
+    budgets = get_budgets()
+    budget_report = build_budget_report(budgets, expenses)
 
     print("\n==============================")
     print("        Financial Core")
@@ -40,6 +42,15 @@ def display_dashboard() -> None:
             f"Top Category:       {top_category} - "
             f"${category_totals[top_category]:.2f}"
         )
+
+    if budget_report:
+        print("\nBudget Status:")
+        for summary in budget_report:
+            print(
+                f"{summary['category']}: "
+                f"{summary['status']} "
+                f"(${summary['remaining']:.2f} remaining)"
+            )
 
     print("==============================")
 
