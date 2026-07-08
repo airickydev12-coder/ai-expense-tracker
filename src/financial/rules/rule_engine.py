@@ -4,6 +4,7 @@ from src.financial.rules.cash_flow_rule import NegativeCashFlowRule
 from src.financial.rules.debt_rule import DebtRatioRule
 from src.financial.rules.emergency_fund_rule import EmergencyFundRule
 from src.financial.rules.savings_rate_rule import SavingsRateRule
+from src.financial.rules.goal_progress_rule import GoalProgressRule
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -37,5 +38,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(DebtRatioRule())
     engine.register(EmergencyFundRule())
     engine.register(SavingsRateRule())
+    engine.register(GoalProgressRule())
 
     return engine
