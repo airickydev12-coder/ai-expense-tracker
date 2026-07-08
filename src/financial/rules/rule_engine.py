@@ -9,6 +9,7 @@ from src.financial.rules.bill_due_rule import BillDueSoonRule
 from src.financial.rules.net_worth_rule import NetWorthRule
 from src.financial.rules.health_score_rule import HealthScoreRule
 from src.financial.rules.budget_overrun_rule import BudgetOverrunRule
+from src.financial.rules.debt_minimum_payment_rule import DebtMinimumPaymentRule
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -47,5 +48,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(NetWorthRule())
     engine.register(HealthScoreRule())
     engine.register(BudgetOverrunRule())
+    engine.register(DebtMinimumPaymentRule())
 
     return engine
