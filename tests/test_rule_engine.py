@@ -13,7 +13,9 @@ def test_rule_engine_returns_recommendations():
     results = engine.evaluate(snapshot)
 
     assert len(results) == 1
-    assert "expenses exceed your income" in results[0]
+    assert results[0].title == "Negative Cash Flow"
+    assert results[0].category == "Cash Flow"
+    assert results[0].priority == "Critical"
 
 
 def test_rule_engine_returns_empty_list():

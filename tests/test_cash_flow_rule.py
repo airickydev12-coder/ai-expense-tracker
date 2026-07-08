@@ -10,7 +10,10 @@ def test_negative_cash_flow_rule_returns_recommendation():
 
     result = rule.evaluate(snapshot)
 
-    assert result == "Your expenses exceed your income. Reduce spending or increase income."
+    assert result is not None
+    assert result.priority == "Critical"
+    assert result.category == "Cash Flow"
+    assert result.title == "Negative Cash Flow"
 
 
 def test_negative_cash_flow_rule_returns_none():

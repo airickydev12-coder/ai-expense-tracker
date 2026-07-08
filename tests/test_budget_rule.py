@@ -17,7 +17,10 @@ def test_budget_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Food" in result
+    assert result.priority == "High"
+    assert result.category == "Budget"
+    assert result.title == "Budget Nearly Exhausted"
+    assert "Food" in result.message
 
 
 def test_budget_rule_returns_none():

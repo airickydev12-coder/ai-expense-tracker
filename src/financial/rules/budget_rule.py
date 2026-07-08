@@ -1,10 +1,11 @@
 from src.financial.rules.base_rule import FinancialRule
+from src.financial.rules.recommendation import Recommendation
 
 
 class BudgetUtilizationRule(FinancialRule):
     """Warn when a budget is nearly exhausted."""
 
-    def evaluate(self, snapshot: dict) -> str | None:
+    def evaluate(self, snapshot: dict) -> Recommendation | None:
         """Return a recommendation for high budget utilization."""
         for budget in snapshot.get("budget_report", []):
             limit = budget["limit"]
@@ -16,9 +17,15 @@ class BudgetUtilizationRule(FinancialRule):
             utilization = spent / limit
 
             if utilization >= 0.90:
-                return (
-                    f"Your {budget['category']} budget is "
-                    f"{utilization:.0%} utilized."
+                return Recommendation(
+                    priority="High",
+                    category="Budget",
+                    title="Budget Nearly Exhausted",
+                    message=(
+                        f"Your {budget['category']} budget is "
+                        f"{utilization:.0%} utilized."
+                    ),
+                    action="Review recent spending in this category.",
                 )
 
         return None
