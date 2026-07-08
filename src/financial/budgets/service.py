@@ -58,6 +58,7 @@ def get_budget_by_category(
 
     return None
 
+
 def delete_budget(category: ExpenseCategory) -> Budget | None:
     """Delete a budget by category."""
     for index, budget in enumerate(budgets):
