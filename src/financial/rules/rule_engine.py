@@ -24,6 +24,9 @@ from src.financial.rules.spending_concentration_rule import (
     SpendingConcentrationRule,
 )
 from src.financial.rules.debt_to_income_rule import DebtToIncomeRule
+from src.financial.rules.positive_cash_flow_rule import (
+    PositiveCashFlowAllocationRule,
+)
 
 
 
@@ -75,6 +78,7 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(ZeroIncomeRule())
     engine.register(SpendingConcentrationRule())
     engine.register(DebtToIncomeRule())
+    engine.register(PositiveCashFlowAllocationRule())
     
 
     return engine
