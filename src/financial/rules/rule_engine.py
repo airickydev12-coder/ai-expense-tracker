@@ -23,6 +23,10 @@ from src.financial.rules.spending_concentration_rule import (
 from src.financial.rules.spending_concentration_rule import (
     SpendingConcentrationRule,
 )
+from src.financial.rules.debt_to_income_rule import DebtToIncomeRule
+
+
+
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -70,6 +74,7 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(ExpenseSpikeRule())
     engine.register(ZeroIncomeRule())
     engine.register(SpendingConcentrationRule())
-    engine.register(SpendingConcentrationRule())
+    engine.register(DebtToIncomeRule())
+    
 
     return engine
