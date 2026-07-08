@@ -15,6 +15,7 @@ from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
 from src.financial.rules.goal_completion_rule import GoalCompletionRule
 from src.financial.rules.goal_progress_threshold_rule import GoalProgressThresholdRule
 from src.financial.rules.income_coverage_rule import IncomeCoverageRule
+from src.financial.rules.expense_spike_rule import ExpenseSpikeRule
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -59,5 +60,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(GoalCompletionRule())
     engine.register(GoalProgressThresholdRule())
     engine.register(IncomeCoverageRule())
+    engine.register(ExpenseSpikeRule())
 
     return engine
