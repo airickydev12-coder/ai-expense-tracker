@@ -28,7 +28,9 @@ from src.financial.rules.positive_cash_flow_rule import (
     PositiveCashFlowAllocationRule,
 )
 from src.financial.rules.debt_payoff_priority_rule import DebtPayoffPriorityRule
-
+from src.financial.rules.financial_independence_rule import (
+    FinancialIndependenceRule,
+)
 
 
 class RuleEngine:
@@ -80,6 +82,7 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(DebtToIncomeRule())
     engine.register(PositiveCashFlowAllocationRule())
     engine.register(DebtPayoffPriorityRule())
+    engine.register(FinancialIndependenceRule())
     
 
     return engine
