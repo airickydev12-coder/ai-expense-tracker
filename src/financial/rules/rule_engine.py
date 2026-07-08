@@ -14,6 +14,7 @@ from src.financial.rules.high_interest_debt_rule import HighInterestDebtRule
 from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
 from src.financial.rules.goal_completion_rule import GoalCompletionRule
 from src.financial.rules.goal_progress_threshold_rule import GoalProgressThresholdRule
+from src.financial.rules.income_coverage_rule import IncomeCoverageRule
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -57,5 +58,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(LowAccountBalanceRule())
     engine.register(GoalCompletionRule())
     engine.register(GoalProgressThresholdRule())
+    engine.register(IncomeCoverageRule())
 
     return engine
