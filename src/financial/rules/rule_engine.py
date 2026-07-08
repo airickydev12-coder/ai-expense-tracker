@@ -17,6 +17,9 @@ from src.financial.rules.goal_progress_threshold_rule import GoalProgressThresho
 from src.financial.rules.income_coverage_rule import IncomeCoverageRule
 from src.financial.rules.expense_spike_rule import ExpenseSpikeRule
 from src.financial.rules.zero_income_rule import ZeroIncomeRule
+from src.financial.rules.spending_concentration_rule import (
+    SpendingConcentrationRule,
+)
 
 class RuleEngine:
     """Evaluates a collection of financial rules."""
@@ -63,5 +66,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(IncomeCoverageRule())
     engine.register(ExpenseSpikeRule())
     engine.register(ZeroIncomeRule())
+    engine.register(SpendingConcentrationRule())
 
     return engine

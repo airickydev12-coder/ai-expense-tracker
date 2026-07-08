@@ -3,7 +3,12 @@ from src.financial.budgets.models import Budget
 from src.financial.debt.models import Debt
 from src.financial.engine.health_score import calculate_health_score
 from src.financial.engine.health_status import get_health_status
-from src.financial.expenses.analytics import get_total
+from src.financial.expenses.analytics import (
+    get_average,
+    get_category_totals,
+    get_highest_expense,
+    get_total,
+)
 from src.financial.expenses.models import Expense
 from src.financial.goals.models import Goal
 from src.financial.income.analytics import get_total_income
@@ -24,10 +29,16 @@ def build_financial_snapshot(
     total_income = get_total_income(income_entries)
     total_expenses = get_total(expenses)
     net_cash_flow = total_income - total_expenses
+
+    average_expense = get_average(expenses)
+    largest_expense = get_highest_expense(expenses)
+    category_totals = get_category_totals(expenses)
+
     total_account_balance = sum(account.balance for account in accounts)
     total_goal_progress = sum(goal.current_amount for goal in goals)
     total_debt = sum(debt.balance for debt in debts)
     net_worth = total_account_balance + total_goal_progress - total_debt
+
     budget_report = build_budget_report(budgets, expenses)
 
     health_score = calculate_health_score(
@@ -55,6 +66,18 @@ def build_financial_snapshot(
         "total_income": total_income,
         "total_expenses": total_expenses,
         "net_cash_flow": net_cash_flow,
+        "average_expense": average_expense,
+        "largest_expense": (
+            {
+                "id": largest_expense.id,
+                "name": largest_expense.name,
+                "category": largest_expense.category.value,
+                "amount": largest_expense.amount,
+            }
+            if largest_expense is not None
+            else None
+        ),
+        "category_totals": category_totals,
         "total_account_balance": total_account_balance,
         "total_goal_progress": total_goal_progress,
         "total_debt": total_debt,

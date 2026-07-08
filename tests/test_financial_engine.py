@@ -66,3 +66,9 @@ def test_build_financial_snapshot():
     assert snapshot["health_status"] == "Excellent"
     assert "insights" in snapshot
     assert len(snapshot["insights"]) >= 1
+    assert snapshot["average_expense"] == 750
+    assert snapshot["largest_expense"] is not None
+    assert snapshot["largest_expense"]["name"] == "Rent"
+    assert snapshot["largest_expense"]["amount"] == 1200
+    assert snapshot["category_totals"]["Housing"] == 1200
+    assert snapshot["category_totals"]["Food"] == 300
