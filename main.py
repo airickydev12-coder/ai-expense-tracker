@@ -1,4 +1,4 @@
-from src.financial.events.register import register_handlers
+notepad ./src/financialfrom src.financial.events.register import register_handlers
 from src.presentation.cli import run_cli
 
 
