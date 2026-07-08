@@ -25,7 +25,7 @@ class SpendingConcentrationRule(FinancialRule):
             return (
                 f"{largest_category} represents "
                 f"{concentration:.0%} of your spending. "
-                "Consider diversifying your spending and reviewing this category."
+                "Review this category for possible optimization."
             )
 
         return None

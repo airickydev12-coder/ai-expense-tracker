@@ -31,4 +31,6 @@ def test_spending_concentration_rule_returns_none():
         }
     }
 
-    assert rule.evaluate(snapshot) is None
+    result = rule.evaluate(snapshot)
+
+    assert result is None
