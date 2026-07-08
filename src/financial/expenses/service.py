@@ -3,6 +3,8 @@ from src.financial.expenses.repository import (
     load_expenses_from_file,
     save_expenses_to_file,
 )
+from src.financial.events.bus import event_bus
+from src.financial.events.event_types import FinancialEvent
 
 expenses: list[Expense] = []
 
@@ -37,6 +39,8 @@ def add_expense(name: str, category: str, amount: float) -> Expense:
 
     expenses.append(expense)
     save_expenses()
+
+    event_bus.publish(FinancialEvent.EXPENSE_ADDED, expense)
 
     return expense
 

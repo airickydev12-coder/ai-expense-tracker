@@ -1,3 +1,5 @@
+from src.financial.events.bus import event_bus
+from src.financial.events.event_types import FinancialEvent
 from src.financial.income.models import Income
 from src.financial.income.repository import (
     load_income_from_file,
@@ -41,6 +43,7 @@ def add_income(source: str, amount: float) -> Income:
 
     income_entries.append(income)
     save_income()
+    event_bus.publish(FinancialEvent.INCOME_ADDED, income)
 
     return income
 

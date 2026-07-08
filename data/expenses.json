@@ -3,6 +3,12 @@
         "id": 1,
         "name": "Electric",
         "category": "Utilities",
-        "amount": 125
+        "amount": 125.0
+    },
+    {
+        "id": 2,
+        "name": "Coffee",
+        "category": "Food",
+        "amount": 3.5
     }
 ]
