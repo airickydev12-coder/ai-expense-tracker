@@ -12,6 +12,7 @@ from src.financial.rules.budget_overrun_rule import BudgetOverrunRule
 from src.financial.rules.debt_minimum_payment_rule import DebtMinimumPaymentRule
 from src.financial.rules.high_interest_debt_rule import HighInterestDebtRule
 from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
+from src.financial.rules.goal_completion_rule import GoalCompletionRule
 
 
 class RuleEngine:
@@ -54,5 +55,6 @@ def create_default_rule_engine() -> RuleEngine:
     engine.register(DebtMinimumPaymentRule())
     engine.register(HighInterestDebtRule())
     engine.register(LowAccountBalanceRule())
+    engine.register(GoalCompletionRule())
 
     return engine
