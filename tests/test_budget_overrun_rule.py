@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.budget_overrun_rule import BudgetOverrunRule
 
 
@@ -16,7 +18,10 @@ def test_budget_overrun_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Food budget is over" in result
+    assert result.priority == RecommendationPriority.CRITICAL
+    assert result.category == RecommendationCategory.BUDGET
+    assert result.title == "Budget Overrun"
+    assert "Food" in result.message
 
 
 def test_budget_overrun_rule_returns_none():
