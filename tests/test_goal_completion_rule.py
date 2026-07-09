@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.goal_completion_rule import GoalCompletionRule
 
 
@@ -17,7 +19,9 @@ def test_goal_completion_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "fully funded" in result
+    assert result.priority == RecommendationPriority.LOW
+    assert result.category == RecommendationCategory.GOALS
+    assert result.title == "Goal Completed"
 
 
 def test_goal_completion_rule_returns_none():
