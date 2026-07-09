@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.zero_income_rule import ZeroIncomeRule
 
 
@@ -12,7 +14,9 @@ def test_zero_income_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "No income has been recorded" in result
+    assert result.priority == RecommendationPriority.CRITICAL
+    assert result.category == RecommendationCategory.INCOME
+    assert result.title == "No Income Recorded"
 
 
 def test_zero_income_rule_returns_none_when_income_exists():
