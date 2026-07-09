@@ -1,10 +1,13 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
 
 class DebtPayoffPriorityRule(FinancialRule):
     """Recommend prioritizing the highest-interest active debt."""
 
-    def evaluate(self, snapshot: dict) -> str | None:
+    def evaluate(self, snapshot: dict) -> Recommendation | None:
         """Return a recommendation for debt payoff priority."""
         debts = snapshot.get("debts", [])
 
@@ -25,8 +28,13 @@ class DebtPayoffPriorityRule(FinancialRule):
         if highest_interest_debt["interest_rate"] <= 0:
             return None
 
-        return (
-            f"Prioritize paying down {highest_interest_debt['name']} first "
-            f"because it has the highest interest rate at "
-            f"{highest_interest_debt['interest_rate']:.2f}%."
+        return Recommendation(
+            priority=RecommendationPriority.HIGH,
+            category=RecommendationCategory.DEBT,
+            title="Debt Payoff Priority",
+            message=(
+                f"{highest_interest_debt['name']} has the highest interest "
+                f"rate at {highest_interest_debt['interest_rate']:.2f}%."
+            ),
+            action="Prioritize this debt first to reduce interest costs.",
         )

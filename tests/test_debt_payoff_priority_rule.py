@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.debt_payoff_priority_rule import DebtPayoffPriorityRule
 
 
@@ -22,7 +24,10 @@ def test_debt_payoff_priority_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Credit Card" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.DEBT
+    assert result.title == "Debt Payoff Priority"
+    assert "Credit Card" in result.message
 
 
 def test_debt_payoff_priority_rule_returns_none_without_debt():
