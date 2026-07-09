@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.bill_due_rule import BillDueSoonRule
 
 
@@ -18,7 +20,10 @@ def test_bill_due_soon_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Electric is due" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.BILLS
+    assert result.title == "Bill Due Soon"
+    assert "Electric" in result.message
 
 
 def test_bill_due_soon_rule_ignores_paid_bills():
