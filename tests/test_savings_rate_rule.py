@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.savings_rate_rule import SavingsRateRule
 
 
@@ -12,7 +14,9 @@ def test_low_savings_rate():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "below 10%" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.SAVINGS
+    assert result.title == "Low Savings Rate"
 
 
 def test_high_savings_rate():
@@ -26,7 +30,9 @@ def test_high_savings_rate():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Excellent savings rate" in result
+    assert result.priority == RecommendationPriority.LOW
+    assert result.category == RecommendationCategory.SAVINGS
+    assert result.title == "Strong Savings Rate"
 
 
 def test_average_savings_rate():
