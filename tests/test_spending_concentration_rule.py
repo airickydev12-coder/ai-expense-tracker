@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.spending_concentration_rule import (
     SpendingConcentrationRule,
 )
@@ -17,7 +19,10 @@ def test_spending_concentration_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Housing" in result
+    assert result.priority == RecommendationPriority.MEDIUM
+    assert result.category == RecommendationCategory.EXPENSES
+    assert result.title == "Spending Concentration Detected"
+    assert "Housing" in result.message
 
 
 def test_spending_concentration_rule_returns_none():

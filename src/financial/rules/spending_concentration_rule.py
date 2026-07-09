@@ -1,10 +1,13 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
 
 class SpendingConcentrationRule(FinancialRule):
     """Detect excessive spending concentration in one category."""
 
-    def evaluate(self, snapshot: dict) -> str | None:
+    def evaluate(self, snapshot: dict) -> Recommendation | None:
         """Return a recommendation when one category dominates spending."""
         category_totals = snapshot.get("category_totals", {})
 
@@ -18,14 +21,18 @@ class SpendingConcentrationRule(FinancialRule):
 
         largest_category = max(category_totals, key=category_totals.get)
         largest_amount = category_totals[largest_category]
-
         concentration = largest_amount / total_spending
 
         if concentration >= 0.50:
-            return (
-                f"{largest_category} represents "
-                f"{concentration:.0%} of your spending. "
-                "Review this category for possible optimization."
+            return Recommendation(
+                priority=RecommendationPriority.MEDIUM,
+                category=RecommendationCategory.EXPENSES,
+                title="Spending Concentration Detected",
+                message=(
+                    f"{largest_category} represents "
+                    f"{concentration:.0%} of your spending."
+                ),
+                action="Review this category for possible optimization.",
             )
 
         return None
