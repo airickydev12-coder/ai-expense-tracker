@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.emergency_fund_rule import EmergencyFundRule
 
 
@@ -12,7 +14,9 @@ def test_emergency_fund_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "less than 3 months" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.SAVINGS
+    assert result.title == "Low Emergency Fund"
 
 
 def test_emergency_fund_rule_returns_none():
