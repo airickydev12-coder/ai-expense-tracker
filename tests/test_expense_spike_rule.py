@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.expense_spike_rule import ExpenseSpikeRule
 
 
@@ -15,7 +17,10 @@ def test_expense_spike_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Car Repair" in result
+    assert result.priority == RecommendationPriority.MEDIUM
+    assert result.category == RecommendationCategory.EXPENSES
+    assert result.title == "Expense Spike Detected"
+    assert "Car Repair" in result.message
 
 
 def test_expense_spike_rule_returns_none():
