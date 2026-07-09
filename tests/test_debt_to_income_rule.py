@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.debt_to_income_rule import DebtToIncomeRule
 
 
@@ -12,7 +14,10 @@ def test_debt_to_income_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "debt is 60%" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.DEBT
+    assert result.title == "High Debt-to-Income Ratio"
+    assert "60%" in result.message
 
 
 def test_debt_to_income_rule_returns_none():
