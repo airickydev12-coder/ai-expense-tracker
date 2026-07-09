@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.debt_minimum_payment_rule import DebtMinimumPaymentRule
 
 
@@ -17,7 +19,10 @@ def test_debt_minimum_payment_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "Credit Card" in result
+    assert result.priority == RecommendationPriority.MEDIUM
+    assert result.category == RecommendationCategory.DEBT
+    assert result.title == "Missing Minimum Payment"
+    assert "Credit Card" in result.message
 
 
 def test_debt_minimum_payment_rule_returns_none():
