@@ -1,29 +1,35 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
 
 class DebtRatioRule(FinancialRule):
-    """Warn when debt is high relative to available cash."""
+    """Warn when debt is high relative to assets."""
 
-    def evaluate(self, snapshot: dict) -> str | None:
-        """Return a recommendation for excessive debt."""
+    def evaluate(self, snapshot: dict) -> Recommendation | None:
+        """Return a recommendation if debt ratio is too high."""
+        assets = (
+            snapshot["total_account_balance"]
+            + snapshot["total_goal_progress"]
+        )
 
-        total_debt = snapshot["total_debt"]
-        account_balance = snapshot["total_account_balance"]
-
-        if account_balance <= 0:
-            if total_debt > 0:
-                return (
-                    "You have debt but no available cash reserves. "
-                    "Prioritize building emergency savings."
-                )
+        if assets <= 0:
             return None
 
-        ratio = total_debt / account_balance
+        ratio = snapshot["total_debt"] / assets
 
-        if ratio >= 1.0:
-            return (
-                "Your debt exceeds your available cash. "
-                "Consider prioritizing debt repayment."
+        if ratio >= 0.50:
+            return Recommendation(
+                priority=RecommendationPriority.HIGH,
+                category=RecommendationCategory.DEBT,
+                title="High Debt Ratio",
+                message=(
+                    f"Your debt equals {ratio:.0%} of your tracked assets."
+                ),
+                action=(
+                    "Focus on reducing debt while continuing to build assets."
+                ),
             )
 
         return None

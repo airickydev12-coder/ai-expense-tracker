@@ -1,5 +1,5 @@
 from src.financial.rules.base_rule import FinancialRule
-from src.financial.rules.recommendation import Recommendation
+from src.financial.recommendations.models import Recommendation
 
 
 class NegativeCashFlowRule(FinancialRule):

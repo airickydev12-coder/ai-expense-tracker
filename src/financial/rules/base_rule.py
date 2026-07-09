@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.financial.rules.recommendation import Recommendation
+from src.financial.recommendations.models import Recommendation
 
 
 class FinancialRule(ABC):

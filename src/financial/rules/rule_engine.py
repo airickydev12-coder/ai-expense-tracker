@@ -17,7 +17,7 @@ from src.financial.rules.income_coverage_rule import IncomeCoverageRule
 from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
 from src.financial.rules.net_worth_rule import NetWorthRule
 from src.financial.rules.positive_cash_flow_rule import PositiveCashFlowAllocationRule
-from src.financial.rules.recommendation import Recommendation
+from src.financial.recommendations.models import Recommendation
 from src.financial.rules.savings_rate_rule import SavingsRateRule
 from src.financial.rules.spending_concentration_rule import SpendingConcentrationRule
 from src.financial.rules.zero_income_rule import ZeroIncomeRule

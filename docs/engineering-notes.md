@@ -233,7 +233,108 @@ Accepted
 ## EDL-001
 
 ### Decision
+
 Use Expense objects instead of dictionaries.
 
 ### Reason
+
 Improve readability and type safety.
+
+
+
+EDL-004
+
+
+
+Title: Introduce Repository Pattern
+
+
+
+Document:
+
+
+
+Why persistence was moved out of the business layer.
+
+Benefits for future database migration.
+
+
+
+EDL-005
+
+
+
+Title: Business Layer Independent of Presentation
+
+
+
+Document:
+
+
+
+Why input() and print() belong in the CLI.
+
+Why business functions now accept parameters and return values instead.
+
+
+
+These decisions capture an important shift in the architecture and will be valuable reference points as the project grows.
+
+
+
+EDL-006 — Safe Collection Modification
+
+
+
+Decision: Use enumerate() with pop(index) when removing an item during iteration.
+
+
+
+Rationale:
+
+
+
+Avoids modifying a collection through the iterator.
+
+Makes the removal operation explicit.
+
+Eliminates common static-analysis warnings.
+
+Improves maintainability and clarity.
+
+Provides direct access to the element index if future enhancements require it.
+
+
+
+EDL-007 — Separate Presentation Package
+
+
+
+Decision: Move the CLI into a dedicated presentation package.
+
+
+
+Rationale:
+
+
+
+The CLI is one implementation of the presentation layer.
+
+Future interfaces (REST API, React frontend, desktop GUI, mobile app) belong alongside it.
+
+Keeps the project organized according to layered architecture.
+
+Reinforces the separation between presentation, business logic, and persistence.
+
+
+
+EDL-008 – One Domain Concept, One Model
+
+
+
+Every important financial concept (Expense, Budget, Account, Goal, Transaction, etc.) should be represented by its own domain model rather than generic dictionaries. This improves clarity, validation, and extensibility as the application grows.
+
+
+
+This principle will serve you well as the project expands into accounts, goals, investments, and AI-driven financial planning.
+
