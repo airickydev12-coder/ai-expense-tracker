@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.income_coverage_rule import IncomeCoverageRule
 
 
@@ -12,7 +14,9 @@ def test_income_coverage_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "income does not fully cover" in result
+    assert result.priority == RecommendationPriority.CRITICAL
+    assert result.category == RecommendationCategory.INCOME
+    assert result.title == "Income Does Not Cover Expenses"
 
 
 def test_income_coverage_rule_returns_none():
