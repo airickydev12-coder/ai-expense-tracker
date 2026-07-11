@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
 
 
@@ -12,7 +14,9 @@ def test_low_account_balance_rule_triggers():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "less than one month" in result
+    assert result.priority == RecommendationPriority.HIGH
+    assert result.category == RecommendationCategory.SAVINGS
+    assert result.title == "Low Cash Reserves"
 
 
 def test_low_account_balance_rule_returns_none():

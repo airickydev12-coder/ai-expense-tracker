@@ -72,3 +72,9 @@ def test_build_financial_snapshot():
     assert snapshot["largest_expense"]["amount"] == 1200
     assert snapshot["category_totals"]["Housing"] == 1200
     assert snapshot["category_totals"]["Food"] == 300
+    assert len(snapshot["accounts"]) == 1
+    assert snapshot["accounts"][0]["name"] == "Checking"
+    assert len(snapshot["goals"]) == 1
+    assert snapshot["goals"][0]["name"] == "Emergency Fund"
+    assert len(snapshot["debts"]) == 1
+    assert snapshot["debts"][0]["name"] == "Credit Card"

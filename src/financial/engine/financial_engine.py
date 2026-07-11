@@ -85,5 +85,33 @@ def build_financial_snapshot(
         "budget_report": budget_report,
         "health_score": health_score,
         "health_status": health_status,
+        "accounts": [
+            {
+                "id": account.id,
+                "name": account.name,
+                "account_type": account.account_type,
+                "balance": account.balance,
+            }
+            for account in accounts
+        ],
+        "goals": [
+            {
+                "id": goal.id,
+                "name": goal.name,
+                "target_amount": goal.target_amount,
+                "current_amount": goal.current_amount,
+            }
+            for goal in goals
+        ],
+        "debts": [
+            {
+                "id": debt.id,
+                "name": debt.name,
+                "balance": debt.balance,
+                "interest_rate": debt.interest_rate,
+                "minimum_payment": debt.minimum_payment,
+            }
+            for debt in debts
+        ],
         "insights": insights,
     }
