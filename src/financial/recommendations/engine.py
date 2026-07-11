@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.scoring import recommendation_score
 
 
 class RecommendationEngine:
@@ -11,22 +12,26 @@ class RecommendationEngine:
         self,
         recommendations: list[Recommendation],
     ) -> list[Recommendation]:
-        """Sort recommendations by priority, highest first."""
+        """Sort recommendations by recommendation score."""
         return sorted(
             recommendations,
-            key=lambda recommendation: recommendation.priority,
+            key=recommendation_score,
             reverse=True,
         )
 
     def group_by_category(
         self,
         recommendations: list[Recommendation],
-    ) -> dict[RecommendationCategory, list[Recommendation]]:
-        """Group recommendations by category."""
-        grouped: dict[RecommendationCategory, list[Recommendation]] = defaultdict(list)
+    ) -> dict[
+        RecommendationCategory,
+        list[Recommendation],
+    ]:
+        grouped = defaultdict(list)
 
         for recommendation in recommendations:
-            grouped[recommendation.category].append(recommendation)
+            grouped[
+                recommendation.category
+            ].append(recommendation)
 
         return dict(grouped)
 
@@ -35,5 +40,39 @@ class RecommendationEngine:
         recommendations: list[Recommendation],
         limit: int,
     ) -> list[Recommendation]:
-        """Return the top N recommendations by priority."""
-        return self.prioritize(recommendations)[:limit]
+        if limit <= 0:
+            return []
+
+        return self.prioritize(
+            recommendations
+        )[:limit]
+
+    def deduplicate(
+        self,
+        recommendations: list[Recommendation],
+    ) -> list[Recommendation]:
+        """Remove duplicate recommendation titles."""
+        unique = {}
+
+        for recommendation in recommendations:
+            unique.setdefault(
+                recommendation.title,
+                recommendation,
+            )
+
+        return list(unique.values())
+
+    def process(
+        self,
+        recommendations: list[Recommendation],
+    ) -> list[Recommendation]:
+        """
+        Full recommendation pipeline.
+        """
+        recommendations = self.deduplicate(
+            recommendations
+        )
+
+        return self.prioritize(
+            recommendations
+        )

@@ -1,4 +1,7 @@
+from datetime import date
+
 from src.financial.accounts.models import Account
+from src.financial.bills.models import Bill
 from src.financial.budgets.models import Budget
 from src.financial.debt.models import Debt
 from src.financial.engine.health_score import calculate_health_score
@@ -14,6 +17,7 @@ from src.financial.goals.models import Goal
 from src.financial.income.analytics import get_total_income
 from src.financial.income.models import Income
 from src.financial.insights.insight_engine import generate_insights
+from src.financial.recommendations.service import generate_recommendations
 from src.financial.reports.budget_report import build_budget_report
 
 
@@ -24,8 +28,16 @@ def build_financial_snapshot(
     accounts: list[Account],
     goals: list[Goal],
     debts: list[Debt],
+    bills: list[Bill] | None = None,
+    current_day: int | None = None,
 ) -> dict:
     """Build a complete financial snapshot."""
+    if bills is None:
+        bills = []
+
+    if current_day is None:
+        current_day = date.today().day
+
     total_income = get_total_income(income_entries)
     total_expenses = get_total(expenses)
     net_cash_flow = total_income - total_expenses
@@ -34,12 +46,31 @@ def build_financial_snapshot(
     largest_expense = get_highest_expense(expenses)
     category_totals = get_category_totals(expenses)
 
-    total_account_balance = sum(account.balance for account in accounts)
-    total_goal_progress = sum(goal.current_amount for goal in goals)
-    total_debt = sum(debt.balance for debt in debts)
-    net_worth = total_account_balance + total_goal_progress - total_debt
+    total_account_balance = sum(
+        account.balance
+        for account in accounts
+    )
 
-    budget_report = build_budget_report(budgets, expenses)
+    total_goal_progress = sum(
+        goal.current_amount
+        for goal in goals
+    )
+
+    total_debt = sum(
+        debt.balance
+        for debt in debts
+    )
+
+    net_worth = (
+        total_account_balance
+        + total_goal_progress
+        - total_debt
+    )
+
+    budget_report = build_budget_report(
+        budgets,
+        expenses,
+    )
 
     health_score = calculate_health_score(
         {
@@ -62,7 +93,7 @@ def build_financial_snapshot(
         }
     )
 
-    return {
+    snapshot = {
         "total_income": total_income,
         "total_expenses": total_expenses,
         "net_cash_flow": net_cash_flow,
@@ -113,5 +144,25 @@ def build_financial_snapshot(
             }
             for debt in debts
         ],
+        "bills": [
+            {
+                "id": bill.id,
+                "name": bill.name,
+                "amount": bill.amount,
+                "due_day": bill.due_day,
+                "is_paid": bill.is_paid,
+            }
+            for bill in bills
+        ],
+        "current_day": current_day,
         "insights": insights,
     }
+
+    recommendations = generate_recommendations(snapshot)
+
+    snapshot["recommendations"] = [
+        recommendation.to_dict()
+        for recommendation in recommendations
+    ]
+
+    return snapshot
