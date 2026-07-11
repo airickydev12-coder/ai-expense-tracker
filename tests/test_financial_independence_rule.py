@@ -1,3 +1,5 @@
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.financial_independence_rule import (
     FinancialIndependenceRule,
 )
@@ -14,7 +16,9 @@ def test_financial_independence_complete():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "financial independence" in result
+    assert result.priority == RecommendationPriority.LOW
+    assert result.category == RecommendationCategory.WEALTH
+    assert result.title == "Financial Independence Reached"
 
 
 def test_financial_independence_progress():
@@ -28,7 +32,9 @@ def test_financial_independence_progress():
     result = rule.evaluate(snapshot)
 
     assert result is not None
-    assert "way toward" in result
+    assert result.priority == RecommendationPriority.MEDIUM
+    assert result.category == RecommendationCategory.WEALTH
+    assert result.title == "Approaching Financial Independence"
 
 
 def test_financial_independence_returns_none():
