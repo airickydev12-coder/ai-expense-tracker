@@ -3,12 +3,6 @@
         "id": 1,
         "name": "Electric",
         "category": "Utilities",
-        "amount": 125.0
-    },
-    {
-        "id": 2,
-        "name": "Shirts",
-        "category": "Clothing",
-        "amount": 179.99
+        "amount": 125
     }
 ]

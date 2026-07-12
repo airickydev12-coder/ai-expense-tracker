@@ -130,31 +130,55 @@ def run_cli() -> None:
             display_current_budgets()
 
             print("\nManage Budgets")
-            print("1. Create / Update Budget")
+            print("1. Create / Update Budgets")
             print("2. Delete Budget")
             print("3. Back")
 
-            budget_choice = input("Choose an option: ")
+            budget_choice = input("Choose an option: ").strip()
 
             if budget_choice == "1":
-                category = select_category()
+                while True:
+                    print("\nCreate / Update Budget")
 
-                if category is None:
-                    continue
+                    category = select_category()
 
-                limit_text = input("Enter budget limit: ")
+                    if category is None:
+                        retry = input(
+                            "Try selecting a category again? (y/n): "
+                        ).strip().lower()
 
-                try:
-                    limit = float(limit_text)
-                except ValueError:
-                    print("Invalid budget limit. Please enter a number.")
-                    continue
+                        if retry != "y":
+                            break
 
-                budget = add_budget(category, limit)
-                summary = get_budget_summary(budget, get_expenses())
+                        continue
 
-                print("\nBudget saved successfully.")
-                display_budget_summary(summary)
+                    limit_text = input("Enter budget limit: ").strip()
+
+                    try:
+                        limit = float(limit_text)
+                    except ValueError:
+                        print("Invalid budget limit. Please enter a number.")
+                        continue
+
+                    if limit <= 0:
+                        print("Budget limit must be greater than zero.")
+                        continue
+
+                    budget = add_budget(category, limit)
+                    summary = get_budget_summary(
+                        budget,
+                        get_expenses(),
+                    )
+
+                    print("\nBudget saved successfully.")
+                    display_budget_summary(summary)
+
+                    add_another = input(
+                        "\nCreate or update another budget? (y/n): "
+                    ).strip().lower()
+
+                    if add_another != "y":
+                        break
 
             elif budget_choice == "2":
                 category = select_category()
@@ -167,7 +191,10 @@ def run_cli() -> None:
                 if deleted_budget is None:
                     print("Budget not found.")
                 else:
-                    print(f"Deleted budget for {deleted_budget.category.value}.")
+                    print(
+                        f"Deleted budget for "
+                        f"{deleted_budget.category.value}."
+                    )
 
             elif budget_choice == "3":
                 continue
