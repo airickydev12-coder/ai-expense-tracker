@@ -6,70 +6,78 @@ from src.financial.recommendations.priority import RecommendationPriority
 
 @dataclass
 class Recommendation:
-    """Represents a financial recommendation."""
+    """Represents an actionable financial recommendation."""
 
     priority: RecommendationPriority | str
     category: RecommendationCategory | str
     title: str
     message: str
     action: str
+    rationale: str = ""
+    source_rule: str = ""
 
     def __post_init__(self) -> None:
-        """Normalize and validate recommendation fields."""
+        """Normalize recommendation fields."""
+
         if isinstance(self.priority, str):
-            normalized_priority = (
-                self.priority.strip()
-                .upper()
+            normalized = (
+                self.priority.upper()
+                .strip()
                 .replace(" ", "_")
             )
-
-            try:
-                self.priority = RecommendationPriority[normalized_priority]
-            except KeyError as error:
-                raise ValueError(
-                    f"Invalid recommendation priority: {self.priority}"
-                ) from error
+            self.priority = RecommendationPriority[
+                normalized
+            ]
 
         if isinstance(self.category, str):
-            normalized_category = self.category.strip().lower()
+            normalized = self.category.lower().strip()
 
-            matching_category = next(
-                (
-                    category
-                    for category in RecommendationCategory
-                    if category.value.lower() == normalized_category
-                    or category.name.lower() == normalized_category
-                ),
-                None,
-            )
+            for category in RecommendationCategory:
+                if (
+                    category.name.lower() == normalized
+                    or category.value.lower() == normalized
+                ):
+                    self.category = category
+                    break
 
-            if matching_category is None:
-                raise ValueError(
-                    f"Invalid recommendation category: {self.category}"
-                )
+        self.title = self.title.strip()
+        self.message = self.message.strip()
+        self.action = self.action.strip()
+        self.rationale = self.rationale.strip()
+        self.source_rule = self.source_rule.strip()
 
-            self.category = matching_category
+    @property
+    def key(self) -> str:
+        """Stable identifier."""
 
-        if not self.title.strip():
-            raise ValueError("Recommendation title cannot be empty.")
+        return (
+            f"{self.category.name.lower()}:"
+            f"{self.title.lower().replace(' ', '_')}"
+        )
 
-        if not self.message.strip():
-            raise ValueError("Recommendation message cannot be empty.")
+    @property
+    def is_actionable(self) -> bool:
+        """Whether user can take action."""
 
-        if not self.action.strip():
-            raise ValueError("Recommendation action cannot be empty.")
+        return bool(self.action)
+
+    def score(self) -> int:
+        """Return recommendation score."""
+
+        return self.priority.value * 100
 
     def to_dict(self) -> dict:
-        """Convert the recommendation to a dictionary."""
+        """Serialize recommendation."""
+
         return {
+            "key": self.key,
             "priority": self.priority.name,
             "category": self.category.value,
             "score": self.score(),
             "title": self.title,
             "message": self.message,
             "action": self.action,
+            "rationale": self.rationale,
+            "source_rule": self.source_rule,
+            "is_actionable": self.is_actionable,
         }
-
-    def score(self) -> int:
-        """Return recommendation score."""
-        return self.priority.value * 100

@@ -40,9 +40,8 @@ def build_recommendations() -> list[Recommendation]:
 
 def test_prioritize_recommendations():
     engine = RecommendationEngine()
-    recommendations = build_recommendations()
 
-    prioritized = engine.prioritize(recommendations)
+    prioritized = engine.prioritize(build_recommendations())
 
     assert prioritized[0].priority == RecommendationPriority.CRITICAL
     assert prioritized[1].priority == RecommendationPriority.HIGH
@@ -52,9 +51,8 @@ def test_prioritize_recommendations():
 
 def test_group_recommendations_by_category():
     engine = RecommendationEngine()
-    recommendations = build_recommendations()
 
-    grouped = engine.group_by_category(recommendations)
+    grouped = engine.group_by_category(build_recommendations())
 
     assert len(grouped[RecommendationCategory.DEBT]) == 2
     assert len(grouped[RecommendationCategory.CASH_FLOW]) == 1
@@ -63,9 +61,11 @@ def test_group_recommendations_by_category():
 
 def test_top_n_recommendations():
     engine = RecommendationEngine()
-    recommendations = build_recommendations()
 
-    top_recommendations = engine.top_n(recommendations, limit=2)
+    top_recommendations = engine.top_n(
+        build_recommendations(),
+        limit=2,
+    )
 
     assert len(top_recommendations) == 2
     assert top_recommendations[0].priority == RecommendationPriority.CRITICAL
@@ -74,6 +74,67 @@ def test_top_n_recommendations():
 
 def test_top_n_with_zero_limit():
     engine = RecommendationEngine()
-    recommendations = build_recommendations()
 
-    assert engine.top_n(recommendations, limit=0) == []
+    assert engine.top_n(build_recommendations(), limit=0) == []
+
+
+def test_deduplicate_keeps_one_recommendation_per_key():
+    engine = RecommendationEngine()
+
+    recommendations = [
+        Recommendation(
+            priority=RecommendationPriority.MEDIUM,
+            category=RecommendationCategory.DEBT,
+            title="High Interest Debt",
+            message="First message.",
+            action="First action.",
+        ),
+        Recommendation(
+            priority=RecommendationPriority.HIGH,
+            category=RecommendationCategory.DEBT,
+            title="High Interest Debt",
+            message="Higher-priority message.",
+            action="Higher-priority action.",
+        ),
+    ]
+
+    results = engine.deduplicate(recommendations)
+
+    assert len(results) == 1
+    assert results[0].priority == RecommendationPriority.HIGH
+    assert results[0].message == "Higher-priority message."
+
+
+def test_recommendation_has_stable_key():
+    recommendation = Recommendation(
+        priority=RecommendationPriority.HIGH,
+        category=RecommendationCategory.DEBT,
+        title="High Interest Debt",
+        message="You have high-interest debt.",
+        action="Prioritize repayment.",
+    )
+
+    assert recommendation.key == "debt:high_interest_debt"
+
+
+def test_recommendation_serialization_includes_metadata():
+    recommendation = Recommendation(
+        priority=RecommendationPriority.HIGH,
+        category=RecommendationCategory.DEBT,
+        title="High Interest Debt",
+        message="You have high-interest debt.",
+        action="Prioritize repayment.",
+        rationale="Interest charges increase the repayment cost.",
+        source_rule="HighInterestDebtRule",
+    )
+
+    data = recommendation.to_dict()
+
+    assert data["key"] == "debt:high_interest_debt"
+    assert data["priority"] == "HIGH"
+    assert data["category"] == "Debt"
+    assert data["score"] == 300
+    assert data["rationale"] == (
+        "Interest charges increase the repayment cost."
+    )
+    assert data["source_rule"] == "HighInterestDebtRule"

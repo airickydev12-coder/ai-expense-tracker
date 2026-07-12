@@ -1,30 +1,25 @@
 from src.financial.recommendations.engine import RecommendationEngine
 from src.financial.recommendations.models import Recommendation
-from src.financial.rules.rule_engine import (
-    create_default_rule_engine,
-)
+from src.financial.rules.rule_engine import create_default_rule_engine
 
 
 def generate_recommendations(
     snapshot: dict,
     limit: int | None = None,
 ) -> list[Recommendation]:
-    """
-    Generate recommendations from the financial snapshot.
-    """
+    """Generate and process recommendations for a financial snapshot."""
     rule_engine = create_default_rule_engine()
+    raw_recommendations = rule_engine.evaluate(snapshot)
 
-    recommendations = rule_engine.evaluate(
-        snapshot
-    )
-
-    engine = RecommendationEngine()
-
-    recommendations = engine.process(
-        recommendations
+    recommendation_engine = RecommendationEngine()
+    processed_recommendations = recommendation_engine.process(
+        raw_recommendations
     )
 
     if limit is not None:
-        return recommendations[:limit]
+        if limit <= 0:
+            return []
 
-    return recommendations
+        return processed_recommendations[:limit]
+
+    return processed_recommendations

@@ -6,13 +6,13 @@ from src.financial.recommendations.scoring import recommendation_score
 
 
 class RecommendationEngine:
-    """Processes financial recommendations."""
+    """Processes and organizes financial recommendations."""
 
     def prioritize(
         self,
         recommendations: list[Recommendation],
     ) -> list[Recommendation]:
-        """Sort recommendations by recommendation score."""
+        """Sort recommendations by intelligence score."""
         return sorted(
             recommendations,
             key=recommendation_score,
@@ -22,57 +22,61 @@ class RecommendationEngine:
     def group_by_category(
         self,
         recommendations: list[Recommendation],
-    ) -> dict[
-        RecommendationCategory,
-        list[Recommendation],
-    ]:
-        grouped = defaultdict(list)
+    ) -> dict[RecommendationCategory, list[Recommendation]]:
+        """Group recommendations by category."""
+        grouped: dict[
+            RecommendationCategory,
+            list[Recommendation],
+        ] = defaultdict(list)
 
         for recommendation in recommendations:
-            grouped[
-                recommendation.category
-            ].append(recommendation)
+            grouped[recommendation.category].append(recommendation)
 
         return dict(grouped)
+
+    def deduplicate(
+        self,
+        recommendations: list[Recommendation],
+    ) -> list[Recommendation]:
+        """
+        Remove duplicate recommendations.
+
+        When duplicate keys exist, keep the recommendation with the
+        highest intelligence score.
+        """
+        unique: dict[str, Recommendation] = {}
+
+        for recommendation in recommendations:
+            existing = unique.get(recommendation.key)
+
+            if existing is None:
+                unique[recommendation.key] = recommendation
+                continue
+
+            if (
+                recommendation_score(recommendation)
+                > recommendation_score(existing)
+            ):
+                unique[recommendation.key] = recommendation
+
+        return list(unique.values())
 
     def top_n(
         self,
         recommendations: list[Recommendation],
         limit: int,
     ) -> list[Recommendation]:
+        """Return the highest-ranked recommendations."""
         if limit <= 0:
             return []
 
-        return self.prioritize(
-            recommendations
-        )[:limit]
-
-    def deduplicate(
-        self,
-        recommendations: list[Recommendation],
-    ) -> list[Recommendation]:
-        """Remove duplicate recommendation titles."""
-        unique = {}
-
-        for recommendation in recommendations:
-            unique.setdefault(
-                recommendation.title,
-                recommendation,
-            )
-
-        return list(unique.values())
+        processed = self.process(recommendations)
+        return processed[:limit]
 
     def process(
         self,
         recommendations: list[Recommendation],
     ) -> list[Recommendation]:
-        """
-        Full recommendation pipeline.
-        """
-        recommendations = self.deduplicate(
-            recommendations
-        )
-
-        return self.prioritize(
-            recommendations
-        )
+        """Run the complete recommendation-processing pipeline."""
+        unique_recommendations = self.deduplicate(recommendations)
+        return self.prioritize(unique_recommendations)

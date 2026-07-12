@@ -1,1 +1,10 @@
-[]
+[
+    {
+        "category": "Food",
+        "limit": 500.0
+    },
+    {
+        "category": "Transportation",
+        "limit": 95.0
+    }
+]
