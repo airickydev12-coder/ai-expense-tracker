@@ -1,0 +1,225 @@
+1. Automation Workflow & Process Improvement Services  
+
+
+
+The Contractor shall analyze, design, develop, test, implement, and maintain automation workflows intended to improve operational efficiency, reduce manual tasks, increase accuracy, and support business scalability.  
+
+
+
+Services may include, but are not limited to:  
+
+Robotic Process Automation (RPA) 
+AI-assisted workflow automation 
+Business process mapping and optimization 
+Intelligent document processing 
+Data entry automation 
+Email and communication automation 
+Workflow orchestration and scheduling 
+System integration between software platforms 
+Microsoft 365 automation solutions 
+Google Workspace workflow automation 
+CRM and help desk workflow automation 
+Reporting and dashboard automation 
+Ticketing system automation 
+Cloud-based automation solutions 
+Employee onboarding and offboarding workflows 
+IT operational automation 
+VOIP and communication workflow support 
+Mobile device workflow integrations 
+Automation monitoring and troubleshooting 
+Automation maintenance and performance tuning  
+
+The Contractor may utilize platforms and technologies such as:  
+
+UiPath 
+Microsoft Power Automate 
+Microsoft 365 
+Google Workspace 
+Active Directory Windows operating systems 
+APIs and third-party integrations 
+Cloud collaboration platforms 
+AI-assisted productivity tools 
+Database and spreadsheet automation tools 
+
+
+
+2. AI-Enhanced Business Services  
+
+The Contractor may provide AI-enhanced business process solutions designed to assist organizations in improving operational productivity, customer experience, and data processing efficiency.  
+
+Services may include:  
+
+AI workflow integration 
+AI-assisted customer service workflows 
+Intelligent data extraction and classification 
+Automated reporting and analytics 
+AI-enhanced document handling 
+Process optimization consulting 
+Business efficiency analysis 
+Workflow strategy development 
+Automation readiness assessments 
+AI-powered operational support solutions 
+
+
+3. Professional Standards and Performance  
+
+The Contractor shall:
+ 
+Perform the Services as described in this Exhibit A in a professional and workmanlike manner, in accordance with generally accepted industry standards. 
+
+Use commercially reasonable efforts to deliver reliable, secure, and efficient automation solutions. 
+
+Communicate professionally and maintain appropriate documentation related to Services performed. 
+
+Exercise reasonable care, technical competency, and diligence in performing all Services. 
+
+
+4. Invoicing and Payment  
+
+The Contractor shall:  
+
+Invoice the Client for Services performed in accordance with the payment terms established in the Agreement. 
+
+Provide reasonable detail regarding Services rendered, project milestones, support hours, or deliverables completed. 
+
+Maintain accurate records of billable work performed when applicable. 
+
+
+
+
+
+5. Confidentiality  
+
+The Contractor shall:  
+
+Keep confidential all non-public information disclosed by the Client. 
+
+Use Client information solely for the purpose of performing the Services. 
+
+Implement reasonable safeguards to protect confidential information, systems access, business data, credentials, and proprietary materials. 
+
+Not disclose confidential information to third parties except as authorized in writing by the Client or as required by law.  
+
+Confidential information includes, but is not limited to:  Business operations and procedures Customer information Financial data Internal systems and configurations 
+
+Proprietary workflows 
+
+Credentials and access information 
+
+Technical documentation 
+
+Trade secrets and intellectual property 
+
+
+
+6. Intellectual Property  
+
+The Contractor shall:  
+
+Assign all intellectual property rights arising from the Services to the Client upon creation. 
+
+Execute reasonable documentation necessary to confirm the Client’s ownership rights in deliverables produced under the Agreement. 
+
+Deliver to the Client any applicable workflow files, automation scripts, process documentation, configurations, and project deliverables upon request or project completion, subject to payment obligations under the Agreement.  
+
+Intellectual property may include:  
+
+Automation workflows 
+
+Scripts and automation logic 
+
+Process documentation 
+
+System configurations 
+
+Dashboards and reports 
+
+Custom integrations 
+
+Templates and workflow designs 
+
+Supporting technical documentation 
+
+
+
+7. Indemnification  
+
+The Contractor shall:  
+
+Indemnify, defend, and hold harmless the Client against claims, liabilities, damages, losses, and expenses arising from any breach of the Agreement or negligent or willful act by the Contractor. 
+
+Cooperate reasonably with the Client in the defense of any claim related to the Services. 
+
+Promptly notify the Client of any known issue, breach, or event that could materially impact the Services or Client operations. 
+
+
+8. Deliverables  
+
+Deliverables may include, depending on project scope:  
+
+Automation workflow files 
+
+Process maps and documentation 
+
+Technical implementation plans 
+
+AI-enhanced automation solutions 
+
+Reports and dashboards 
+
+Integration configurations 
+
+User guides and SOPs 
+
+Training materials 
+
+Maintenance and support documentation System assessment reports 
+
+
+9. Industries Supported  
+
+The Contractor may provide Services to organizations in industries including, but not limited to:  
+
+Healthcare 
+
+Finance 
+
+Education 
+
+Logistics 
+
+Professional services 
+
+Government and public sector 
+
+Small and medium-sized businesses 
+
+Enterprise organizations 
+
+
+
+
+10. Equipment & Technical Environment  
+
+The Contractor utilizes enterprise-grade computing equipment and modern development environments capable of supporting automation engineering, AI-assisted workflows, virtualization, and enterprise application management.  
+
+Typical technical environments may include:  
+
+High-performance workstations 
+
+Apple MacBook Pro systems with advanced multi-core processors and high-memory configurations 
+
+Windows-based enterprise systems 
+
+Cloud-based automation platforms 
+
+Secure remote support environments 
+
+Enterprise communication and collaboration platforms 
+
+
+11. General Statement  
+
+The Contractor provides professional automation workflow and technology services intended to help businesses improve operational efficiency, reduce repetitive manual work, strengthen system reliability, and support scalable digital transformation initiatives.  
+
+All Services shall be performed in accordance with the terms of the Agreement and any mutually approved project statements, scopes of work, or implementation plans.

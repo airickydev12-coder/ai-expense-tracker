@@ -1,0 +1,37 @@
+Google API
+
+Google Auth
+
+API Key:
+
+AIzaSyCuYslsRpKTgApKS3DNUkCKYqTu69U71Uo
+
+
+OAuth Client Info:
+
+Client ID:
+
+711607463679-qhkkgaqllcg6o5lfoi32nlbmiaql6dgv.apps.googleusercontent.com
+
+Client Secret:
+
+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
+
+
+
+
+
+
+
+
+
+
+Williams Enterprises
+
+
+Automation Workflows
+
+
+1500
+
+8.9

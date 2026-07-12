@@ -1,0 +1,17 @@
+API key for Supabase:
+
+API URL:
+
+https://ynymhxxypeltqvloullh.supabase.co/rest/v1/
+
+Publishable Key:
+
+sb_publishable_AeQExPewyzPwei-LjpaScA_UVe9iwI5
+
+
+
+API Key Resend
+
+re_MFbFs4nQ_Q6MPj7wovPohAEpUv9jQzMrs
+
+

@@ -1,18 +1,1 @@
-[
-    {
-        "category": "Food",
-        "limit": 500.0
-    },
-    {
-        "category": "Transportation",
-        "limit": 95.0
-    },
-    {
-        "category": "Healthcare",
-        "limit": 100.0
-    },
-    {
-        "category": "Clothing",
-        "limit": 250.0
-    }
-]
+[]

@@ -1,0 +1,18 @@
+{
+  "vendor_name": "",
+  "invoice_number": "",
+  "invoice_date": "",
+  "due_date": "",
+  "total_amount": "",
+  "tax_amount": "",
+  "payment_terms": "",
+  "invoice_category": "",
+  "confidence_score": 0,
+  "validation_notes": "",
+  "requires_human_review": false
+}
+
+
+Date Processed Employee Name | Document Type | Form Status | Missing Information | Requires Review | Confidence Score | Notes | File Name | File Link
+
+ Employee Name Document Type Request Type Equipment Requested System Access Needed Requires Review Confidence Score Notes File Name File Link

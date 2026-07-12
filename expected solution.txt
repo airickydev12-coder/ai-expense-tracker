@@ -1,0 +1,34 @@
+expected: solution
+
+forms > tools > gemini > json > google sheet  > email 
+
+
+gets order > extracts > items > quantitee > cakes/
+
+
+
+You are a system that outputs ONLY valid raw JSON.
+
+Analyze the feedback below.
+
+Classify sentiment as Positive, Neutral, or Negative.
+
+Summarize the feedback in one sentence.
+
+Output ONLY valid JSON.
+
+Do not include markdown.
+Do not include code blocks.
+Do not include backticks.
+Do not include explanations.
+Do not include extra text.
+
+Output exactly this format:
+
+{"sentiment":"Positive","summary":"Summary here"}
+
+Feedback: 
+
+
+
+print("Steven Spielberg's first movie was", first_movie_title, "in", first_movie_year)

@@ -1,0 +1,57 @@
+Position Overview
+
+BME Strategies is seeking a Junior Engineer, AI to help design and build AI-powered tools that advance our public health capabilities. Reporting to the AI Committee Lead, you'll work across multiple cloud platforms and AI ecosystems to develop real solutions to real problems.
+
+This is a hands-on role ideal for someone who loves building things and wants their work to make a lasting impact. This role will translate emerging AI technologies into practical tools that help our team work smarter and serve clients better.
+
+Requirements
+
+Key Responsibilities
+
+AI Tool Development [70%]
+Build and deploy internal AI-powered applications and automation tools across multiple platforms, including Google Cloud Platform (GCP), AWS, Azure, and/or Anthropic/OpenAI APIs
+Design and build external-facing applications, such as chatbots, tailored to client needs, delivering AI-powered solutions that directly support public health programs and government operations
+Develop tools that collect, aggregate, and analyze data from our existing sources, replacing manual processes with intelligent automation
+Design and implement retrieval-augmented generation (RAG) pipelines to power intelligent, context-aware internal tools
+Experiment with and integrate large language models (LLMs), AI agents, and emerging frameworks to solve operational and public health challenges
+Build lightweight internal-facing apps and dashboards using tools like AppScript, or similar
+Communication & Collaboration [20%]
+Partner with AI Committee Lead to translate client or end-user public health needs into concrete technical requirements and measurable AI solutions
+Translate technical workflows and concepts clearly for non-technical stakeholders
+Collaborate closely with the AI Committee and program teams to identify and prioritize high-impact opportunities
+Present findings, recommendations, and project updates to leadership and relevant project teams
+Research & Quality [10%]
+Research emerging AI models and platforms and help select the right tools for specific use cases
+Implement testing and quality assurance frameworks to ensure AI accuracy and reliability
+Monitor the performance, cost, and reliability of deployed AI models and systems, implementing optimizations as needed
+Establish and maintain documentation and best practices across AI tooling
+Experience, Qualification, & Skills
+
+Required:
+
+1 year of relevant experience and a Bachelor's degree required; recent college graduates encouraged to apply
+1+ years of internship-level, undergraduate coursework-related, or professional experience building AI/ML applications or related software engineering roles
+Strong Python (or similar) programming skills
+Proven experience designing and implementing retrieval-augmented generation (RAG) systems
+Hands-on experience with at least one major cloud platform (GCP, AWS, or Azure)
+Experience with vector databases, including open-source solutions, and cloud-native vector search offerings
+Experience working with LLM APIs (OpenAI, Anthropic Claude, Gemini, etc.)
+Familiarity with Google AppScript or similar automation tools
+Experience testing LLM outputs for accuracy, reliability, and performance
+Strong communication skills with non-technical audiences
+Ability to work independently and as part of a team in a fast-paced remote consulting environment
+And an alignment with BME's shared values. 
+
+Preferred:
+
+Experience with frameworks like LangChain, LlamaIndex, or similar
+Familiarity with MLOps tools and practices for deploying, monitoring, and managing models in production (e.g., Docker)
+Experience writing production-level SQL and working with data warehousing solutions (e.g., BigQuery, Snowflake)
+Experience with data privacy tools such as Google DLP
+Interest in or experience within public health, healthcare, or government sectors
+Experience with projects that connect public health and tech is strongly preferred. 
+Optimistic and solution-focused
+Ability to concisely summarize technical ideas
+Work Environment 
+
+BME Strategies in a remote-first organization; this is a full-time position based in a home office environment within the U.S
