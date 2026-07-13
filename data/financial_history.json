@@ -10,5 +10,17 @@
         "net_worth": 0.0,
         "health_score": 45,
         "health_status": "Needs Attention"
+    },
+    {
+        "timestamp": "2026-07-13T20:16:18.121493+00:00",
+        "total_income": 0.0,
+        "total_expenses": 125.0,
+        "net_cash_flow": -125.0,
+        "total_account_balance": 0.0,
+        "total_goal_progress": 0.0,
+        "total_debt": 0.0,
+        "net_worth": 0.0,
+        "health_score": 45,
+        "health_status": "Needs Attention"
     }
 ]

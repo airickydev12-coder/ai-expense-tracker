@@ -50,9 +50,7 @@ def display_dashboard() -> None:
     total = get_total(expenses)
     average = get_average(expenses)
     highest = get_highest_expense(expenses)
-    category_totals = get_category_totals(
-        expenses
-    )
+    category_totals = get_category_totals(expenses)
     budgets = get_budgets()
     budget_report = build_budget_report(
         budgets,
@@ -67,11 +65,7 @@ def display_dashboard() -> None:
     print(f"Average Expense:    ${average:.2f}")
 
     if highest is not None:
-        print(
-            f"Largest Expense:    "
-            f"{highest.name} - "
-            f"${highest.amount:.2f}"
-        )
+        print(f"Largest Expense:    " f"{highest.name} - " f"${highest.amount:.2f}")
 
     if category_totals:
         top_category = max(
@@ -159,9 +153,7 @@ def display_expenses() -> None:
 
 def display_category_totals() -> None:
     """Display spending totals by category."""
-    totals = get_category_totals(
-        get_expenses()
-    )
+    totals = get_category_totals(get_expenses())
 
     if not totals:
         print("No expenses recorded yet.")
@@ -181,10 +173,7 @@ def display_budget_summary(
     print(f"Category:  {summary['category']}")
     print(f"Limit:     ${summary['limit']:.2f}")
     print(f"Spent:     ${summary['spent']:.2f}")
-    print(
-        f"Remaining: "
-        f"${summary['remaining']:.2f}"
-    )
+    print(f"Remaining: " f"${summary['remaining']:.2f}")
     print(f"Status:    {summary['status']}")
 
 
@@ -219,19 +208,14 @@ def display_current_budgets() -> None:
     budgets = get_budgets()
 
     if not budgets:
-        print(
-            "\nNo budgets have been created yet."
-        )
+        print("\nNo budgets have been created yet.")
         return
 
     print("\nCurrent Budgets")
     print("----------------")
 
     for budget in budgets:
-        print(
-            f"{budget.category.value:<20}"
-            f"${budget.limit:>8.2f}"
-        )
+        print(f"{budget.category.value:<20}" f"${budget.limit:>8.2f}")
 
 
 def display_recommendations(
@@ -242,10 +226,7 @@ def display_recommendations(
     print("----------------------------------------")
 
     if not recommendations:
-        print(
-            "No active recommendations "
-            "are available."
-        )
+        print("No active recommendations " "are available.")
         return
 
     for index, recommendation in enumerate(
@@ -277,10 +258,7 @@ def display_recommendations(
             "unknown:key",
         )
 
-        print(
-            f"{index}. [{priority}] "
-            f"{category} - {title}"
-        )
+        print(f"{index}. [{priority}] " f"{category} - {title}")
         print(f"   Key: {recommendation_key}")
 
         if message:
@@ -298,10 +276,7 @@ def display_recommendation_history(
     print("----------------------------------------")
 
     if not records:
-        print(
-            "No recommendation history "
-            "is available."
-        )
+        print("No recommendation history " "is available.")
         return
 
     sorted_records = sorted(
@@ -314,15 +289,8 @@ def display_recommendation_history(
         sorted_records,
         start=1,
     ):
-        print(
-            f"{index}. "
-            f"[{record.status.name}] "
-            f"{record.recommendation_key}"
-        )
-        print(
-            f"   Updated: "
-            f"{record.updated_at.isoformat()}"
-        )
+        print(f"{index}. " f"[{record.status.name}] " f"{record.recommendation_key}")
+        print(f"   Updated: " f"{record.updated_at.isoformat()}")
 
         if record.note:
             print(f"   Note: {record.note}")
@@ -336,34 +304,13 @@ def display_financial_snapshot(
     print("          Financial Snapshot")
     print("========================================")
 
-    print(
-        f"Total Income:          "
-        f"${snapshot['total_income']:.2f}"
-    )
-    print(
-        f"Total Expenses:        "
-        f"${snapshot['total_expenses']:.2f}"
-    )
-    print(
-        f"Net Cash Flow:         "
-        f"${snapshot['net_cash_flow']:.2f}"
-    )
-    print(
-        f"Account Balance:       "
-        f"${snapshot['total_account_balance']:.2f}"
-    )
-    print(
-        f"Goal Progress:         "
-        f"${snapshot['total_goal_progress']:.2f}"
-    )
-    print(
-        f"Total Debt:            "
-        f"${snapshot['total_debt']:.2f}"
-    )
-    print(
-        f"Net Worth:             "
-        f"${snapshot['net_worth']:.2f}"
-    )
+    print(f"Total Income:          " f"${snapshot['total_income']:.2f}")
+    print(f"Total Expenses:        " f"${snapshot['total_expenses']:.2f}")
+    print(f"Net Cash Flow:         " f"${snapshot['net_cash_flow']:.2f}")
+    print(f"Account Balance:       " f"${snapshot['total_account_balance']:.2f}")
+    print(f"Goal Progress:         " f"${snapshot['total_goal_progress']:.2f}")
+    print(f"Total Debt:            " f"${snapshot['total_debt']:.2f}")
+    print(f"Net Worth:             " f"${snapshot['net_worth']:.2f}")
     print(
         f"Financial Health:      "
         f"{snapshot['health_score']} "
@@ -418,10 +365,7 @@ def display_financial_snapshot(
                 "",
             )
 
-            print(
-                f"{index}. [{priority}] "
-                f"{category} - {title}"
-            )
+            print(f"{index}. [{priority}] " f"{category} - {title}")
 
             if message:
                 print(f"   Why: {message}")
@@ -451,59 +395,29 @@ def display_financial_trends(
     )
     latest_snapshot = ordered_history[-1]
 
-    print(
-        f"Snapshots Recorded:    "
-        f"{len(ordered_history)}"
-    )
-    print(
-        f"Latest Snapshot:       "
-        f"{latest_snapshot.timestamp.isoformat()}"
-    )
+    print(f"Snapshots Recorded:    " f"{len(ordered_history)}")
+    formatted_timestamp = latest_snapshot.timestamp.strftime("%Y-%m-%d %H:%M")
+
+    print(f"Snapshots Recorded:    " f"{len(ordered_history)}")
+
+    print(f"Latest Snapshot:       " f"{formatted_timestamp}")
 
     if len(ordered_history) < 2:
-        print(
-            "\nRecord at least two snapshots "
-            "to calculate financial trends."
-        )
+        print("\nRecord at least two snapshots " "to calculate financial trends.")
         print("========================================")
         return
 
-    net_worth_change = get_net_worth_change(
-        ordered_history
-    )
-    cash_flow_change = get_cash_flow_change(
-        ordered_history
-    )
-    income_change = get_income_change(
-        ordered_history
-    )
-    expense_change = get_expense_change(
-        ordered_history
-    )
-    health_score_change = get_health_score_change(
-        ordered_history
-    )
+    net_worth_change = get_net_worth_change(ordered_history)
+    cash_flow_change = get_cash_flow_change(ordered_history)
+    income_change = get_income_change(ordered_history)
+    expense_change = get_expense_change(ordered_history)
+    health_score_change = get_health_score_change(ordered_history)
 
     print("\nChanges")
     print("----------------------------------------")
-    print(
-        f"Net Worth Change:      "
-        f"{_format_signed_currency(net_worth_change)}"
-    )
-    print(
-        f"Cash Flow Change:      "
-        f"{_format_signed_currency(cash_flow_change)}"
-    )
-    print(
-        f"Income Change:         "
-        f"{_format_signed_currency(income_change)}"
-    )
-    print(
-        f"Expense Change:        "
-        f"{_format_signed_currency(expense_change)}"
-    )
-    print(
-        f"Health Score Change:   "
-        f"{_format_signed_number(health_score_change)}"
-    )
+    print(f"Net Worth Change:      " f"{_format_signed_currency(net_worth_change)}")
+    print(f"Cash Flow Change:      " f"{_format_signed_currency(cash_flow_change)}")
+    print(f"Income Change:         " f"{_format_signed_currency(income_change)}")
+    print(f"Expense Change:        " f"{_format_signed_currency(expense_change)}")
+    print(f"Health Score Change:   " f"{_format_signed_number(health_score_change)}")
     print("========================================")
