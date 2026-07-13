@@ -1,0 +1,58 @@
+[
+    {
+        "recommendation_key": "cash_flow:negative_cash_flow",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023613+00:00",
+        "updated_at": "2026-07-13T06:06:13.023613+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "income:income_does_not_cover_expenses",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023630+00:00",
+        "updated_at": "2026-07-13T06:06:13.023630+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "income:no_income_recorded",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023636+00:00",
+        "updated_at": "2026-07-13T06:06:13.023636+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "health:financial_health_needs_attention",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023639+00:00",
+        "updated_at": "2026-07-13T06:06:13.023639+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "savings:low_emergency_fund",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023643+00:00",
+        "updated_at": "2026-07-13T06:06:13.023643+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "savings:low_cash_reserves",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023648+00:00",
+        "updated_at": "2026-07-13T06:06:13.023648+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "expenses:spending_concentration_detected",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023651+00:00",
+        "updated_at": "2026-07-13T06:06:13.023651+00:00",
+        "note": ""
+    },
+    {
+        "recommendation_key": "goals:no_goal_progress",
+        "status": "NEW",
+        "created_at": "2026-07-13T06:06:13.023654+00:00",
+        "updated_at": "2026-07-13T06:06:13.023654+00:00",
+        "note": ""
+    }
+]

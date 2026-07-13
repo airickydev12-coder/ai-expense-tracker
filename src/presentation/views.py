@@ -1,4 +1,3 @@
-from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import get_budgets
 from src.financial.expenses.analytics import (
     get_average,
@@ -7,8 +6,15 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.service import get_expenses
-from src.financial.reports.budget_report import build_budget_report
-from src.financial.shared.categories import ExpenseCategory
+from src.financial.recommendations.history import (
+    RecommendationRecord,
+)
+from src.financial.reports.budget_report import (
+    build_budget_report,
+)
+from src.financial.shared.categories import (
+    ExpenseCategory,
+)
 
 
 def display_dashboard() -> None:
@@ -23,7 +29,9 @@ def display_dashboard() -> None:
     total = get_total(expenses)
     average = get_average(expenses)
     highest = get_highest_expense(expenses)
-    category_totals = get_category_totals(expenses)
+    category_totals = get_category_totals(
+        expenses
+    )
     budgets = get_budgets()
     budget_report = build_budget_report(
         budgets,
@@ -40,7 +48,8 @@ def display_dashboard() -> None:
     if highest is not None:
         print(
             f"Largest Expense:    "
-            f"{highest.name} - ${highest.amount:.2f}"
+            f"{highest.name} - "
+            f"${highest.amount:.2f}"
         )
 
     if category_totals:
@@ -50,7 +59,8 @@ def display_dashboard() -> None:
         )
 
         print(
-            f"Top Category:       {top_category} - "
+            f"Top Category:       "
+            f"{top_category} - "
             f"${category_totals[top_category]:.2f}"
         )
 
@@ -61,7 +71,8 @@ def display_dashboard() -> None:
             print(
                 f"{summary['category']}: "
                 f"{summary['status']} "
-                f"(${summary['remaining']:.2f} remaining)"
+                f"(${summary['remaining']:.2f} "
+                "remaining)"
             )
 
     print("==============================")
@@ -79,7 +90,20 @@ def show_menu() -> None:
     print("7. Manage Budgets")
     print("8. View Budget Report")
     print("9. View Financial Snapshot")
-    print("10. Exit")
+    print("10. Manage Recommendations")
+    print("11. Exit")
+
+
+def display_recommendation_management_menu() -> None:
+    """Display the recommendation-management menu."""
+    print("\nManage Recommendations")
+    print("1. View Active Recommendations")
+    print("2. View Recommendation History")
+    print("3. Mark Recommendation Active")
+    print("4. Mark Recommendation Completed")
+    print("5. Dismiss Recommendation")
+    print("6. Suppress Recommendation")
+    print("7. Back")
 
 
 def display_categories() -> None:
@@ -90,7 +114,9 @@ def display_categories() -> None:
         ExpenseCategory,
         start=1,
     ):
-        print(f"{index}. {category.value}")
+        print(
+            f"{index}. {category.value}"
+        )
 
 
 def display_expenses() -> None:
@@ -105,14 +131,15 @@ def display_expenses() -> None:
 
     for expense in expenses:
         print(
-            f"ID {expense.id}: {expense.name} | "
+            f"ID {expense.id}: "
+            f"{expense.name} | "
             f"{expense.category.value} | "
             f"${expense.amount:.2f}"
         )
 
 
 def display_category_totals() -> None:
-    """Display spending totals grouped by category."""
+    """Display spending totals by category."""
     totals = get_category_totals(
         get_expenses()
     )
@@ -124,7 +151,9 @@ def display_category_totals() -> None:
     print("\nCategory Totals:")
 
     for category, total in totals.items():
-        print(f"{category}: ${total:.2f}")
+        print(
+            f"{category}: ${total:.2f}"
+        )
 
 
 def display_budget_summary(
@@ -132,18 +161,26 @@ def display_budget_summary(
 ) -> None:
     """Display one budget summary."""
     print("\nBudget Summary:")
-    print(f"Category:  {summary['category']}")
-    print(f"Limit:     ${summary['limit']:.2f}")
-    print(f"Spent:     ${summary['spent']:.2f}")
+    print(
+        f"Category:  {summary['category']}"
+    )
+    print(
+        f"Limit:     ${summary['limit']:.2f}"
+    )
+    print(
+        f"Spent:     ${summary['spent']:.2f}"
+    )
     print(
         f"Remaining: "
         f"${summary['remaining']:.2f}"
     )
-    print(f"Status:    {summary['status']}")
+    print(
+        f"Status:    {summary['status']}"
+    )
 
 
 def display_saved_budget_summaries() -> None:
-    """Display summaries for all saved budgets."""
+    """Display summaries for saved budgets."""
     budgets = get_budgets()
     expenses = get_expenses()
 
@@ -163,7 +200,8 @@ def display_saved_budget_summaries() -> None:
             f"{summary['category']}: "
             f"Limit ${summary['limit']:.2f} | "
             f"Spent ${summary['spent']:.2f} | "
-            f"Remaining ${summary['remaining']:.2f} | "
+            f"Remaining "
+            f"${summary['remaining']:.2f} | "
             f"{summary['status']}"
         )
 
@@ -174,7 +212,8 @@ def display_current_budgets() -> None:
 
     if not budgets:
         print(
-            "\nNo budgets have been created yet."
+            "\nNo budgets have been "
+            "created yet."
         )
         return
 
@@ -188,10 +227,110 @@ def display_current_budgets() -> None:
         )
 
 
+def display_recommendations(
+    recommendations: list[dict],
+) -> None:
+    """Display active serialized recommendations."""
+    print("\nActive Recommendations")
+    print("----------------------------------------")
+
+    if not recommendations:
+        print(
+            "No active recommendations "
+            "are available."
+        )
+        return
+
+    for index, recommendation in enumerate(
+        recommendations,
+        start=1,
+    ):
+        priority = recommendation.get(
+            "priority",
+            "UNKNOWN",
+        )
+        category = recommendation.get(
+            "category",
+            "General",
+        )
+        title = recommendation.get(
+            "title",
+            "Recommendation",
+        )
+        message = recommendation.get(
+            "message",
+            "",
+        )
+        action = recommendation.get(
+            "action",
+            "",
+        )
+        recommendation_key = (
+            recommendation.get(
+                "key",
+                "unknown:key",
+            )
+        )
+
+        print(
+            f"{index}. [{priority}] "
+            f"{category} - {title}"
+        )
+        print(
+            f"   Key: {recommendation_key}"
+        )
+
+        if message:
+            print(f"   Why: {message}")
+
+        if action:
+            print(f"   Action: {action}")
+
+
+def display_recommendation_history(
+    records: list[RecommendationRecord],
+) -> None:
+    """Display recommendation lifecycle history."""
+    print("\nRecommendation History")
+    print("----------------------------------------")
+
+    if not records:
+        print(
+            "No recommendation history "
+            "is available."
+        )
+        return
+
+    sorted_records = sorted(
+        records,
+        key=lambda record: record.updated_at,
+        reverse=True,
+    )
+
+    for index, record in enumerate(
+        sorted_records,
+        start=1,
+    ):
+        print(
+            f"{index}. "
+            f"[{record.status.name}] "
+            f"{record.recommendation_key}"
+        )
+        print(
+            f"   Updated: "
+            f"{record.updated_at.isoformat()}"
+        )
+
+        if record.note:
+            print(
+                f"   Note: {record.note}"
+            )
+
+
 def display_financial_snapshot(
     snapshot: dict,
 ) -> None:
-    """Display the complete current financial snapshot."""
+    """Display the complete financial snapshot."""
     print("\n========================================")
     print("          Financial Snapshot")
     print("========================================")
@@ -230,17 +369,41 @@ def display_financial_snapshot(
         f"({snapshot['health_status']})"
     )
 
-    accounts = snapshot.get("accounts", [])
-    goals = snapshot.get("goals", [])
-    debts = snapshot.get("debts", [])
-    bills = snapshot.get("bills", [])
+    accounts = snapshot.get(
+        "accounts",
+        [],
+    )
+    goals = snapshot.get(
+        "goals",
+        [],
+    )
+    debts = snapshot.get(
+        "debts",
+        [],
+    )
+    bills = snapshot.get(
+        "bills",
+        [],
+    )
 
     print("\nDomain Summary")
     print("----------------------------------------")
-    print(f"Accounts:              {len(accounts)}")
-    print(f"Goals:                 {len(goals)}")
-    print(f"Debts:                 {len(debts)}")
-    print(f"Bills:                 {len(bills)}")
+    print(
+        f"Accounts:              "
+        f"{len(accounts)}"
+    )
+    print(
+        f"Goals:                 "
+        f"{len(goals)}"
+    )
+    print(
+        f"Debts:                 "
+        f"{len(debts)}"
+    )
+    print(
+        f"Bills:                 "
+        f"{len(bills)}"
+    )
 
     recommendations = snapshot.get(
         "recommendations",
@@ -251,7 +414,9 @@ def display_financial_snapshot(
     print("----------------------------------------")
 
     if not recommendations:
-        print("No recommendations are available.")
+        print(
+            "No recommendations are available."
+        )
     else:
         for index, recommendation in enumerate(
             recommendations[:5],
@@ -284,9 +449,13 @@ def display_financial_snapshot(
             )
 
             if message:
-                print(f"   Why: {message}")
+                print(
+                    f"   Why: {message}"
+                )
 
             if action:
-                print(f"   Action: {action}")
+                print(
+                    f"   Action: {action}"
+                )
 
     print("========================================")
