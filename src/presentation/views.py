@@ -6,15 +6,36 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.service import get_expenses
-from src.financial.recommendations.history import (
-    RecommendationRecord,
+from src.financial.history.analytics import (
+    get_cash_flow_change,
+    get_expense_change,
+    get_health_score_change,
+    get_income_change,
+    get_net_worth_change,
 )
-from src.financial.reports.budget_report import (
-    build_budget_report,
-)
-from src.financial.shared.categories import (
-    ExpenseCategory,
-)
+from src.financial.history.models import FinancialSnapshotRecord
+from src.financial.recommendations.history import RecommendationRecord
+from src.financial.reports.budget_report import build_budget_report
+from src.financial.shared.categories import ExpenseCategory
+
+
+def _format_signed_currency(value: float) -> str:
+    """Format a currency change with an explicit sign."""
+    if value > 0:
+        return f"+${value:,.2f}"
+
+    if value < 0:
+        return f"-${abs(value):,.2f}"
+
+    return "$0.00"
+
+
+def _format_signed_number(value: int) -> str:
+    """Format a numeric change with an explicit sign."""
+    if value > 0:
+        return f"+{value}"
+
+    return str(value)
 
 
 def display_dashboard() -> None:
@@ -56,7 +77,7 @@ def display_dashboard() -> None:
         top_category = max(
             category_totals,
             key=lambda category: category_totals[category],
-    )
+        )
 
         print(
             f"Top Category:       "
@@ -71,8 +92,7 @@ def display_dashboard() -> None:
             print(
                 f"{summary['category']}: "
                 f"{summary['status']} "
-                f"(${summary['remaining']:.2f} "
-                "remaining)"
+                f"(${summary['remaining']:.2f} remaining)"
             )
 
     print("==============================")
@@ -91,7 +111,8 @@ def show_menu() -> None:
     print("8. View Budget Report")
     print("9. View Financial Snapshot")
     print("10. Manage Recommendations")
-    print("11. Exit")
+    print("11. View Financial Trends")
+    print("12. Exit")
 
 
 def display_recommendation_management_menu() -> None:
@@ -114,9 +135,7 @@ def display_categories() -> None:
         ExpenseCategory,
         start=1,
     ):
-        print(
-            f"{index}. {category.value}"
-        )
+        print(f"{index}. {category.value}")
 
 
 def display_expenses() -> None:
@@ -151,9 +170,7 @@ def display_category_totals() -> None:
     print("\nCategory Totals:")
 
     for category, total in totals.items():
-        print(
-            f"{category}: ${total:.2f}"
-        )
+        print(f"{category}: ${total:.2f}")
 
 
 def display_budget_summary(
@@ -161,22 +178,14 @@ def display_budget_summary(
 ) -> None:
     """Display one budget summary."""
     print("\nBudget Summary:")
-    print(
-        f"Category:  {summary['category']}"
-    )
-    print(
-        f"Limit:     ${summary['limit']:.2f}"
-    )
-    print(
-        f"Spent:     ${summary['spent']:.2f}"
-    )
+    print(f"Category:  {summary['category']}")
+    print(f"Limit:     ${summary['limit']:.2f}")
+    print(f"Spent:     ${summary['spent']:.2f}")
     print(
         f"Remaining: "
         f"${summary['remaining']:.2f}"
     )
-    print(
-        f"Status:    {summary['status']}"
-    )
+    print(f"Status:    {summary['status']}")
 
 
 def display_saved_budget_summaries() -> None:
@@ -200,8 +209,7 @@ def display_saved_budget_summaries() -> None:
             f"{summary['category']}: "
             f"Limit ${summary['limit']:.2f} | "
             f"Spent ${summary['spent']:.2f} | "
-            f"Remaining "
-            f"${summary['remaining']:.2f} | "
+            f"Remaining ${summary['remaining']:.2f} | "
             f"{summary['status']}"
         )
 
@@ -212,8 +220,7 @@ def display_current_budgets() -> None:
 
     if not budgets:
         print(
-            "\nNo budgets have been "
-            "created yet."
+            "\nNo budgets have been created yet."
         )
         return
 
@@ -265,20 +272,16 @@ def display_recommendations(
             "action",
             "",
         )
-        recommendation_key = (
-            recommendation.get(
-                "key",
-                "unknown:key",
-            )
+        recommendation_key = recommendation.get(
+            "key",
+            "unknown:key",
         )
 
         print(
             f"{index}. [{priority}] "
             f"{category} - {title}"
         )
-        print(
-            f"   Key: {recommendation_key}"
-        )
+        print(f"   Key: {recommendation_key}")
 
         if message:
             print(f"   Why: {message}")
@@ -322,9 +325,7 @@ def display_recommendation_history(
         )
 
         if record.note:
-            print(
-                f"   Note: {record.note}"
-            )
+            print(f"   Note: {record.note}")
 
 
 def display_financial_snapshot(
@@ -369,41 +370,17 @@ def display_financial_snapshot(
         f"({snapshot['health_status']})"
     )
 
-    accounts = snapshot.get(
-        "accounts",
-        [],
-    )
-    goals = snapshot.get(
-        "goals",
-        [],
-    )
-    debts = snapshot.get(
-        "debts",
-        [],
-    )
-    bills = snapshot.get(
-        "bills",
-        [],
-    )
+    accounts = snapshot.get("accounts", [])
+    goals = snapshot.get("goals", [])
+    debts = snapshot.get("debts", [])
+    bills = snapshot.get("bills", [])
 
     print("\nDomain Summary")
     print("----------------------------------------")
-    print(
-        f"Accounts:              "
-        f"{len(accounts)}"
-    )
-    print(
-        f"Goals:                 "
-        f"{len(goals)}"
-    )
-    print(
-        f"Debts:                 "
-        f"{len(debts)}"
-    )
-    print(
-        f"Bills:                 "
-        f"{len(bills)}"
-    )
+    print(f"Accounts:              {len(accounts)}")
+    print(f"Goals:                 {len(goals)}")
+    print(f"Debts:                 {len(debts)}")
+    print(f"Bills:                 {len(bills)}")
 
     recommendations = snapshot.get(
         "recommendations",
@@ -414,9 +391,7 @@ def display_financial_snapshot(
     print("----------------------------------------")
 
     if not recommendations:
-        print(
-            "No recommendations are available."
-        )
+        print("No recommendations are available.")
     else:
         for index, recommendation in enumerate(
             recommendations[:5],
@@ -449,13 +424,86 @@ def display_financial_snapshot(
             )
 
             if message:
-                print(
-                    f"   Why: {message}"
-                )
+                print(f"   Why: {message}")
 
             if action:
-                print(
-                    f"   Action: {action}"
-                )
+                print(f"   Action: {action}")
 
+    print("========================================")
+
+
+def display_financial_trends(
+    history: list[FinancialSnapshotRecord],
+) -> None:
+    """Display financial changes across saved snapshots."""
+    print("\n========================================")
+    print("           Financial Trends")
+    print("========================================")
+
+    if not history:
+        print("No financial snapshots have been recorded.")
+        print("========================================")
+        return
+
+    ordered_history = sorted(
+        history,
+        key=lambda record: record.timestamp,
+    )
+    latest_snapshot = ordered_history[-1]
+
+    print(
+        f"Snapshots Recorded:    "
+        f"{len(ordered_history)}"
+    )
+    print(
+        f"Latest Snapshot:       "
+        f"{latest_snapshot.timestamp.isoformat()}"
+    )
+
+    if len(ordered_history) < 2:
+        print(
+            "\nRecord at least two snapshots "
+            "to calculate financial trends."
+        )
+        print("========================================")
+        return
+
+    net_worth_change = get_net_worth_change(
+        ordered_history
+    )
+    cash_flow_change = get_cash_flow_change(
+        ordered_history
+    )
+    income_change = get_income_change(
+        ordered_history
+    )
+    expense_change = get_expense_change(
+        ordered_history
+    )
+    health_score_change = get_health_score_change(
+        ordered_history
+    )
+
+    print("\nChanges")
+    print("----------------------------------------")
+    print(
+        f"Net Worth Change:      "
+        f"{_format_signed_currency(net_worth_change)}"
+    )
+    print(
+        f"Cash Flow Change:      "
+        f"{_format_signed_currency(cash_flow_change)}"
+    )
+    print(
+        f"Income Change:         "
+        f"{_format_signed_currency(income_change)}"
+    )
+    print(
+        f"Expense Change:        "
+        f"{_format_signed_currency(expense_change)}"
+    )
+    print(
+        f"Health Score Change:   "
+        f"{_format_signed_number(health_score_change)}"
+    )
     print("========================================")

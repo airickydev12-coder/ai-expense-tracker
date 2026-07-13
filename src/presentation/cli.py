@@ -1,6 +1,7 @@
 from src.financial.application.financial_state import (
     build_current_financial_snapshot,
     load_financial_state,
+    record_current_financial_snapshot,
 )
 from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import add_budget, delete_budget
@@ -11,6 +12,7 @@ from src.financial.expenses.service import (
     get_expenses,
     update_expense,
 )
+from src.financial.history.service import get_history
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.recommendations.history_service import (
     activate_recommendation,
@@ -27,6 +29,7 @@ from src.presentation.views import (
     display_dashboard,
     display_expenses,
     display_financial_snapshot,
+    display_financial_trends,
     display_recommendation_history,
     display_recommendation_management_menu,
     display_recommendations,
@@ -93,7 +96,13 @@ def select_history_record_key(
         print("History selection is out of range.")
         return None
 
-    return records[selection - 1].recommendation_key
+    sorted_records = sorted(
+        records,
+        key=lambda record: record.updated_at,
+        reverse=True,
+    )
+
+    return sorted_records[selection - 1].recommendation_key
 
 
 def manage_recommendations() -> None:
@@ -142,9 +151,7 @@ def manage_recommendations() -> None:
             if record is None:
                 print("Recommendation record not found.")
             else:
-                print(
-                    "Recommendation marked as active."
-                )
+                print("Recommendation marked as active.")
 
         elif recommendation_choice == "4":
             recommendation_key = select_recommendation_key(
@@ -166,9 +173,7 @@ def manage_recommendations() -> None:
             if record is None:
                 print("Recommendation record not found.")
             else:
-                print(
-                    "Recommendation marked as completed."
-                )
+                print("Recommendation marked as completed.")
 
         elif recommendation_choice == "5":
             recommendation_key = select_recommendation_key(
@@ -245,9 +250,7 @@ def run_cli() -> None:
             try:
                 amount = float(amount_text)
             except ValueError:
-                print(
-                    "Invalid amount. Please enter a number."
-                )
+                print("Invalid amount. Please enter a number.")
                 continue
 
             if amount < 0:
@@ -279,14 +282,10 @@ def run_cli() -> None:
             try:
                 expense_id = int(expense_id_text)
             except ValueError:
-                print(
-                    "Invalid input. Please enter a number."
-                )
+                print("Invalid input. Please enter a number.")
                 continue
 
-            deleted_expense = delete_expense(
-                expense_id
-            )
+            deleted_expense = delete_expense(expense_id)
 
             if deleted_expense is None:
                 print("Expense not found.")
@@ -306,9 +305,7 @@ def run_cli() -> None:
             try:
                 expense_id = int(expense_id_text)
             except ValueError:
-                print(
-                    "Invalid input. Please enter a number."
-                )
+                print("Invalid input. Please enter a number.")
                 continue
 
             new_name = input(
@@ -352,9 +349,7 @@ def run_cli() -> None:
                     continue
 
                 if amount < 0:
-                    print(
-                        "Amount cannot be negative."
-                    )
+                    print("Amount cannot be negative.")
                     continue
 
             updated_expense = update_expense(
@@ -389,9 +384,7 @@ def run_cli() -> None:
 
             if budget_choice == "1":
                 while True:
-                    print(
-                        "\nCreate / Update Budget"
-                    )
+                    print("\nCreate / Update Budget")
 
                     category = select_category()
 
@@ -436,12 +429,8 @@ def run_cli() -> None:
                         get_expenses(),
                     )
 
-                    print(
-                        "\nBudget saved successfully."
-                    )
-                    display_budget_summary(
-                        summary
-                    )
+                    print("\nBudget saved successfully.")
+                    display_budget_summary(summary)
 
                     add_another = input(
                         "\nCreate or update another "
@@ -479,17 +468,24 @@ def run_cli() -> None:
             display_saved_budget_summaries()
 
         elif choice == "9":
-            snapshot = (
-                build_current_financial_snapshot()
+            snapshot, _ = (
+                record_current_financial_snapshot()
             )
-            display_financial_snapshot(
-                snapshot
+
+            display_financial_snapshot(snapshot)
+            print(
+                "\nFinancial snapshot saved to history."
             )
 
         elif choice == "10":
             manage_recommendations()
 
         elif choice == "11":
+            display_financial_trends(
+                get_history()
+            )
+
+        elif choice == "12":
             print("Goodbye!")
             break
 
@@ -497,5 +493,5 @@ def run_cli() -> None:
             print(
                 "Invalid option. Please choose "
                 "1, 2, 3, 4, 5, 6, 7, 8, "
-                "9, 10, or 11."
+                "9, 10, 11, or 12."
             )
