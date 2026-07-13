@@ -1,0 +1,97 @@
+from datetime import datetime, timezone
+from pathlib import Path
+
+from src.financial.history.models import FinancialSnapshotRecord
+from src.financial.history.repository import (
+    HISTORY_FILE,
+    load_history_from_file,
+    save_history_to_file,
+)
+
+
+_history: list[FinancialSnapshotRecord] = []
+_loaded_file_path: Path = HISTORY_FILE
+
+
+def load_history(
+    file_path: Path = HISTORY_FILE,
+) -> None:
+    """Load historical snapshots into application memory."""
+    global _loaded_file_path
+
+    _history.clear()
+    _history.extend(
+        load_history_from_file(file_path)
+    )
+
+    _loaded_file_path = file_path
+
+
+def save_history(
+    file_path: Path | None = None,
+) -> None:
+    """Save all historical snapshots."""
+    target_path = (
+        file_path
+        if file_path is not None
+        else _loaded_file_path
+    )
+
+    save_history_to_file(
+        _history,
+        target_path,
+    )
+
+
+def get_history() -> list[FinancialSnapshotRecord]:
+    """Return a copy of all historical snapshots."""
+    return _history.copy()
+
+
+def get_latest_snapshot() -> FinancialSnapshotRecord | None:
+    """Return the most recent historical snapshot."""
+    if not _history:
+        return None
+
+    return max(
+        _history,
+        key=lambda record: record.timestamp,
+    )
+
+
+def record_snapshot(
+    snapshot: dict,
+    file_path: Path | None = None,
+    timestamp: datetime | None = None,
+) -> FinancialSnapshotRecord:
+    """Create and persist a historical snapshot record."""
+    record = FinancialSnapshotRecord(
+        timestamp=(
+            timestamp
+            if timestamp is not None
+            else datetime.now(timezone.utc)
+        ),
+        total_income=float(snapshot["total_income"]),
+        total_expenses=float(snapshot["total_expenses"]),
+        net_cash_flow=float(snapshot["net_cash_flow"]),
+        total_account_balance=float(
+            snapshot["total_account_balance"]
+        ),
+        total_goal_progress=float(
+            snapshot["total_goal_progress"]
+        ),
+        total_debt=float(snapshot["total_debt"]),
+        net_worth=float(snapshot["net_worth"]),
+        health_score=int(snapshot["health_score"]),
+        health_status=str(snapshot["health_status"]),
+    )
+
+    _history.append(record)
+    save_history(file_path)
+
+    return record
+
+
+def clear_history() -> None:
+    """Clear historical snapshots from application memory."""
+    _history.clear()

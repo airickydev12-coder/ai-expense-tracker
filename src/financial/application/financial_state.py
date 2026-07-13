@@ -25,6 +25,11 @@ from src.financial.goals.service import (
     get_goals,
     load_goals,
 )
+from src.financial.history.models import FinancialSnapshotRecord
+from src.financial.history.service import (
+    load_history,
+    record_snapshot,
+)
 from src.financial.income.service import (
     get_income_entries,
     load_income,
@@ -44,6 +49,7 @@ def load_financial_state() -> None:
     load_debts()
     load_bills()
     load_recommendation_history()
+    load_history()
 
 
 def get_financial_state() -> dict:
@@ -62,7 +68,7 @@ def get_financial_state() -> dict:
 def build_current_financial_snapshot(
     current_day: int | None = None,
 ) -> dict:
-    """Build a snapshot from current in-memory data."""
+    """Build a snapshot from current in-memory financial data."""
     state = get_financial_state()
 
     return build_financial_snapshot(
@@ -75,3 +81,16 @@ def build_current_financial_snapshot(
         bills=state["bills"],
         current_day=current_day,
     )
+
+
+def record_current_financial_snapshot(
+    current_day: int | None = None,
+) -> tuple[dict, FinancialSnapshotRecord]:
+    """Build, record, and return the current financial snapshot."""
+    snapshot = build_current_financial_snapshot(
+        current_day=current_day
+    )
+
+    record = record_snapshot(snapshot)
+
+    return snapshot, record

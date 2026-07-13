@@ -55,8 +55,8 @@ def display_dashboard() -> None:
     if category_totals:
         top_category = max(
             category_totals,
-            key=category_totals.get,
-        )
+            key=lambda category: category_totals[category],
+    )
 
         print(
             f"Top Category:       "

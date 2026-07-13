@@ -1,0 +1,86 @@
+from src.financial.history.models import FinancialSnapshotRecord
+
+
+def _sort_history(
+    history: list[FinancialSnapshotRecord],
+) -> list[FinancialSnapshotRecord]:
+    """Return snapshots ordered from oldest to newest."""
+    return sorted(
+        history,
+        key=lambda record: record.timestamp,
+    )
+
+
+def get_net_worth_change(
+    history: list[FinancialSnapshotRecord],
+) -> float:
+    """Return net-worth change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return 0.0
+
+    ordered_history = _sort_history(history)
+
+    return (
+        ordered_history[-1].net_worth
+        - ordered_history[0].net_worth
+    )
+
+
+def get_cash_flow_change(
+    history: list[FinancialSnapshotRecord],
+) -> float:
+    """Return cash-flow change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return 0.0
+
+    ordered_history = _sort_history(history)
+
+    return (
+        ordered_history[-1].net_cash_flow
+        - ordered_history[0].net_cash_flow
+    )
+
+
+def get_health_score_change(
+    history: list[FinancialSnapshotRecord],
+) -> int:
+    """Return health-score change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return 0
+
+    ordered_history = _sort_history(history)
+
+    return (
+        ordered_history[-1].health_score
+        - ordered_history[0].health_score
+    )
+
+
+def get_income_change(
+    history: list[FinancialSnapshotRecord],
+) -> float:
+    """Return income change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return 0.0
+
+    ordered_history = _sort_history(history)
+
+    return (
+        ordered_history[-1].total_income
+        - ordered_history[0].total_income
+    )
+
+
+def get_expense_change(
+    history: list[FinancialSnapshotRecord],
+) -> float:
+    """Return expense change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return 0.0
+
+    ordered_history = _sort_history(history)
+
+    return (
+        ordered_history[-1].total_expenses
+        - ordered_history[0].total_expenses
+    )
