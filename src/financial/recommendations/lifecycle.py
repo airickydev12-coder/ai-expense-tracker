@@ -27,20 +27,25 @@ class RecommendationLifecycleManager:
         recommendation_key: str,
     ) -> RecommendationRecord | None:
         """Return a lifecycle record by recommendation key."""
-        return self._records.get(
-            recommendation_key
-        )
+        normalized_key = recommendation_key.strip()
+
+        return self._records.get(normalized_key)
+
+    def replace_records(
+        self,
+        records: list[RecommendationRecord],
+    ) -> None:
+        """Replace all current records with loaded records."""
+        self._records = {
+            record.recommendation_key: record
+            for record in records
+        }
 
     def register(
         self,
         recommendation: Recommendation,
     ) -> RecommendationRecord:
-        """
-        Register a recommendation.
-
-        Existing records are reused so duplicate lifecycle records
-        are not created for the same recommendation key.
-        """
+        """Register a recommendation without creating duplicates."""
         existing_record = self.get_record(
             recommendation.key
         )
@@ -53,9 +58,7 @@ class RecommendationLifecycleManager:
             status=RecommendationStatus.NEW,
         )
 
-        self._records[
-            recommendation.key
-        ] = record
+        self._records[recommendation.key] = record
 
         return record
 
@@ -112,9 +115,7 @@ class RecommendationLifecycleManager:
         recommendation_key: str,
     ) -> bool:
         """Return whether a recommendation should be displayed."""
-        record = self.get_record(
-            recommendation_key
-        )
+        record = self.get_record(recommendation_key)
 
         if record is None:
             return True
@@ -128,27 +129,21 @@ class RecommendationLifecycleManager:
         self,
         recommendations: list[Recommendation],
     ) -> list[Recommendation]:
-        """Return recommendations that are eligible for display."""
+        """Register and return recommendations eligible for display."""
         displayable: list[Recommendation] = []
 
         for recommendation in recommendations:
-            record = self.register(
-                recommendation
-            )
+            record = self.register(recommendation)
 
             if record.status in {
                 RecommendationStatus.NEW,
                 RecommendationStatus.ACTIVE,
             }:
-                displayable.append(
-                    recommendation
-                )
+                displayable.append(recommendation)
 
         return displayable
 
-    def clear(
-        self,
-    ) -> None:
+    def clear(self) -> None:
         """Remove all lifecycle records."""
         self._records.clear()
 
@@ -159,9 +154,7 @@ class RecommendationLifecycleManager:
         note: str,
     ) -> RecommendationRecord | None:
         """Update a lifecycle record status."""
-        record = self.get_record(
-            recommendation_key
-        )
+        record = self.get_record(recommendation_key)
 
         if record is None:
             return None

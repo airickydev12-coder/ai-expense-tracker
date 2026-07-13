@@ -29,10 +29,13 @@ from src.financial.income.service import (
     get_income_entries,
     load_income,
 )
+from src.financial.recommendations.history_service import (
+    load_recommendation_history,
+)
 
 
 def load_financial_state() -> None:
-    """Load all persisted financial domain data."""
+    """Load all persisted financial application state."""
     load_expenses()
     load_budgets()
     load_income()
@@ -40,6 +43,7 @@ def load_financial_state() -> None:
     load_goals()
     load_debts()
     load_bills()
+    load_recommendation_history()
 
 
 def get_financial_state() -> dict:
@@ -58,7 +62,7 @@ def get_financial_state() -> dict:
 def build_current_financial_snapshot(
     current_day: int | None = None,
 ) -> dict:
-    """Build a snapshot from all current in-memory domain data."""
+    """Build a snapshot from current in-memory data."""
     state = get_financial_state()
 
     return build_financial_snapshot(
