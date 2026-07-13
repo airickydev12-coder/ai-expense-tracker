@@ -1,11 +1,14 @@
-from src.financial.expenses.analytics import get_total
+from src.financial.application.financial_state import (
+    build_current_financial_snapshot,
+    load_financial_state,
+)
 from src.financial.budgets.analytics import get_budget_summary
-from src.financial.budgets.service import add_budget, delete_budget, load_budgets
+from src.financial.budgets.service import add_budget, delete_budget
+from src.financial.expenses.analytics import get_total
 from src.financial.expenses.service import (
     add_expense,
     delete_expense,
     get_expenses,
-    load_expenses,
     update_expense,
 )
 from src.presentation.input_handlers import select_category
@@ -15,6 +18,7 @@ from src.presentation.views import (
     display_current_budgets,
     display_dashboard,
     display_expenses,
+    display_financial_snapshot,
     display_saved_budget_summaries,
     show_menu,
 )
@@ -22,22 +26,22 @@ from src.presentation.views import (
 
 def run_cli() -> None:
     """Run the command-line interface."""
-    load_expenses()
-    load_budgets()
+    load_financial_state()
     display_dashboard()
 
     while True:
         show_menu()
-        choice = input("Choose an option: ")
+        choice = input("Choose an option: ").strip()
 
         if choice == "1":
-            name = input("Expense name: ")
+            name = input("Expense name: ").strip()
+
             category = select_category()
 
             if category is None:
                 continue
 
-            amount_text = input("Amount: ")
+            amount_text = input("Amount: ").strip()
 
             try:
                 amount = float(amount_text)
@@ -45,7 +49,16 @@ def run_cli() -> None:
                 print("Invalid amount. Please enter a number.")
                 continue
 
-            add_expense(name, category, amount)
+            if amount < 0:
+                print("Amount cannot be negative.")
+                continue
+
+            add_expense(
+                name,
+                category,
+                amount,
+            )
+
             print("Expense added successfully!")
 
         elif choice == "2":
@@ -58,7 +71,9 @@ def run_cli() -> None:
         elif choice == "4":
             display_expenses()
 
-            expense_id_text = input("Enter the expense ID to delete: ")
+            expense_id_text = input(
+                "Enter the expense ID to delete: "
+            ).strip()
 
             try:
                 expense_id = int(expense_id_text)
@@ -71,12 +86,17 @@ def run_cli() -> None:
             if deleted_expense is None:
                 print("Expense not found.")
             else:
-                print(f"Deleted expense: {deleted_expense.name}")
+                print(
+                    f"Deleted expense: "
+                    f"{deleted_expense.name}"
+                )
 
         elif choice == "5":
             display_expenses()
 
-            expense_id_text = input("Enter the expense ID to update: ")
+            expense_id_text = input(
+                "Enter the expense ID to update: "
+            ).strip()
 
             try:
                 expense_id = int(expense_id_text)
@@ -84,27 +104,47 @@ def run_cli() -> None:
                 print("Invalid input. Please enter a number.")
                 continue
 
-            new_name = input("New name (press Enter to keep unchanged): ")
+            new_name = input(
+                "New name (press Enter to keep unchanged): "
+            )
 
-            print("Choose a new category, or press Enter to keep unchanged.")
-            category_input = input("Change category? (y/n): ").lower().strip()
+            print(
+                "Choose a new category, "
+                "or keep the current category."
+            )
+
+            category_input = input(
+                "Change category? (y/n): "
+            ).lower().strip()
 
             category = None
+
             if category_input == "y":
                 category = select_category()
+
                 if category is None:
                     continue
 
-            new_amount_text = input("New amount (press Enter to keep unchanged): ")
+            new_amount_text = input(
+                "New amount (press Enter to keep unchanged): "
+            ).strip()
 
-            name = new_name.strip() if new_name.strip() else None
+            name = (
+                new_name.strip()
+                if new_name.strip()
+                else None
+            )
+
             amount = None
 
-            if new_amount_text.strip():
+            if new_amount_text:
                 try:
                     amount = float(new_amount_text)
                 except ValueError:
-                    print("Invalid amount. Please enter a number.")
+                    print(
+                        "Invalid amount. "
+                        "Please enter a number."
+                    )
                     continue
 
                 if amount < 0:
@@ -121,7 +161,10 @@ def run_cli() -> None:
             if updated_expense is None:
                 print("Expense not found.")
             else:
-                print(f"Updated expense: {updated_expense.name}")
+                print(
+                    f"Updated expense: "
+                    f"{updated_expense.name}"
+                )
 
         elif choice == "6":
             display_category_totals()
@@ -134,7 +177,9 @@ def run_cli() -> None:
             print("2. Delete Budget")
             print("3. Back")
 
-            budget_choice = input("Choose an option: ").strip()
+            budget_choice = input(
+                "Choose an option: "
+            ).strip()
 
             if budget_choice == "1":
                 while True:
@@ -144,7 +189,8 @@ def run_cli() -> None:
 
                     if category is None:
                         retry = input(
-                            "Try selecting a category again? (y/n): "
+                            "Try selecting a category again? "
+                            "(y/n): "
                         ).strip().lower()
 
                         if retry != "y":
@@ -152,19 +198,31 @@ def run_cli() -> None:
 
                         continue
 
-                    limit_text = input("Enter budget limit: ").strip()
+                    limit_text = input(
+                        "Enter budget limit: "
+                    ).strip()
 
                     try:
                         limit = float(limit_text)
                     except ValueError:
-                        print("Invalid budget limit. Please enter a number.")
+                        print(
+                            "Invalid budget limit. "
+                            "Please enter a number."
+                        )
                         continue
 
                     if limit <= 0:
-                        print("Budget limit must be greater than zero.")
+                        print(
+                            "Budget limit must be "
+                            "greater than zero."
+                        )
                         continue
 
-                    budget = add_budget(category, limit)
+                    budget = add_budget(
+                        category,
+                        limit,
+                    )
+
                     summary = get_budget_summary(
                         budget,
                         get_expenses(),
@@ -174,7 +232,8 @@ def run_cli() -> None:
                     display_budget_summary(summary)
 
                     add_another = input(
-                        "\nCreate or update another budget? (y/n): "
+                        "\nCreate or update another "
+                        "budget? (y/n): "
                     ).strip().lower()
 
                     if add_another != "y":
@@ -192,7 +251,7 @@ def run_cli() -> None:
                     print("Budget not found.")
                 else:
                     print(
-                        f"Deleted budget for "
+                        "Deleted budget for "
                         f"{deleted_budget.category.value}."
                     )
 
@@ -206,8 +265,15 @@ def run_cli() -> None:
             display_saved_budget_summaries()
 
         elif choice == "9":
+            snapshot = build_current_financial_snapshot()
+            display_financial_snapshot(snapshot)
+
+        elif choice == "10":
             print("Goodbye!")
             break
 
         else:
-            print("Invalid option. Please choose 1, 2, 3, 4, 5, 6, 7, 8, or 9.")
+            print(
+                "Invalid option. Please choose "
+                "1, 2, 3, 4, 5, 6, 7, 8, 9, or 10."
+            )
