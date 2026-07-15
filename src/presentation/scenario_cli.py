@@ -13,6 +13,17 @@ from src.presentation.views import (
     display_scenario_result,
 )
 
+from src.financial.scenarios.ranking import (
+    ScenarioRankingMetric,
+)
+from src.financial.scenarios.workspace import (
+    save_scenario_result,
+)
+
+from src.presentation.scenario_workspace_cli import (
+    manage_scenario_workspace,
+)
+
 
 def _read_positive_float(
     prompt: str,
@@ -300,7 +311,7 @@ def _execute_scenario(
     request: ScenarioRequest,
     snapshot: dict,
 ) -> None:
-    """Run and display a scenario while handling validation errors."""
+    """Run, save, and display a scenario."""
     try:
         result = run_financial_scenario(
             request=request,
@@ -310,7 +321,10 @@ def _execute_scenario(
         print(f"\nUnable to run scenario: {error}")
         return
 
+    save_scenario_result(result)
     display_scenario_result(result)
+
+    print("\nScenario saved to the current " "planning workspace.")
 
 
 def manage_scenarios() -> None:
@@ -320,8 +334,12 @@ def manage_scenarios() -> None:
 
         choice = input("Choose an option: ").strip()
 
-        if choice == "5":
+        if choice == "6":
             return
+
+        if choice == "5":
+            manage_scenario_workspace()
+            continue
 
         snapshot = build_current_financial_snapshot()
 
@@ -338,4 +356,4 @@ def manage_scenarios() -> None:
             run_extra_debt_payment_flow(snapshot)
 
         else:
-            print("Invalid scenario option. " "Please choose 1 through 5.")
+            print("Invalid scenario option. " "Please choose 1 through 6.")

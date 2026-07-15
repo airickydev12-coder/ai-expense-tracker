@@ -136,7 +136,7 @@ def test_manage_scenarios_routes_income(
     choices = iter(
         [
             "2",
-            "5",
+            "6",
         ]
     )
 

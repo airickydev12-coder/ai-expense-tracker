@@ -538,7 +538,8 @@ def display_scenario_management_menu() -> None:
     print("2. Increase Income")
     print("3. Add Monthly Savings")
     print("4. Make an Extra Debt Payment")
-    print("5. Back")
+    print("5. Open Planning Workspace")
+    print("6. Back")
 
 
 def _display_scenario_impact(
