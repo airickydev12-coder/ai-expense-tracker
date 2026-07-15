@@ -41,7 +41,7 @@ def test_run_cli_routes_add_expense(
         monkeypatch,
         [
             "1",
-            "13",
+            "14",
         ],
     )
 
@@ -68,7 +68,7 @@ def test_run_cli_routes_view_expenses(
         monkeypatch,
         [
             "2",
-            "13",
+            "14",
         ],
     )
 
@@ -95,7 +95,7 @@ def test_run_cli_routes_delete_expense(
         monkeypatch,
         [
             "4",
-            "13",
+            "14",
         ],
     )
 
@@ -122,7 +122,7 @@ def test_run_cli_routes_update_expense(
         monkeypatch,
         [
             "5",
-            "13",
+            "14",
         ],
     )
 
@@ -149,7 +149,7 @@ def test_run_cli_routes_budget_management(
         monkeypatch,
         [
             "7",
-            "13",
+            "14",
         ],
     )
 
@@ -176,7 +176,7 @@ def test_run_cli_routes_recommendation_management(
         monkeypatch,
         [
             "10",
-            "13",
+            "14",
         ],
     )
 
@@ -203,7 +203,7 @@ def test_run_cli_routes_financial_trends(
         monkeypatch,
         [
             "11",
-            "13",
+            "14",
         ],
     )
 
@@ -240,7 +240,7 @@ def test_run_cli_routes_forecast(
         monkeypatch,
         [
             "12",
-            "13",
+            "14",
         ],
     )
 
@@ -267,7 +267,7 @@ def test_run_cli_records_financial_snapshot(
         monkeypatch,
         [
             "9",
-            "13",
+            "14",
         ],
     )
 
@@ -300,14 +300,14 @@ def test_run_cli_records_financial_snapshot(
     assert captured["snapshot"] == snapshot
 
 
-def test_run_cli_exits_with_option_13(
+def test_run_cli_exits_with_option_14(
     monkeypatch,
     capsys,
 ):
     configure_cli_test(
         monkeypatch,
         [
-            "13",
+            "14",
         ],
     )
 
@@ -326,7 +326,7 @@ def test_run_cli_rejects_invalid_option(
         monkeypatch,
         [
             "invalid",
-            "13",
+            "14",
         ],
     )
 
@@ -335,3 +335,30 @@ def test_run_cli_rejects_invalid_option(
     output = capsys.readouterr().out
 
     assert "Invalid option." in output
+
+
+def test_run_cli_routes_scenario_management(
+    monkeypatch,
+):
+    captured = {"called": False}
+
+    configure_cli_test(
+        monkeypatch,
+        [
+            "13",
+            "14",
+        ],
+    )
+
+    def fake_manage_scenarios():
+        captured["called"] = True
+
+    monkeypatch.setattr(
+        cli,
+        "manage_scenarios",
+        fake_manage_scenarios,
+    )
+
+    cli.run_cli()
+
+    assert captured["called"] is True

@@ -85,7 +85,8 @@ def test_show_menu_includes_financial_trends(
     assert "10. Manage Recommendations" in output
     assert "11. View Financial Trends" in output
     assert "12. View Financial Forecast" in output
-    assert "13. Exit" in output
+    assert "13. Model Financial Scenarios" in output
+    assert "14. Exit" in output
 
 
 def test_recommendation_management_menu(
@@ -115,9 +116,7 @@ def test_display_recommendations(
         }
     ]
 
-    views.display_recommendations(
-        recommendations
-    )
+    views.display_recommendations(recommendations)
 
     output = capsys.readouterr().out
 
@@ -134,10 +133,7 @@ def test_display_recommendations_when_empty(
 
     output = capsys.readouterr().out
 
-    assert (
-        "No active recommendations are available."
-        in output
-    )
+    assert "No active recommendations are available." in output
 
 
 def test_display_recommendation_history(
@@ -147,9 +143,7 @@ def test_display_recommendation_history(
 
     records = [
         RecommendationRecord(
-            recommendation_key=(
-                "debt:high_interest_debt"
-            ),
+            recommendation_key=("debt:high_interest_debt"),
             status=RecommendationStatus.COMPLETED,
             created_at=timestamp,
             updated_at=timestamp,
@@ -157,9 +151,7 @@ def test_display_recommendation_history(
         )
     ]
 
-    views.display_recommendation_history(
-        records
-    )
+    views.display_recommendation_history(records)
 
     output = capsys.readouterr().out
 
@@ -176,10 +168,7 @@ def test_display_recommendation_history_empty(
 
     output = capsys.readouterr().out
 
-    assert (
-        "No recommendation history is available."
-        in output
-    )
+    assert "No recommendation history is available." in output
 
 
 def test_display_financial_snapshot(
@@ -224,9 +213,7 @@ def test_display_financial_snapshot(
 def test_display_financial_trends(
     capsys,
 ):
-    views.display_financial_trends(
-        build_history()
-    )
+    views.display_financial_trends(build_history())
 
     output = capsys.readouterr().out
 
@@ -252,10 +239,7 @@ def test_display_financial_trends_without_history(
 
     output = capsys.readouterr().out
 
-    assert (
-        "No financial snapshots have been recorded."
-        in output
-    )
+    assert "No financial snapshots have been recorded." in output
 
 
 def test_display_financial_trends_with_one_snapshot(
@@ -268,17 +252,13 @@ def test_display_financial_trends_with_one_snapshot(
     output = capsys.readouterr().out
 
     assert "Snapshots Recorded:" in output
-    assert (
-        "Record at least two snapshots"
-        in output
-    )
+    assert "Record at least two snapshots" in output
+
 
 def test_display_financial_trends_includes_intelligence(
     capsys,
 ):
-    views.display_financial_trends(
-        build_history()
-    )
+    views.display_financial_trends(build_history())
 
     output = capsys.readouterr().out
 
@@ -289,6 +269,7 @@ def test_display_financial_trends_includes_intelligence(
     assert "Income Trend:          Improving" in output
     assert "Expense Trend:         Improving" in output
     assert "Health Trend:          Improving" in output
+
 
 def build_forecast() -> FinancialForecast:
     """Create a financial forecast for view tests."""
@@ -363,15 +344,14 @@ def test_show_menu_includes_financial_forecast(
 
     assert "11. View Financial Trends" in output
     assert "12. View Financial Forecast" in output
-    assert "13. Exit" in output
+    assert "13. Model Financial Scenarios" in output
+    assert "14. Exit" in output
 
 
 def test_display_financial_forecast(
     capsys,
 ):
-    views.display_financial_forecast(
-        build_forecast()
-    )
+    views.display_financial_forecast(build_forecast())
 
     output = capsys.readouterr().out
 
@@ -407,17 +387,9 @@ def test_display_forecast_with_one_history_point(
         health_score=forecast.health_score,
     )
 
-    views.display_financial_forecast(
-        single_point_forecast
-    )
+    views.display_financial_forecast(single_point_forecast)
 
     output = capsys.readouterr().out
 
-    assert (
-        "Only one historical snapshot is available."
-        in output
-    )
-    assert (
-        "until more history is recorded"
-        in output
-    )
+    assert "Only one historical snapshot is available." in output
+    assert "until more history is recorded" in output

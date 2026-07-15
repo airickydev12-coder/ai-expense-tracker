@@ -22,7 +22,10 @@ from src.financial.recommendations.history import RecommendationRecord
 from src.financial.reports.budget_report import build_budget_report
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.history.trends import analyze_financial_trends
-
+from src.financial.scenarios.models import (
+    ScenarioImpact,
+    ScenarioResult,
+)
 
 
 def _format_signed_currency(value: float) -> str:
@@ -113,7 +116,8 @@ def show_menu() -> None:
     print("10. Manage Recommendations")
     print("11. View Financial Trends")
     print("12. View Financial Forecast")
-    print("13. Exit")
+    print("13. Model Financial Scenarios")
+    print("14. Exit")
 
 
 def display_recommendation_management_menu() -> None:
@@ -403,61 +407,27 @@ def display_financial_trends(
 
     latest_snapshot = ordered_history[-1]
 
-    formatted_timestamp = latest_snapshot.timestamp.strftime(
-        "%Y-%m-%d %H:%M"
-    )
+    formatted_timestamp = latest_snapshot.timestamp.strftime("%Y-%m-%d %H:%M")
 
-    print(
-        f"Snapshots Recorded:    "
-        f"{len(ordered_history)}"
-    )
-    print(
-        f"Latest Snapshot:       "
-        f"{formatted_timestamp}"
-    )
+    print(f"Snapshots Recorded:    " f"{len(ordered_history)}")
+    print(f"Latest Snapshot:       " f"{formatted_timestamp}")
 
-    trend_summary = analyze_financial_trends(
-        ordered_history
-    )
+    trend_summary = analyze_financial_trends(ordered_history)
 
     if len(ordered_history) < 2:
-        print(
-            "\nRecord at least two snapshots "
-            "to calculate financial trends."
-        )
-        print(
-            f"Overall Momentum:      "
-            f"{trend_summary.overall_momentum.value}"
-        )
+        print("\nRecord at least two snapshots " "to calculate financial trends.")
+        print(f"Overall Momentum:      " f"{trend_summary.overall_momentum.value}")
         print("========================================")
         return
 
     print("\nTrend Intelligence")
     print("----------------------------------------")
-    print(
-        f"Overall Momentum:      "
-        f"{trend_summary.overall_momentum.value}"
-    )
-    print(
-        f"Net Worth Trend:       "
-        f"{trend_summary.net_worth.direction.value}"
-    )
-    print(
-        f"Cash Flow Trend:       "
-        f"{trend_summary.cash_flow.direction.value}"
-    )
-    print(
-        f"Income Trend:          "
-        f"{trend_summary.income.direction.value}"
-    )
-    print(
-        f"Expense Trend:         "
-        f"{trend_summary.expenses.direction.value}"
-    )
-    print(
-        f"Health Trend:          "
-        f"{trend_summary.health_score.direction.value}"
-    )
+    print(f"Overall Momentum:      " f"{trend_summary.overall_momentum.value}")
+    print(f"Net Worth Trend:       " f"{trend_summary.net_worth.direction.value}")
+    print(f"Cash Flow Trend:       " f"{trend_summary.cash_flow.direction.value}")
+    print(f"Income Trend:          " f"{trend_summary.income.direction.value}")
+    print(f"Expense Trend:         " f"{trend_summary.expenses.direction.value}")
+    print(f"Health Trend:          " f"{trend_summary.health_score.direction.value}")
 
     print("\nChanges")
     print("----------------------------------------")
@@ -493,19 +463,14 @@ def display_financial_trends(
     )
     print("========================================")
 
+
 def _display_currency_projection(
     projection: MetricProjection,
 ) -> None:
     """Display one currency-based forecast projection."""
     print(f"\n{projection.metric}")
-    print(
-        f"Current:               "
-        f"${projection.current_value:,.2f}"
-    )
-    print(
-        f"Projected:             "
-        f"${projection.projected_value:,.2f}"
-    )
+    print(f"Current:               " f"${projection.current_value:,.2f}")
+    print(f"Projected:             " f"${projection.projected_value:,.2f}")
     print(
         f"Change:                "
         f"{_format_signed_currency(
@@ -519,14 +484,8 @@ def _display_number_projection(
 ) -> None:
     """Display one numeric forecast projection."""
     print(f"\n{projection.metric}")
-    print(
-        f"Current:               "
-        f"{projection.current_value:.0f}"
-    )
-    print(
-        f"Projected:             "
-        f"{projection.projected_value:.0f}"
-    )
+    print(f"Current:               " f"{projection.current_value:.0f}")
+    print(f"Projected:             " f"{projection.projected_value:.0f}")
     print(
         f"Change:                "
         f"{_format_signed_number(
@@ -539,56 +498,108 @@ def display_financial_forecast(
     forecast: FinancialForecast,
 ) -> None:
     """Display a complete financial forecast."""
-    generated_at = forecast.generated_at.strftime(
-        "%Y-%m-%d %H:%M"
-    )
+    generated_at = forecast.generated_at.strftime("%Y-%m-%d %H:%M")
 
     print("\n========================================")
     print("          Financial Forecast")
     print("========================================")
-    print(
-        f"Forecast Horizon:      "
-        f"{forecast.horizon_days} days"
-    )
-    print(
-        f"History Points:        "
-        f"{forecast.history_points}"
-    )
-    print(
-        f"Generated:             "
-        f"{generated_at}"
-    )
+    print(f"Forecast Horizon:      " f"{forecast.horizon_days} days")
+    print(f"History Points:        " f"{forecast.history_points}")
+    print(f"Generated:             " f"{generated_at}")
 
     if forecast.history_points < 2:
+        print("\nOnly one historical snapshot is available.")
         print(
-            "\nOnly one historical snapshot is available."
-        )
-        print(
-            "Projected values will remain unchanged "
-            "until more history is recorded."
+            "Projected values will remain unchanged " "until more history is recorded."
         )
 
-    _display_currency_projection(
-        forecast.net_worth
-    )
-    _display_currency_projection(
-        forecast.cash_flow
-    )
-    _display_currency_projection(
-        forecast.account_balance
-    )
-    _display_currency_projection(
-        forecast.goal_progress
-    )
-    _display_currency_projection(
-        forecast.total_debt
-    )
-    _display_number_projection(
-        forecast.health_score
-    )
+    _display_currency_projection(forecast.net_worth)
+    _display_currency_projection(forecast.cash_flow)
+    _display_currency_projection(forecast.account_balance)
+    _display_currency_projection(forecast.goal_progress)
+    _display_currency_projection(forecast.total_debt)
+    _display_number_projection(forecast.health_score)
 
     print("========================================")
-    print(
-        "Forecasts are estimates based on "
-        "historical linear trends."
-    )
+    print("Forecasts are estimates based on " "historical linear trends.")
+
+
+def display_scenario_management_menu() -> None:
+    """Display the financial scenario menu."""
+    print("\nFinancial Scenario Modeling")
+    print("1. Reduce an Expense Category")
+    print("2. Increase Income")
+    print("3. Add Monthly Savings")
+    print("4. Make an Extra Debt Payment")
+    print("5. Back")
+
+
+def _display_scenario_impact(
+    impact: ScenarioImpact,
+) -> None:
+    """Display one scenario impact."""
+    print(f"\n{impact.metric}")
+    print(f"Current:               " f"{impact.original_value:,.2f}")
+    print(f"Projected:             " f"{impact.projected_value:,.2f}")
+    print(f"Change:                " f"{impact.change:+,.2f}")
+
+
+def display_scenario_result(
+    result: ScenarioResult,
+) -> None:
+    """Display a complete financial scenario result."""
+    print("\n========================================")
+    print("          Financial Scenario")
+    print("========================================")
+    print(f"Scenario:              {result.name}")
+    print(f"Type:                  " f"{result.scenario_type.value}")
+
+    if result.description:
+        print(f"Description:           {result.description}")
+
+    print("\nAssumptions")
+    print("----------------------------------------")
+
+    if not result.assumptions:
+        print("No assumptions were recorded.")
+    else:
+        for assumption in result.assumptions:
+            print(f"{assumption.name}: " f"{assumption.value}")
+
+    print("\nFinancial Impacts")
+    print("----------------------------------------")
+
+    if not result.impacts:
+        print("No financial impacts were calculated.")
+    else:
+        for impact in result.impacts:
+            _display_scenario_impact(impact)
+
+    print("\nBenefits")
+    print("----------------------------------------")
+
+    if not result.benefits:
+        print("No specific benefits were identified.")
+    else:
+        for benefit in result.benefits:
+            print(f"- {benefit}")
+
+    print("\nRisks")
+    print("----------------------------------------")
+
+    if not result.risks:
+        print("No significant risks were identified.")
+    else:
+        for risk in result.risks:
+            print(f"- {risk}")
+
+    print("\nRecommendations")
+    print("----------------------------------------")
+
+    if not result.recommendations:
+        print("No additional recommendations.")
+    else:
+        for recommendation in result.recommendations:
+            print(f"- {recommendation}")
+
+    print("========================================")

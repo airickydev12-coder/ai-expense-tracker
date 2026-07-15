@@ -37,7 +37,7 @@ def test_run_cli_displays_financial_trends(
     choices = iter(
         [
             "11",
-            "13",
+            "14",
         ]
     )
 

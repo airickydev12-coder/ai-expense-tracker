@@ -5,6 +5,9 @@ from src.financial.application.financial_state import (
 from src.financial.expenses.analytics import get_total
 from src.financial.expenses.service import get_expenses
 from src.financial.history.service import get_history
+from src.financial.scenarios.factory import (
+    register_default_scenario_handlers,
+)
 from src.presentation.budget_cli import manage_budgets
 from src.presentation.expense_cli import (
     add_expense_flow,
@@ -16,6 +19,9 @@ from src.presentation.forecast_cli import (
 )
 from src.presentation.recommendation_cli import (
     manage_recommendations,
+)
+from src.presentation.scenario_cli import (
+    manage_scenarios,
 )
 from src.presentation.views import (
     display_category_totals,
@@ -31,13 +37,13 @@ from src.presentation.views import (
 def run_cli() -> None:
     """Run the primary command-line menu."""
     load_financial_state()
+    register_default_scenario_handlers()
     display_dashboard()
 
     while True:
         show_menu()
-        choice = input(
-            "Choose an option: "
-        ).strip()
+
+        choice = input("Choose an option: ").strip()
 
         if choice == "1":
             add_expense_flow()
@@ -65,28 +71,25 @@ def run_cli() -> None:
             display_saved_budget_summaries()
 
         elif choice == "9":
-            snapshot, _ = (
-                record_current_financial_snapshot()
-            )
+            snapshot, _ = record_current_financial_snapshot()
 
             display_financial_snapshot(snapshot)
 
-            print(
-                "\nFinancial snapshot saved to history."
-            )
+            print("\nFinancial snapshot saved to history.")
 
         elif choice == "10":
             manage_recommendations()
 
         elif choice == "11":
-            display_financial_trends(
-                get_history()
-            )
+            display_financial_trends(get_history())
 
         elif choice == "12":
             display_current_forecast()
 
         elif choice == "13":
+            manage_scenarios()
+
+        elif choice == "14":
             print("Goodbye!")
             break
 
@@ -94,5 +97,5 @@ def run_cli() -> None:
             print(
                 "Invalid option. Please choose "
                 "1, 2, 3, 4, 5, 6, 7, 8, "
-                "9, 10, 11, 12, or 13."
+                "9, 10, 11, 12, 13, or 14."
             )
