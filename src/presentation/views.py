@@ -1,3 +1,7 @@
+from src.financial.forecasting.models import (
+    FinancialForecast,
+    MetricProjection,
+)
 from src.financial.budgets.service import get_budgets
 from src.financial.expenses.analytics import (
     get_average,
@@ -18,6 +22,7 @@ from src.financial.recommendations.history import RecommendationRecord
 from src.financial.reports.budget_report import build_budget_report
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.history.trends import analyze_financial_trends
+
 
 
 def _format_signed_currency(value: float) -> str:
@@ -107,7 +112,8 @@ def show_menu() -> None:
     print("9. View Financial Snapshot")
     print("10. Manage Recommendations")
     print("11. View Financial Trends")
-    print("12. Exit")
+    print("12. View Financial Forecast")
+    print("13. Exit")
 
 
 def display_recommendation_management_menu() -> None:
@@ -486,3 +492,103 @@ def display_financial_trends(
         )}"
     )
     print("========================================")
+
+def _display_currency_projection(
+    projection: MetricProjection,
+) -> None:
+    """Display one currency-based forecast projection."""
+    print(f"\n{projection.metric}")
+    print(
+        f"Current:               "
+        f"${projection.current_value:,.2f}"
+    )
+    print(
+        f"Projected:             "
+        f"${projection.projected_value:,.2f}"
+    )
+    print(
+        f"Change:                "
+        f"{_format_signed_currency(
+            projection.projected_change
+        )}"
+    )
+
+
+def _display_number_projection(
+    projection: MetricProjection,
+) -> None:
+    """Display one numeric forecast projection."""
+    print(f"\n{projection.metric}")
+    print(
+        f"Current:               "
+        f"{projection.current_value:.0f}"
+    )
+    print(
+        f"Projected:             "
+        f"{projection.projected_value:.0f}"
+    )
+    print(
+        f"Change:                "
+        f"{_format_signed_number(
+            round(projection.projected_change)
+        )}"
+    )
+
+
+def display_financial_forecast(
+    forecast: FinancialForecast,
+) -> None:
+    """Display a complete financial forecast."""
+    generated_at = forecast.generated_at.strftime(
+        "%Y-%m-%d %H:%M"
+    )
+
+    print("\n========================================")
+    print("          Financial Forecast")
+    print("========================================")
+    print(
+        f"Forecast Horizon:      "
+        f"{forecast.horizon_days} days"
+    )
+    print(
+        f"History Points:        "
+        f"{forecast.history_points}"
+    )
+    print(
+        f"Generated:             "
+        f"{generated_at}"
+    )
+
+    if forecast.history_points < 2:
+        print(
+            "\nOnly one historical snapshot is available."
+        )
+        print(
+            "Projected values will remain unchanged "
+            "until more history is recorded."
+        )
+
+    _display_currency_projection(
+        forecast.net_worth
+    )
+    _display_currency_projection(
+        forecast.cash_flow
+    )
+    _display_currency_projection(
+        forecast.account_balance
+    )
+    _display_currency_projection(
+        forecast.goal_progress
+    )
+    _display_currency_projection(
+        forecast.total_debt
+    )
+    _display_number_projection(
+        forecast.health_score
+    )
+
+    print("========================================")
+    print(
+        "Forecasts are estimates based on "
+        "historical linear trends."
+    )

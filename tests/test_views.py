@@ -6,6 +6,10 @@ from src.financial.recommendations.history import RecommendationRecord
 from src.financial.recommendations.status import RecommendationStatus
 from src.financial.shared.categories import ExpenseCategory
 from src.presentation import views
+from src.financial.forecasting.models import (
+    FinancialForecast,
+    MetricProjection,
+)
 
 
 def build_history() -> list[FinancialSnapshotRecord]:
@@ -80,7 +84,8 @@ def test_show_menu_includes_financial_trends(
     assert "9. View Financial Snapshot" in output
     assert "10. Manage Recommendations" in output
     assert "11. View Financial Trends" in output
-    assert "12. Exit" in output
+    assert "12. View Financial Forecast" in output
+    assert "13. Exit" in output
 
 
 def test_recommendation_management_menu(
@@ -284,3 +289,135 @@ def test_display_financial_trends_includes_intelligence(
     assert "Income Trend:          Improving" in output
     assert "Expense Trend:         Improving" in output
     assert "Health Trend:          Improving" in output
+
+def build_forecast() -> FinancialForecast:
+    """Create a financial forecast for view tests."""
+    return FinancialForecast(
+        generated_at=datetime(
+            2026,
+            7,
+            14,
+            20,
+            10,
+            tzinfo=timezone.utc,
+        ),
+        horizon_days=90,
+        history_points=6,
+        net_worth=MetricProjection(
+            metric="Net Worth",
+            current_value=12500,
+            projected_value=18200,
+            projected_change=5700,
+            daily_change=63.333333,
+            horizon_days=90,
+        ),
+        cash_flow=MetricProjection(
+            metric="Cash Flow",
+            current_value=1200,
+            projected_value=1350,
+            projected_change=150,
+            daily_change=1.666667,
+            horizon_days=90,
+        ),
+        account_balance=MetricProjection(
+            metric="Account Balance",
+            current_value=8000,
+            projected_value=9200,
+            projected_change=1200,
+            daily_change=13.333333,
+            horizon_days=90,
+        ),
+        goal_progress=MetricProjection(
+            metric="Goal Progress",
+            current_value=4000,
+            projected_value=5500,
+            projected_change=1500,
+            daily_change=16.666667,
+            horizon_days=90,
+        ),
+        total_debt=MetricProjection(
+            metric="Total Debt",
+            current_value=8500,
+            projected_value=6100,
+            projected_change=-2400,
+            daily_change=-26.666667,
+            horizon_days=90,
+        ),
+        health_score=MetricProjection(
+            metric="Health Score",
+            current_value=72,
+            projected_value=81,
+            projected_change=9,
+            daily_change=0.1,
+            horizon_days=90,
+        ),
+    )
+
+
+def test_show_menu_includes_financial_forecast(
+    capsys,
+):
+    views.show_menu()
+
+    output = capsys.readouterr().out
+
+    assert "11. View Financial Trends" in output
+    assert "12. View Financial Forecast" in output
+    assert "13. Exit" in output
+
+
+def test_display_financial_forecast(
+    capsys,
+):
+    views.display_financial_forecast(
+        build_forecast()
+    )
+
+    output = capsys.readouterr().out
+
+    assert "Financial Forecast" in output
+    assert "Forecast Horizon:      90 days" in output
+    assert "History Points:        6" in output
+    assert "Generated:             2026-07-14 20:10" in output
+    assert "Net Worth" in output
+    assert "$12,500.00" in output
+    assert "$18,200.00" in output
+    assert "+$5,700.00" in output
+    assert "Total Debt" in output
+    assert "-$2,400.00" in output
+    assert "Health Score" in output
+    assert "+9" in output
+    assert "historical linear trends" in output
+
+
+def test_display_forecast_with_one_history_point(
+    capsys,
+):
+    forecast = build_forecast()
+
+    single_point_forecast = FinancialForecast(
+        generated_at=forecast.generated_at,
+        horizon_days=forecast.horizon_days,
+        history_points=1,
+        net_worth=forecast.net_worth,
+        cash_flow=forecast.cash_flow,
+        account_balance=forecast.account_balance,
+        goal_progress=forecast.goal_progress,
+        total_debt=forecast.total_debt,
+        health_score=forecast.health_score,
+    )
+
+    views.display_financial_forecast(
+        single_point_forecast
+    )
+
+    output = capsys.readouterr().out
+
+    assert (
+        "Only one historical snapshot is available."
+        in output
+    )
+    assert (
+        "until more history is recorded"
+        in output
+    )

@@ -6,7 +6,7 @@ from src.financial.recommendations.history import (
 from src.financial.recommendations.status import (
     RecommendationStatus,
 )
-from src.presentation import cli
+from src.presentation import recommendation_cli as cli
 
 
 def build_snapshot() -> dict:
