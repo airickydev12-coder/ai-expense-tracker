@@ -27,6 +27,13 @@ from src.financial.scenarios.models import (
     ScenarioResult,
 )
 
+from src.financial.scenarios.formatter import (
+    format_metric_comparison,
+)
+from src.financial.scenarios.report import (
+    build_scenario_comparison_report,
+)
+
 
 def _format_signed_currency(value: float) -> str:
     """Format a currency change with an explicit sign."""
@@ -548,6 +555,8 @@ def display_scenario_result(
     result: ScenarioResult,
 ) -> None:
     """Display a complete financial scenario result."""
+    comparison_report = build_scenario_comparison_report(result)
+
     print("\n========================================")
     print("          Financial Scenario")
     print("========================================")
@@ -555,7 +564,7 @@ def display_scenario_result(
     print(f"Type:                  " f"{result.scenario_type.value}")
 
     if result.description:
-        print(f"Description:           {result.description}")
+        print(f"Description:           " f"{result.description}")
 
     print("\nAssumptions")
     print("----------------------------------------")
@@ -566,11 +575,34 @@ def display_scenario_result(
         for assumption in result.assumptions:
             print(f"{assumption.name}: " f"{assumption.value}")
 
-    print("\nFinancial Impacts")
+            if assumption.description:
+                print(f"  {assumption.description}")
+
+    print("\nScenario Comparison")
+    print("----------------------------------------")
+    print(comparison_report.summary)
+
+    print("\nMetric Comparisons")
+    print("----------------------------------------")
+
+    if not comparison_report.comparisons:
+        print("No comparable financial metrics " "were found.")
+    else:
+        for comparison in comparison_report.comparisons:
+            print(format_metric_comparison(comparison))
+            print()
+
+    print("Comparison Summary")
+    print("----------------------------------------")
+    print(f"Improvements:          " f"{len(comparison_report.improvements)}")
+    print(f"Declines:              " f"{len(comparison_report.declines)}")
+    print(f"Unchanged:             " f"{len(comparison_report.unchanged)}")
+
+    print("\nScenario-Specific Impacts")
     print("----------------------------------------")
 
     if not result.impacts:
-        print("No financial impacts were calculated.")
+        print("No scenario-specific impacts " "were calculated.")
     else:
         for impact in result.impacts:
             _display_scenario_impact(impact)

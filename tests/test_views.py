@@ -11,6 +11,13 @@ from src.financial.forecasting.models import (
     MetricProjection,
 )
 
+from src.financial.scenarios.models import (
+    ScenarioAssumption,
+    ScenarioImpact,
+    ScenarioResult,
+    ScenarioType,
+)
+
 
 def build_history() -> list[FinancialSnapshotRecord]:
     """Create financial history for view tests."""
@@ -42,6 +49,119 @@ def build_history() -> list[FinancialSnapshotRecord]:
             health_status="Good",
         ),
     ]
+
+
+def build_scenario_result() -> ScenarioResult:
+    """Create a scenario result for view tests."""
+    original_snapshot = {
+        "total_income": 5000,
+        "total_expenses": 3000,
+        "net_cash_flow": 2000,
+        "total_account_balance": 8000,
+        "total_goal_progress": 2500,
+        "total_debt": 10000,
+        "net_worth": 500,
+        "health_score": 70,
+        "health_status": "Good",
+    }
+
+    projected_snapshot = {
+        **original_snapshot,
+        "total_expenses": 2800,
+        "net_cash_flow": 2200,
+        "total_account_balance": 10400,
+        "net_worth": 2900,
+    }
+
+    return ScenarioResult(
+        scenario_type=(ScenarioType.EXPENSE_REDUCTION),
+        name="Food Expense Reduction",
+        description="Reduce food spending.",
+        assumptions=[
+            ScenarioAssumption(
+                name="Reduction Percentage",
+                value=20,
+                description=("Reduce monthly food spending."),
+            )
+        ],
+        original_snapshot=original_snapshot,
+        projected_snapshot=projected_snapshot,
+        impacts=[
+            ScenarioImpact.create(
+                metric="Monthly Savings",
+                original_value=0,
+                projected_value=200,
+            )
+        ],
+        benefits=[
+            "Increase monthly available cash flow.",
+        ],
+        risks=[
+            "The reduction may be difficult to maintain.",
+        ],
+        recommendations=[
+            "Track food spending weekly.",
+        ],
+    )
+
+
+def test_display_scenario_result_includes_comparison_report(
+    capsys,
+):
+    views.display_scenario_result(build_scenario_result())
+
+    output = capsys.readouterr().out
+
+    assert "Financial Scenario" in output
+    assert "Food Expense Reduction" in output
+    assert "Scenario Comparison" in output
+    assert "overall improvement" in output
+    assert "Metric Comparisons" in output
+    assert "Total Expenses" in output
+    assert "Net Cash Flow" in output
+    assert "Account Balance" in output
+    assert "Net Worth" in output
+    assert "Improvement" in output
+
+
+def test_display_scenario_result_includes_summary_counts(
+    capsys,
+):
+    views.display_scenario_result(build_scenario_result())
+
+    output = capsys.readouterr().out
+
+    assert "Comparison Summary" in output
+    assert "Improvements:          4" in output
+    assert "Declines:              0" in output
+    assert "Unchanged:             4" in output
+
+
+def test_display_scenario_result_preserves_specific_impacts(
+    capsys,
+):
+    views.display_scenario_result(build_scenario_result())
+
+    output = capsys.readouterr().out
+
+    assert "Scenario-Specific Impacts" in output
+    assert "Monthly Savings" in output
+    assert "Projected:             200.00" in output
+
+
+def test_display_scenario_result_includes_guidance(
+    capsys,
+):
+    views.display_scenario_result(build_scenario_result())
+
+    output = capsys.readouterr().out
+
+    assert "Benefits" in output
+    assert "Increase monthly available cash flow." in output
+    assert "Risks" in output
+    assert "The reduction may be difficult to maintain." in output
+    assert "Recommendations" in output
+    assert "Track food spending weekly." in output
 
 
 def test_display_current_budgets(
