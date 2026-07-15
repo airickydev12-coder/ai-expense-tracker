@@ -18,9 +18,7 @@ def build_snapshot() -> dict:
                 "priority": "HIGH",
                 "category": "Debt",
                 "title": "High Interest Debt",
-                "message": (
-                    "You have high-interest debt."
-                ),
+                "message": "You have high-interest debt.",
                 "action": "Prioritize repayment.",
             }
         ]
@@ -53,9 +51,7 @@ def test_select_recommendation_key(
         build_snapshot()["recommendations"]
     )
 
-    assert result == (
-        "debt:high_interest_debt"
-    )
+    assert result == "debt:high_interest_debt"
 
 
 def test_select_recommendation_key_rejects_invalid_input(
@@ -85,9 +81,7 @@ def test_select_history_record_key(
         [build_record()]
     )
 
-    assert result == (
-        "debt:high_interest_debt"
-    )
+    assert result == "debt:high_interest_debt"
 
 
 def test_manage_recommendations_completes_record(
@@ -137,12 +131,8 @@ def test_manage_recommendations_completes_record(
 
     cli.manage_recommendations()
 
-    assert captured["key"] == (
-        "debt:high_interest_debt"
-    )
-    assert captured["note"] == (
-        "Debt paid off."
-    )
+    assert captured["key"] == "debt:high_interest_debt"
+    assert captured["note"] == "Debt paid off."
 
 
 def test_manage_recommendations_dismisses_record(
@@ -192,9 +182,5 @@ def test_manage_recommendations_dismisses_record(
 
     cli.manage_recommendations()
 
-    assert captured["key"] == (
-        "debt:high_interest_debt"
-    )
-    assert captured["note"] == (
-        "Not relevant now."
-    )
+    assert captured["key"] == "debt:high_interest_debt"
+    assert captured["note"] == "Not relevant now."
