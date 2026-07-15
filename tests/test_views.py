@@ -267,3 +267,20 @@ def test_display_financial_trends_with_one_snapshot(
         "Record at least two snapshots"
         in output
     )
+
+def test_display_financial_trends_includes_intelligence(
+    capsys,
+):
+    views.display_financial_trends(
+        build_history()
+    )
+
+    output = capsys.readouterr().out
+
+    assert "Trend Intelligence" in output
+    assert "Overall Momentum:      Positive" in output
+    assert "Net Worth Trend:       Improving" in output
+    assert "Cash Flow Trend:       Improving" in output
+    assert "Income Trend:          Improving" in output
+    assert "Expense Trend:         Improving" in output
+    assert "Health Trend:          Improving" in output

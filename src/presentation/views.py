@@ -17,6 +17,7 @@ from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.reports.budget_report import build_budget_report
 from src.financial.shared.categories import ExpenseCategory
+from src.financial.history.trends import analyze_financial_trends
 
 
 def _format_signed_currency(value: float) -> str:
@@ -379,7 +380,7 @@ def display_financial_snapshot(
 def display_financial_trends(
     history: list[FinancialSnapshotRecord],
 ) -> None:
-    """Display financial changes across saved snapshots."""
+    """Display financial changes and interpreted trends."""
     print("\n========================================")
     print("           Financial Trends")
     print("========================================")
@@ -393,31 +394,95 @@ def display_financial_trends(
         history,
         key=lambda record: record.timestamp,
     )
+
     latest_snapshot = ordered_history[-1]
 
-    print(f"Snapshots Recorded:    " f"{len(ordered_history)}")
-    formatted_timestamp = latest_snapshot.timestamp.strftime("%Y-%m-%d %H:%M")
+    formatted_timestamp = latest_snapshot.timestamp.strftime(
+        "%Y-%m-%d %H:%M"
+    )
 
-    print(f"Snapshots Recorded:    " f"{len(ordered_history)}")
+    print(
+        f"Snapshots Recorded:    "
+        f"{len(ordered_history)}"
+    )
+    print(
+        f"Latest Snapshot:       "
+        f"{formatted_timestamp}"
+    )
 
-    print(f"Latest Snapshot:       " f"{formatted_timestamp}")
+    trend_summary = analyze_financial_trends(
+        ordered_history
+    )
 
     if len(ordered_history) < 2:
-        print("\nRecord at least two snapshots " "to calculate financial trends.")
+        print(
+            "\nRecord at least two snapshots "
+            "to calculate financial trends."
+        )
+        print(
+            f"Overall Momentum:      "
+            f"{trend_summary.overall_momentum.value}"
+        )
         print("========================================")
         return
 
-    net_worth_change = get_net_worth_change(ordered_history)
-    cash_flow_change = get_cash_flow_change(ordered_history)
-    income_change = get_income_change(ordered_history)
-    expense_change = get_expense_change(ordered_history)
-    health_score_change = get_health_score_change(ordered_history)
+    print("\nTrend Intelligence")
+    print("----------------------------------------")
+    print(
+        f"Overall Momentum:      "
+        f"{trend_summary.overall_momentum.value}"
+    )
+    print(
+        f"Net Worth Trend:       "
+        f"{trend_summary.net_worth.direction.value}"
+    )
+    print(
+        f"Cash Flow Trend:       "
+        f"{trend_summary.cash_flow.direction.value}"
+    )
+    print(
+        f"Income Trend:          "
+        f"{trend_summary.income.direction.value}"
+    )
+    print(
+        f"Expense Trend:         "
+        f"{trend_summary.expenses.direction.value}"
+    )
+    print(
+        f"Health Trend:          "
+        f"{trend_summary.health_score.direction.value}"
+    )
 
     print("\nChanges")
     print("----------------------------------------")
-    print(f"Net Worth Change:      " f"{_format_signed_currency(net_worth_change)}")
-    print(f"Cash Flow Change:      " f"{_format_signed_currency(cash_flow_change)}")
-    print(f"Income Change:         " f"{_format_signed_currency(income_change)}")
-    print(f"Expense Change:        " f"{_format_signed_currency(expense_change)}")
-    print(f"Health Score Change:   " f"{_format_signed_number(health_score_change)}")
+    print(
+        f"Net Worth Change:      "
+        f"{_format_signed_currency(
+            trend_summary.net_worth.change
+        )}"
+    )
+    print(
+        f"Cash Flow Change:      "
+        f"{_format_signed_currency(
+            trend_summary.cash_flow.change
+        )}"
+    )
+    print(
+        f"Income Change:         "
+        f"{_format_signed_currency(
+            trend_summary.income.change
+        )}"
+    )
+    print(
+        f"Expense Change:        "
+        f"{_format_signed_currency(
+            trend_summary.expenses.change
+        )}"
+    )
+    print(
+        f"Health Score Change:   "
+        f"{_format_signed_number(
+            int(trend_summary.health_score.change)
+        )}"
+    )
     print("========================================")
