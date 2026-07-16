@@ -25,6 +25,7 @@ from src.financial.history.trends import analyze_financial_trends
 from src.financial.scenarios.models import (
     ScenarioImpact,
     ScenarioResult,
+    ScenarioRequest,
 )
 
 from src.financial.scenarios.formatter import (
@@ -32,6 +33,10 @@ from src.financial.scenarios.formatter import (
 )
 from src.financial.scenarios.report import (
     build_scenario_comparison_report,
+)
+
+from src.financial.scenarios.plan import (
+    ScenarioPlanResult,
 )
 
 
@@ -538,8 +543,9 @@ def display_scenario_management_menu() -> None:
     print("2. Increase Income")
     print("3. Add Monthly Savings")
     print("4. Make an Extra Debt Payment")
-    print("5. Open Planning Workspace")
-    print("6. Back")
+    print("5. Build Combined Plan")
+    print("6. Open Planning Workspace")
+    print("7. Back")
 
 
 def _display_scenario_impact(
@@ -633,6 +639,143 @@ def display_scenario_result(
         print("No additional recommendations.")
     else:
         for recommendation in result.recommendations:
+            print(f"- {recommendation}")
+
+    print("========================================")
+
+
+def display_combined_plan_builder_menu(
+    requests: list[ScenarioRequest],
+) -> None:
+    """Display the combined-plan builder menu."""
+    print("\nCombined Financial Plan Builder")
+    print(f"Current Steps: {len(requests)}")
+    print("1. Add Expense Reduction")
+    print("2. Add Income Increase")
+    print("3. Add Monthly Savings")
+    print("4. Add Extra Debt Payment")
+    print("5. Review Plan Steps")
+    print("6. Remove Plan Step")
+    print("7. Run Combined Plan")
+    print("8. Cancel")
+
+
+def display_combined_plan_steps(
+    requests: list[ScenarioRequest],
+) -> None:
+    """Display selected combined-plan requests."""
+    print("\nCombined Plan Steps")
+    print("----------------------------------------")
+
+    if not requests:
+        print("No scenario steps have been added.")
+        return
+
+    for index, request in enumerate(
+        requests,
+        start=1,
+    ):
+        print(f"{index}. {request.name} " f"({request.scenario_type.value})")
+
+
+def display_combined_plan_result(
+    plan: ScenarioPlanResult,
+) -> None:
+    """Display a completed combined scenario plan."""
+    print("\n========================================")
+    print("        Combined Financial Plan")
+    print("========================================")
+    print(f"Plan:                  {plan.name}")
+
+    if plan.description:
+        print(f"Description:           " f"{plan.description}")
+
+    print("\nSteps")
+    print("----------------------------------------")
+
+    if not plan.steps:
+        print("No scenario steps were completed.")
+    else:
+        for step in plan.steps:
+            print(f"{step.order}. " f"{step.result.name}")
+
+    report = plan.cumulative_report
+
+    print("\nCumulative Comparison")
+    print("----------------------------------------")
+    print(report.summary)
+
+    if not report.comparisons:
+        print("No comparable metrics were found.")
+    else:
+        for comparison in report.comparisons:
+            print()
+            print(format_metric_comparison(comparison))
+
+    print("\nCumulative Summary")
+    print("----------------------------------------")
+    print(f"Improvements:          " f"{len(report.improvements)}")
+    print(f"Declines:              " f"{len(report.declines)}")
+    print(f"Unchanged:             " f"{len(report.unchanged)}")
+
+    print("\nKey Changes")
+    print("----------------------------------------")
+    print(
+        f"Net Worth Change:      "
+        f"{_format_signed_currency(
+            plan.get_metric_change('Net Worth')
+        )}"
+    )
+    print(
+        f"Cash Flow Change:      "
+        f"{_format_signed_currency(
+            plan.get_metric_change('Net Cash Flow')
+        )}"
+    )
+
+    debt_change = plan.get_metric_change("Total Debt")
+
+    debt_reduction = max(
+        -debt_change,
+        0.0,
+    )
+
+    print(f"Debt Reduction:        " f"${debt_reduction:,.2f}")
+
+    print("\nConflicts")
+    print("----------------------------------------")
+
+    if not plan.conflicts:
+        print("No conflicts detected.")
+    else:
+        for conflict in plan.conflicts:
+            print(f"- {conflict}")
+
+    print("\nBenefits")
+    print("----------------------------------------")
+
+    if not plan.benefits:
+        print("No combined benefits were identified.")
+    else:
+        for benefit in plan.benefits:
+            print(f"- {benefit}")
+
+    print("\nRisks")
+    print("----------------------------------------")
+
+    if not plan.risks:
+        print("No significant combined risks " "were identified.")
+    else:
+        for risk in plan.risks:
+            print(f"- {risk}")
+
+    print("\nRecommendations")
+    print("----------------------------------------")
+
+    if not plan.recommendations:
+        print("No combined recommendations " "were generated.")
+    else:
+        for recommendation in plan.recommendations:
             print(f"- {recommendation}")
 
     print("========================================")

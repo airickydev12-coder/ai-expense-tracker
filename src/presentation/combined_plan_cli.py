@@ -1,31 +1,20 @@
 from src.financial.application.financial_state import (
     build_current_financial_snapshot,
 )
+from src.financial.scenarios.combined import (
+    run_combined_scenario_plan,
+)
 from src.financial.scenarios.models import (
     ScenarioRequest,
     ScenarioType,
 )
-from src.financial.scenarios.service import (
-    run_financial_scenario,
-)
-from src.presentation.views import (
-    display_scenario_management_menu,
-    display_scenario_result,
-)
-
-from src.financial.scenarios.ranking import (
-    ScenarioRankingMetric,
-)
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace,
 )
-
-from src.presentation.scenario_workspace_cli import (
-    manage_scenario_workspace,
-)
-
-from src.presentation.combined_plan_cli import (
-    run_combined_plan_builder,
+from src.presentation.views import (
+    display_combined_plan_builder_menu,
+    display_combined_plan_result,
+    display_combined_plan_steps,
 )
 
 
@@ -33,7 +22,7 @@ def _read_positive_float(
     prompt: str,
     field_name: str,
 ) -> float | None:
-    """Read a positive floating-point value."""
+    """Read a positive decimal value."""
     value_text = input(prompt).strip()
 
     try:
@@ -54,7 +43,7 @@ def _read_positive_integer(
     field_name: str,
     default: int | None = None,
 ) -> int | None:
-    """Read a positive whole number with an optional default."""
+    """Read a positive whole number."""
     value_text = input(prompt).strip()
 
     if not value_text and default is not None:
@@ -76,14 +65,14 @@ def _read_positive_integer(
 def select_expense_category(
     snapshot: dict,
 ) -> str | None:
-    """Select a category from snapshot category totals."""
+    """Select an expense category from the snapshot."""
     category_totals = snapshot.get(
         "category_totals",
         {},
     )
 
     if not category_totals:
-        print("No expense-category spending is available " "for scenario modeling.")
+        print("No expense-category spending is available.")
         return None
 
     categories = list(category_totals)
@@ -94,7 +83,7 @@ def select_expense_category(
         categories,
         start=1,
     ):
-        print(f"{index}. {category} - " f"${category_totals[category]:,.2f}")
+        print(f"{index}. {category} - " f"${float(category_totals[category]):,.2f}")
 
     selection_text = input("Choose a category: ").strip()
 
@@ -121,7 +110,7 @@ def select_debt_id(
     )
 
     if not debts:
-        print("No debts are available for scenario modeling.")
+        print("No debts are available for plan modeling.")
         return None
 
     print("\nDebts")
@@ -148,17 +137,25 @@ def select_debt_id(
         print("Debt selection is out of range.")
         return None
 
-    return int(debts[selection - 1]["id"])
+    try:
+        return int(debts[selection - 1]["id"])
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+    ):
+        print("The selected debt has an invalid ID.")
+        return None
 
 
-def run_expense_reduction_flow(
+def build_expense_reduction_request(
     snapshot: dict,
-) -> None:
-    """Collect and run an expense-reduction scenario."""
+) -> ScenarioRequest | None:
+    """Build an expense-reduction request."""
     category = select_expense_category(snapshot)
 
     if category is None:
-        return
+        return None
 
     percentage = _read_positive_float(
         "Reduction percentage: ",
@@ -166,7 +163,11 @@ def run_expense_reduction_flow(
     )
 
     if percentage is None:
-        return
+        return None
+
+    if percentage > 100:
+        print("Reduction percentage cannot exceed 100.")
+        return None
 
     horizon_months = _read_positive_integer(
         "Scenario horizon in months " "(press Enter for 12): ",
@@ -175,10 +176,10 @@ def run_expense_reduction_flow(
     )
 
     if horizon_months is None:
-        return
+        return None
 
-    request = ScenarioRequest(
-        scenario_type=ScenarioType.EXPENSE_REDUCTION,
+    return ScenarioRequest(
+        scenario_type=(ScenarioType.EXPENSE_REDUCTION),
         name=f"{category} Expense Reduction",
         description=(f"Reduce {category} spending by " f"{percentage:g} percent."),
         parameters={
@@ -188,23 +189,16 @@ def run_expense_reduction_flow(
         },
     )
 
-    _execute_scenario(
-        request,
-        snapshot,
-    )
 
-
-def run_income_increase_flow(
-    snapshot: dict,
-) -> None:
-    """Collect and run an income-increase scenario."""
+def build_income_increase_request() -> ScenarioRequest | None:
+    """Build an income-increase request."""
     percentage = _read_positive_float(
         "Income increase percentage: ",
         "Income increase percentage",
     )
 
     if percentage is None:
-        return
+        return None
 
     horizon_months = _read_positive_integer(
         "Scenario horizon in months " "(press Enter for 12): ",
@@ -213,35 +207,28 @@ def run_income_increase_flow(
     )
 
     if horizon_months is None:
-        return
+        return None
 
-    request = ScenarioRequest(
-        scenario_type=ScenarioType.INCOME_INCREASE,
+    return ScenarioRequest(
+        scenario_type=(ScenarioType.INCOME_INCREASE),
         name="Income Increase",
-        description=(f"Increase monthly income by " f"{percentage:g} percent."),
+        description=(f"Increase income by " f"{percentage:g} percent."),
         parameters={
             "increase_percentage": percentage,
             "horizon_months": horizon_months,
         },
     )
 
-    _execute_scenario(
-        request,
-        snapshot,
-    )
 
-
-def run_additional_savings_flow(
-    snapshot: dict,
-) -> None:
-    """Collect and run an additional-savings scenario."""
+def build_additional_savings_request() -> ScenarioRequest | None:
+    """Build an additional-savings request."""
     monthly_savings = _read_positive_float(
         "Additional monthly savings: ",
         "Additional monthly savings",
     )
 
     if monthly_savings is None:
-        return
+        return None
 
     horizon_months = _read_positive_integer(
         "Scenario horizon in months " "(press Enter for 12): ",
@@ -250,32 +237,27 @@ def run_additional_savings_flow(
     )
 
     if horizon_months is None:
-        return
+        return None
 
-    request = ScenarioRequest(
-        scenario_type=ScenarioType.ADDITIONAL_SAVINGS,
+    return ScenarioRequest(
+        scenario_type=(ScenarioType.ADDITIONAL_SAVINGS),
         name="Additional Monthly Savings",
         description=(f"Save an additional " f"${monthly_savings:,.2f} per month."),
         parameters={
-            "additional_monthly_savings": monthly_savings,
+            "additional_monthly_savings": (monthly_savings),
             "horizon_months": horizon_months,
         },
     )
 
-    _execute_scenario(
-        request,
-        snapshot,
-    )
 
-
-def run_extra_debt_payment_flow(
+def build_extra_debt_payment_request(
     snapshot: dict,
-) -> None:
-    """Collect and run an extra-debt-payment scenario."""
+) -> ScenarioRequest | None:
+    """Build an extra-debt-payment request."""
     debt_id = select_debt_id(snapshot)
 
     if debt_id is None:
-        return
+        return None
 
     extra_payment = _read_positive_float(
         "Extra monthly debt payment: ",
@@ -283,7 +265,7 @@ def run_extra_debt_payment_flow(
     )
 
     if extra_payment is None:
-        return
+        return None
 
     horizon_months = _read_positive_integer(
         "Scenario horizon in months " "(press Enter for 12): ",
@@ -292,10 +274,10 @@ def run_extra_debt_payment_flow(
     )
 
     if horizon_months is None:
-        return
+        return None
 
-    request = ScenarioRequest(
-        scenario_type=ScenarioType.EXTRA_DEBT_PAYMENT,
+    return ScenarioRequest(
+        scenario_type=(ScenarioType.EXTRA_DEBT_PAYMENT),
         name="Extra Debt Payment",
         description=(f"Pay an additional " f"${extra_payment:,.2f} per month."),
         parameters={
@@ -305,63 +287,105 @@ def run_extra_debt_payment_flow(
         },
     )
 
-    _execute_scenario(
-        request,
-        snapshot,
-    )
 
-
-def _execute_scenario(
-    request: ScenarioRequest,
-    snapshot: dict,
+def remove_plan_step(
+    requests: list[ScenarioRequest],
 ) -> None:
-    """Run, persist, and display a scenario."""
-    try:
-        result = run_financial_scenario(
-            request=request,
-            snapshot=snapshot,
-        )
-    except ValueError as error:
-        print(f"\nUnable to run scenario: {error}")
+    """Select and remove one request from the plan."""
+    if not requests:
+        print("No scenario steps have been added.")
         return
 
-    save_result_to_workspace(result)
-    display_scenario_result(result)
+    display_combined_plan_steps(requests)
 
-    print("\nScenario saved to the current " "planning workspace.")
+    selection_text = input("Choose a step to remove: ").strip()
+
+    try:
+        selection = int(selection_text)
+    except ValueError:
+        print("Step selection must be a number.")
+        return
+
+    if selection < 1 or selection > len(requests):
+        print("Step selection is out of range.")
+        return
+
+    removed = requests.pop(selection - 1)
+
+    print(f"Removed plan step: {removed.name}")
 
 
-def manage_scenarios() -> None:
-    """Run the financial scenario-management menu."""
+def run_combined_plan_builder() -> None:
+    """Build and run a combined scenario plan."""
+    plan_name = input("Combined plan name: ").strip()
+
+    if not plan_name:
+        print("Combined plan name cannot be empty.")
+        return
+
+    description = input("Plan description " "(optional): ").strip()
+
+    baseline_snapshot = build_current_financial_snapshot()
+
+    requests: list[ScenarioRequest] = []
+
     while True:
-        display_scenario_management_menu()
+        display_combined_plan_builder_menu(requests)
 
         choice = input("Choose an option: ").strip()
 
-        if choice == "7":
-            return
-
-        if choice == "5":
-            run_combined_plan_builder()
-            continue
-
-        if choice == "6":
-            manage_scenario_workspace()
-            continue
-
-        snapshot = build_current_financial_snapshot()
+        request: ScenarioRequest | None = None
 
         if choice == "1":
-            run_expense_reduction_flow(snapshot)
+            request = build_expense_reduction_request(baseline_snapshot)
 
         elif choice == "2":
-            run_income_increase_flow(snapshot)
+            request = build_income_increase_request()
 
         elif choice == "3":
-            run_additional_savings_flow(snapshot)
+            request = build_additional_savings_request()
 
         elif choice == "4":
-            run_extra_debt_payment_flow(snapshot)
+            request = build_extra_debt_payment_request(baseline_snapshot)
+
+        elif choice == "5":
+            display_combined_plan_steps(requests)
+            continue
+
+        elif choice == "6":
+            remove_plan_step(requests)
+            continue
+
+        elif choice == "7":
+            if not requests:
+                print("Add at least one scenario step " "before running the plan.")
+                continue
+
+            try:
+                plan = run_combined_scenario_plan(
+                    name=plan_name,
+                    description=description,
+                    requests=requests,
+                    snapshot=baseline_snapshot,
+                )
+            except ValueError as error:
+                print(f"\nUnable to run combined plan: " f"{error}")
+                return
+
+            display_combined_plan_result(plan)
+
+            print("\nCombined plan completed successfully.")
+            return
+
+        elif choice == "8":
+            print("Combined plan was cancelled.")
+            return
 
         else:
-            print("Invalid scenario option. " "Please choose 1 through 7.")
+            print("Invalid combined-plan option. " "Please choose 1 through 8.")
+            continue
+
+        if request is not None:
+            requests.append(request)
+
+            print(f"Added plan step " f"{len(requests)}: " f"{request.name}")

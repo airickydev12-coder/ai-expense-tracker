@@ -18,6 +18,15 @@ from src.financial.scenarios.models import (
     ScenarioType,
 )
 
+from src.financial.scenarios.models import (
+    ScenarioRequest,
+    ScenarioType,
+)
+from src.financial.scenarios.plan import (
+    ScenarioPlanResult,
+    build_cumulative_scenario_report,
+)
+
 
 def build_history() -> list[FinancialSnapshotRecord]:
     """Create financial history for view tests."""
@@ -513,3 +522,90 @@ def test_display_forecast_with_one_history_point(
 
     assert "Only one historical snapshot is available." in output
     assert "until more history is recorded" in output
+
+
+def test_display_combined_plan_steps(
+    capsys,
+):
+    requests = [
+        ScenarioRequest(
+            scenario_type=(ScenarioType.INCOME_INCREASE),
+            name="Income Increase",
+            description="",
+            parameters={},
+        )
+    ]
+
+    views.display_combined_plan_steps(requests)
+
+    output = capsys.readouterr().out
+
+    assert "Combined Plan Steps" in output
+    assert "Income Increase" in output
+
+
+def test_display_combined_plan_steps_when_empty(
+    capsys,
+):
+    views.display_combined_plan_steps([])
+
+    output = capsys.readouterr().out
+
+    assert "No scenario steps have been added." in output
+
+
+def test_display_combined_plan_result(
+    capsys,
+):
+    original = {
+        "total_income": 5000,
+        "total_expenses": 3000,
+        "net_cash_flow": 2000,
+        "total_account_balance": 8000,
+        "total_goal_progress": 2500,
+        "total_debt": 10000,
+        "net_worth": 500,
+        "health_score": 70,
+        "health_status": "Good",
+    }
+
+    projected = {
+        **original,
+        "total_income": 5500,
+        "net_cash_flow": 2500,
+        "total_debt": 9000,
+        "net_worth": 6500,
+    }
+
+    plan = ScenarioPlanResult(
+        name="Growth Plan",
+        description="Increase income and reduce debt.",
+        original_snapshot=original,
+        projected_snapshot=projected,
+        steps=[],
+        cumulative_report=(
+            build_cumulative_scenario_report(
+                original,
+                projected,
+            )
+        ),
+        benefits=[
+            "Improve financial capacity.",
+        ],
+        conflicts=[],
+    )
+
+    views.display_combined_plan_result(plan)
+
+    output = capsys.readouterr().out
+
+    assert "Combined Financial Plan" in output
+    assert "Growth Plan" in output
+    assert "Cumulative Comparison" in output
+    assert "Net Worth Change:" in output
+    assert "+$6,000.00" in output
+    assert "Cash Flow Change:" in output
+    assert "+$500.00" in output
+    assert "Debt Reduction:" in output
+    assert "$1,000.00" in output
+    assert "No conflicts detected." in output

@@ -1,21 +1,29 @@
-import pytest
-
 from src.financial.scenarios.models import (
     ScenarioResult,
     ScenarioType,
 )
 from src.financial.scenarios.ranking import (
     ScenarioRankingMetric,
+    build_ranking_reason,
     calculate_overall_score,
     calculate_ranking_score,
     get_best_scenario,
     get_debt_reduction,
     get_improvement_count,
     get_metric_change,
+    get_most_sustainable_scenario,
+    get_risk_ranking_score,
+    get_safest_scenario,
+    get_sustainability_ranking_score,
     rank_scenarios,
 )
 from src.financial.scenarios.report import (
     build_scenario_comparison_report,
+)
+from src.financial.scenarios.scoring import (
+    RiskLevel,
+    SustainabilityLevel,
+    score_scenario_result,
 )
 
 
@@ -44,12 +52,13 @@ def build_income_result() -> ScenarioResult:
         "net_cash_flow": 2500,
         "total_account_balance": 14000,
         "net_worth": 6500,
+        "health_score": 82,
     }
 
     return ScenarioResult(
-        scenario_type=ScenarioType.INCOME_INCREASE,
+        scenario_type=(ScenarioType.INCOME_INCREASE),
         name="Income Increase",
-        description="Increase income by ten percent.",
+        description=("Increase income by ten percent."),
         assumptions=[],
         original_snapshot=original,
         projected_snapshot=projected,
@@ -67,6 +76,7 @@ def build_expense_result() -> ScenarioResult:
         "net_cash_flow": 2120,
         "total_account_balance": 9440,
         "net_worth": 1940,
+        "health_score": 75,
     }
 
     return ScenarioResult(
@@ -89,6 +99,7 @@ def build_debt_result() -> ScenarioResult:
         "net_cash_flow": 1800,
         "total_debt": 7600,
         "net_worth": 900,
+        "health_score": 74,
     }
 
     return ScenarioResult(
@@ -99,6 +110,35 @@ def build_debt_result() -> ScenarioResult:
         original_snapshot=original,
         projected_snapshot=projected,
         impacts=[],
+        risks=["The extra payment reduces monthly " "available cash flow."],
+    )
+
+
+def build_risky_result() -> ScenarioResult:
+    """Create a high-risk scenario result."""
+    original = build_base_snapshot()
+
+    projected = {
+        **original,
+        "net_cash_flow": -500,
+        "total_account_balance": 4000,
+        "total_debt": 11000,
+        "net_worth": -6500,
+        "health_score": 40,
+    }
+
+    return ScenarioResult(
+        scenario_type=(ScenarioType.ADDITIONAL_SAVINGS),
+        name="Overcommitted Savings",
+        description="Save more than available cash flow.",
+        assumptions=[],
+        original_snapshot=original,
+        projected_snapshot=projected,
+        impacts=[],
+        risks=[
+            "The plan creates negative cash flow.",
+            "The savings target is not sustainable.",
+        ],
     )
 
 
@@ -135,7 +175,27 @@ def test_get_debt_reduction():
 def test_get_improvement_count():
     report = build_scenario_comparison_report(build_expense_result())
 
-    assert get_improvement_count(report) == 4
+    assert get_improvement_count(report) == 5
+
+
+def test_get_risk_ranking_score():
+    assert get_risk_ranking_score(RiskLevel.LOW) == 4
+
+    assert get_risk_ranking_score(RiskLevel.MODERATE) == 3
+
+    assert get_risk_ranking_score(RiskLevel.HIGH) == 2
+
+    assert get_risk_ranking_score(RiskLevel.CRITICAL) == 1
+
+
+def test_get_sustainability_ranking_score():
+    assert get_sustainability_ranking_score(SustainabilityLevel.EXCELLENT) == 4
+
+    assert get_sustainability_ranking_score(SustainabilityLevel.GOOD) == 3
+
+    assert get_sustainability_ranking_score(SustainabilityLevel.FAIR) == 2
+
+    assert get_sustainability_ranking_score(SustainabilityLevel.POOR) == 1
 
 
 def test_calculate_net_worth_ranking_score():
@@ -179,6 +239,38 @@ def test_calculate_improvement_count_score():
         ScenarioRankingMetric.IMPROVEMENT_COUNT,
     )
 
+    assert score == 5
+
+
+def test_calculate_lowest_risk_score():
+    result = build_income_result()
+
+    report = build_scenario_comparison_report(result)
+
+    scenario_score = score_scenario_result(result)
+
+    score = calculate_ranking_score(
+        report,
+        ScenarioRankingMetric.LOWEST_RISK,
+        scenario_score,
+    )
+
+    assert score == 4
+
+
+def test_calculate_sustainability_score():
+    result = build_income_result()
+
+    report = build_scenario_comparison_report(result)
+
+    scenario_score = score_scenario_result(result)
+
+    score = calculate_ranking_score(
+        report,
+        ScenarioRankingMetric.SUSTAINABILITY,
+        scenario_score,
+    )
+
     assert score == 4
 
 
@@ -188,6 +280,22 @@ def test_calculate_overall_score_rewards_improvements():
     score = calculate_overall_score(report)
 
     assert score > 0
+
+
+def test_overall_ranking_uses_scenario_score():
+    result = build_income_result()
+
+    report = build_scenario_comparison_report(result)
+
+    scenario_score = score_scenario_result(result)
+
+    ranking_score = calculate_ranking_score(
+        report,
+        ScenarioRankingMetric.OVERALL,
+        scenario_score,
+    )
+
+    assert ranking_score == scenario_score.overall_score
 
 
 def test_rank_scenarios_by_net_worth():
@@ -234,6 +342,49 @@ def test_rank_scenarios_by_debt_reduction():
     assert ranked[0].score == 2400
 
 
+def test_rank_scenarios_by_overall_score():
+    ranked = rank_scenarios(
+        [
+            build_debt_result(),
+            build_expense_result(),
+            build_income_result(),
+        ],
+        ScenarioRankingMetric.OVERALL,
+    )
+
+    assert ranked[0].scenario_name == ("Income Increase")
+
+    assert ranked[0].score == ranked[0].scenario_score.overall_score
+
+
+def test_rank_scenarios_by_lowest_risk():
+    ranked = rank_scenarios(
+        [
+            build_risky_result(),
+            build_income_result(),
+        ],
+        ScenarioRankingMetric.LOWEST_RISK,
+    )
+
+    assert ranked[0].scenario_name == ("Income Increase")
+
+    assert ranked[-1].scenario_name == "Overcommitted Savings"
+
+
+def test_rank_scenarios_by_sustainability():
+    ranked = rank_scenarios(
+        [
+            build_risky_result(),
+            build_income_result(),
+        ],
+        ScenarioRankingMetric.SUSTAINABILITY,
+    )
+
+    assert ranked[0].scenario_name == ("Income Increase")
+
+    assert ranked[0].scenario_score.sustainability == SustainabilityLevel.EXCELLENT
+
+
 def test_rank_scenarios_assigns_sequential_ranks():
     ranked = rank_scenarios(
         [
@@ -272,7 +423,26 @@ def test_rank_scenarios_resolves_ties_by_name():
     )
 
     assert ranked[0].scenario_name == ("Another Expense Reduction")
+
     assert ranked[1].scenario_name == ("Expense Reduction")
+
+
+def test_ranking_reason_for_overall_score():
+    result = build_income_result()
+
+    report = build_scenario_comparison_report(result)
+
+    scenario_score = score_scenario_result(result)
+
+    reason = build_ranking_reason(
+        ranking_metric=(ScenarioRankingMetric.OVERALL),
+        score=scenario_score.overall_score,
+        report=report,
+        scenario_score=scenario_score,
+    )
+
+    assert "Overall plan score" in reason
+    assert "/100" in reason
 
 
 def test_get_best_scenario():
@@ -286,11 +456,35 @@ def test_get_best_scenario():
     )
 
     assert best is not None
-    assert best.scenario_name == "Income Increase"
+    assert best.scenario_name == ("Income Increase")
 
 
 def test_get_best_scenario_returns_none_when_empty():
     assert get_best_scenario([]) is None
+
+
+def test_get_safest_scenario():
+    safest = get_safest_scenario(
+        [
+            build_risky_result(),
+            build_income_result(),
+        ]
+    )
+
+    assert safest is not None
+    assert safest.scenario_name == ("Income Increase")
+
+
+def test_get_most_sustainable_scenario():
+    sustainable = get_most_sustainable_scenario(
+        [
+            build_risky_result(),
+            build_income_result(),
+        ]
+    )
+
+    assert sustainable is not None
+    assert sustainable.scenario_name == ("Income Increase")
 
 
 def test_ranked_scenario_serialization():
@@ -303,7 +497,9 @@ def test_ranked_scenario_serialization():
     data = ranked[0].to_dict()
 
     assert data["rank"] == 1
-    assert data["scenario_name"] == "Income Increase"
+    assert data["scenario_name"] == ("Income Increase")
     assert data["ranking_metric"] == "Overall"
+    assert "reason" in data
+    assert "scenario_score" in data
     assert "result" in data
     assert "report" in data

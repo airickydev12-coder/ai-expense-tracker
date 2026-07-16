@@ -153,7 +153,7 @@ def test_manage_scenarios_routes_income(
     choices = iter(
         [
             "2",
-            "6",
+            "7",
         ]
     )
 
@@ -197,8 +197,8 @@ def test_manage_scenarios_routes_workspace(
 
     choices = iter(
         [
-            "5",
             "6",
+            "7",
         ]
     )
 
@@ -343,3 +343,42 @@ def test_execute_scenario_persists_and_displays_result(
     assert captured["saved_result"] == expected_result
     assert captured["displayed_result"] == expected_result
     assert "Scenario saved to the current planning workspace." in output
+
+
+def test_manage_scenarios_routes_combined_plan(
+    monkeypatch,
+):
+    captured = {
+        "called": False,
+    }
+
+    choices = iter(
+        [
+            "5",
+            "7",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(choices),
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "display_scenario_management_menu",
+        lambda: None,
+    )
+
+    def fake_combined_plan():
+        captured["called"] = True
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "run_combined_plan_builder",
+        fake_combined_plan,
+    )
+
+    scenario_cli.manage_scenarios()
+
+    assert captured["called"] is True
