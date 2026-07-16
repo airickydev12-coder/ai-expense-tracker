@@ -18,6 +18,9 @@ from src.financial.history.service import clear_history
 from src.financial.income.models import Income
 from src.financial.income.service import income_entries
 from src.financial.shared.categories import ExpenseCategory
+from src.financial.scenarios.workspace import (
+    scenario_workspace,
+)
 
 
 def setup_function():
@@ -30,6 +33,76 @@ def setup_function():
     debts.clear()
     bills.clear()
     clear_history()
+    scenario_workspace.clear()
+
+
+def test_load_financial_state_loads_scenario_workspace(
+    monkeypatch,
+):
+    from src.financial.application import financial_state
+
+    captured = {
+        "loaded": False,
+    }
+
+    monkeypatch.setattr(
+        financial_state,
+        "load_expenses",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_budgets",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_income",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_accounts",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_goals",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_debts",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_bills",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_recommendation_history",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        financial_state,
+        "load_history",
+        lambda: None,
+    )
+
+    def fake_load_workspace():
+        captured["loaded"] = True
+
+    monkeypatch.setattr(
+        financial_state,
+        "load_scenario_workspace",
+        fake_load_workspace,
+    )
+
+    financial_state.load_financial_state()
+
+    assert captured["loaded"] is True
 
 
 def test_get_financial_state_returns_all_domains():
@@ -245,9 +318,7 @@ def test_record_current_financial_snapshot(
         fake_record,
     )
 
-    snapshot, record = (
-        financial_state.record_current_financial_snapshot()
-    )
+    snapshot, record = financial_state.record_current_financial_snapshot()
 
     assert snapshot == fake_snapshot
     assert record == "recorded"

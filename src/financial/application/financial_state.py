@@ -38,6 +38,10 @@ from src.financial.recommendations.history_service import (
     load_recommendation_history,
 )
 
+from src.financial.scenarios.workspace_service import (
+    load_scenario_workspace,
+)
+
 
 def load_financial_state() -> None:
     """Load all persisted financial application state."""
@@ -50,6 +54,7 @@ def load_financial_state() -> None:
     load_bills()
     load_recommendation_history()
     load_history()
+    load_scenario_workspace()
 
 
 def get_financial_state() -> dict:
@@ -87,9 +92,7 @@ def record_current_financial_snapshot(
     current_day: int | None = None,
 ) -> tuple[dict, FinancialSnapshotRecord]:
     """Build, record, and return the current financial snapshot."""
-    snapshot = build_current_financial_snapshot(
-        current_day=current_day
-    )
+    snapshot = build_current_financial_snapshot(current_day=current_day)
 
     record = record_snapshot(snapshot)
 

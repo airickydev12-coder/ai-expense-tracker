@@ -1,0 +1,195 @@
+import json
+
+import pytest
+
+from src.financial.scenarios.models import (
+    ScenarioAssumption,
+    ScenarioImpact,
+    ScenarioResult,
+    ScenarioType,
+)
+from src.financial.scenarios.workspace_repository import (
+    clear_workspace_file,
+    load_workspace_from_file,
+    save_workspace_to_file,
+)
+
+
+def build_snapshot() -> dict:
+    """Create a reusable scenario snapshot."""
+    return {
+        "total_income": 5000,
+        "total_expenses": 3000,
+        "net_cash_flow": 2000,
+        "total_account_balance": 8000,
+        "total_goal_progress": 2500,
+        "total_debt": 10000,
+        "net_worth": 500,
+        "health_score": 70,
+        "health_status": "Good",
+    }
+
+
+def build_result() -> ScenarioResult:
+    """Create a complete scenario result."""
+    original_snapshot = build_snapshot()
+
+    projected_snapshot = {
+        **original_snapshot,
+        "net_worth": 6500,
+        "net_cash_flow": 2500,
+    }
+
+    return ScenarioResult(
+        scenario_type=(ScenarioType.INCOME_INCREASE),
+        name="Income Increase",
+        description="Model a ten percent raise.",
+        assumptions=[
+            ScenarioAssumption(
+                name="Increase Percentage",
+                value=10,
+                description="Projected raise.",
+            )
+        ],
+        original_snapshot=original_snapshot,
+        projected_snapshot=projected_snapshot,
+        impacts=[
+            ScenarioImpact.create(
+                metric="Net Worth",
+                original_value=500,
+                projected_value=6500,
+            )
+        ],
+        benefits=[
+            "Increase available income.",
+        ],
+        risks=[
+            "The increase may not be guaranteed.",
+        ],
+        recommendations=[
+            "Save part of the additional income.",
+        ],
+    )
+
+
+def test_save_and_load_workspace(
+    tmp_path,
+):
+    file_path = tmp_path / "scenario_workspace.json"
+
+    original_results = [build_result()]
+
+    save_workspace_to_file(
+        original_results,
+        file_path,
+    )
+
+    loaded_results = load_workspace_from_file(file_path)
+
+    assert loaded_results == original_results
+
+
+def test_load_workspace_returns_empty_when_missing(
+    tmp_path,
+):
+    file_path = tmp_path / "missing_workspace.json"
+
+    assert load_workspace_from_file(file_path) == []
+
+
+def test_save_workspace_creates_parent_directory(
+    tmp_path,
+):
+    file_path = tmp_path / "nested" / "data" / "scenario_workspace.json"
+
+    save_workspace_to_file(
+        [build_result()],
+        file_path,
+    )
+
+    assert file_path.exists()
+
+
+def test_load_workspace_rejects_invalid_json(
+    tmp_path,
+):
+    file_path = tmp_path / "scenario_workspace.json"
+
+    file_path.write_text(
+        "not valid json",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="invalid JSON",
+    ):
+        load_workspace_from_file(file_path)
+
+
+def test_load_workspace_rejects_non_list_json(
+    tmp_path,
+):
+    file_path = tmp_path / "scenario_workspace.json"
+
+    file_path.write_text(
+        json.dumps(
+            {
+                "name": "Income Increase",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="JSON list",
+    ):
+        load_workspace_from_file(file_path)
+
+
+def test_load_workspace_rejects_unknown_scenario_type(
+    tmp_path,
+):
+    file_path = tmp_path / "scenario_workspace.json"
+
+    data = build_result().to_dict()
+    data["scenario_type"] = "UNKNOWN_SCENARIO"
+
+    file_path.write_text(
+        json.dumps([data]),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unknown scenario type",
+    ):
+        load_workspace_from_file(file_path)
+
+
+def test_clear_workspace_file(
+    tmp_path,
+):
+    file_path = tmp_path / "scenario_workspace.json"
+
+    save_workspace_to_file(
+        [build_result()],
+        file_path,
+    )
+
+    assert file_path.exists()
+
+    clear_workspace_file(file_path)
+
+    assert not file_path.exists()
+
+
+def test_clear_missing_workspace_file_is_safe(
+    tmp_path,
+):
+    file_path = tmp_path / "missing_workspace.json"
+
+    clear_workspace_file(file_path)
+
+    assert not file_path.exists()

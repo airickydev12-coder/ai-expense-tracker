@@ -16,8 +16,8 @@ from src.presentation.views import (
 from src.financial.scenarios.ranking import (
     ScenarioRankingMetric,
 )
-from src.financial.scenarios.workspace import (
-    save_scenario_result,
+from src.financial.scenarios.workspace_service import (
+    save_result_to_workspace,
 )
 
 from src.presentation.scenario_workspace_cli import (
@@ -311,7 +311,7 @@ def _execute_scenario(
     request: ScenarioRequest,
     snapshot: dict,
 ) -> None:
-    """Run, save, and display a scenario."""
+    """Run, persist, and display a scenario."""
     try:
         result = run_financial_scenario(
             request=request,
@@ -321,7 +321,7 @@ def _execute_scenario(
         print(f"\nUnable to run scenario: {error}")
         return
 
-    save_scenario_result(result)
+    save_result_to_workspace(result)
     display_scenario_result(result)
 
     print("\nScenario saved to the current " "planning workspace.")

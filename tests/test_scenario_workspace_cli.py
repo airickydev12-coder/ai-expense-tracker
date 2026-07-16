@@ -155,12 +155,12 @@ def test_clear_workspace_flow(
     assert scenario_workspace_cli.scenario_workspace.is_empty()
 
 
-def test_manage_workspace_returns_on_six(
+def test_manage_workspace_returns_on_seven(
     monkeypatch,
 ):
     monkeypatch.setattr(
         "builtins.input",
-        lambda _: "6",
+        lambda _: "7",
     )
 
     scenario_workspace_cli.manage_scenario_workspace()

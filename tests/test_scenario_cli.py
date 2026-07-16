@@ -117,8 +117,22 @@ def test_run_expense_reduction_flow(
 
     monkeypatch.setattr(
         scenario_cli,
+        "save_result_to_workspace",
+        lambda result: captured.update(
+            {
+                "saved_result": result,
+            }
+        ),
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
         "display_scenario_result",
-        lambda result: captured.update({"result": result}),
+        lambda result: captured.update(
+            {
+                "result": result,
+            }
+        ),
     )
 
     scenario_cli.run_expense_reduction_flow(build_snapshot())
@@ -126,12 +140,15 @@ def test_run_expense_reduction_flow(
     assert captured["request"].scenario_type == ScenarioType.EXPENSE_REDUCTION
     assert captured["request"].parameters["reduction_percentage"] == 20
     assert captured["result"].name == ("Food Expense Reduction")
+    assert captured["saved_result"] == captured["result"]
 
 
 def test_manage_scenarios_routes_income(
     monkeypatch,
 ):
-    captured = {"called": False}
+    captured = {
+        "called": False,
+    }
 
     choices = iter(
         [
@@ -171,10 +188,54 @@ def test_manage_scenarios_routes_income(
     assert captured["called"] is True
 
 
+def test_manage_scenarios_routes_workspace(
+    monkeypatch,
+):
+    captured = {
+        "called": False,
+    }
+
+    choices = iter(
+        [
+            "5",
+            "6",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(choices),
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "display_scenario_management_menu",
+        lambda: None,
+    )
+
+    def fake_manage_workspace():
+        captured["called"] = True
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "manage_scenario_workspace",
+        fake_manage_workspace,
+    )
+
+    scenario_cli.manage_scenarios()
+
+    assert captured["called"] is True
+
+
 def test_execute_scenario_handles_error(
     monkeypatch,
     capsys,
 ):
+    captured = {
+        "saved": False,
+        "displayed": False,
+    }
+
     def fake_run(
         request,
         snapshot,
@@ -185,6 +246,26 @@ def test_execute_scenario_handles_error(
         scenario_cli,
         "run_financial_scenario",
         fake_run,
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "save_result_to_workspace",
+        lambda result: captured.update(
+            {
+                "saved": True,
+            }
+        ),
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "display_scenario_result",
+        lambda result: captured.update(
+            {
+                "displayed": True,
+            }
+        ),
     )
 
     request = scenario_cli.ScenarioRequest(
@@ -205,3 +286,60 @@ def test_execute_scenario_handles_error(
 
     assert "Unable to run scenario" in output
     assert "Invalid scenario" in output
+    assert captured["saved"] is False
+    assert captured["displayed"] is False
+
+
+def test_execute_scenario_persists_and_displays_result(
+    monkeypatch,
+    capsys,
+):
+    captured: dict = {}
+    expected_result = build_result()
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "run_financial_scenario",
+        lambda request, snapshot: expected_result,
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "save_result_to_workspace",
+        lambda result: captured.update(
+            {
+                "saved_result": result,
+            }
+        ),
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
+        "display_scenario_result",
+        lambda result: captured.update(
+            {
+                "displayed_result": result,
+            }
+        ),
+    )
+
+    request = scenario_cli.ScenarioRequest(
+        scenario_type=ScenarioType.EXPENSE_REDUCTION,
+        name="Food Expense Reduction",
+        description="",
+        parameters={
+            "category": "Food",
+            "reduction_percentage": 20,
+        },
+    )
+
+    scenario_cli._execute_scenario(
+        request,
+        build_snapshot(),
+    )
+
+    output = capsys.readouterr().out
+
+    assert captured["saved_result"] == expected_result
+    assert captured["displayed_result"] == expected_result
+    assert "Scenario saved to the current planning workspace." in output
