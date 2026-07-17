@@ -41,7 +41,7 @@ def test_run_cli_routes_add_expense(
         monkeypatch,
         [
             "1",
-            "14",
+            "15",
         ],
     )
 
@@ -68,7 +68,7 @@ def test_run_cli_routes_view_expenses(
         monkeypatch,
         [
             "2",
-            "14",
+            "15",
         ],
     )
 
@@ -95,7 +95,7 @@ def test_run_cli_routes_delete_expense(
         monkeypatch,
         [
             "4",
-            "14",
+            "15",
         ],
     )
 
@@ -122,7 +122,7 @@ def test_run_cli_routes_update_expense(
         monkeypatch,
         [
             "5",
-            "14",
+            "15",
         ],
     )
 
@@ -149,7 +149,7 @@ def test_run_cli_routes_budget_management(
         monkeypatch,
         [
             "7",
-            "14",
+            "15",
         ],
     )
 
@@ -176,7 +176,7 @@ def test_run_cli_routes_recommendation_management(
         monkeypatch,
         [
             "10",
-            "14",
+            "15",
         ],
     )
 
@@ -203,7 +203,7 @@ def test_run_cli_routes_financial_trends(
         monkeypatch,
         [
             "11",
-            "14",
+            "15",
         ],
     )
 
@@ -240,7 +240,7 @@ def test_run_cli_routes_forecast(
         monkeypatch,
         [
             "12",
-            "14",
+            "15",
         ],
     )
 
@@ -267,7 +267,7 @@ def test_run_cli_records_financial_snapshot(
         monkeypatch,
         [
             "9",
-            "14",
+            "15",
         ],
     )
 
@@ -307,7 +307,7 @@ def test_run_cli_exits_with_option_14(
     configure_cli_test(
         monkeypatch,
         [
-            "14",
+            "15",
         ],
     )
 
@@ -326,7 +326,7 @@ def test_run_cli_rejects_invalid_option(
         monkeypatch,
         [
             "invalid",
-            "14",
+            "15",
         ],
     )
 
@@ -346,7 +346,7 @@ def test_run_cli_routes_scenario_management(
         monkeypatch,
         [
             "13",
-            "14",
+            "15",
         ],
     )
 
@@ -357,6 +357,35 @@ def test_run_cli_routes_scenario_management(
         cli,
         "manage_scenarios",
         fake_manage_scenarios,
+    )
+
+    cli.run_cli()
+
+    assert captured["called"] is True
+
+
+def test_run_cli_routes_financial_coach(
+    monkeypatch,
+):
+    captured = {
+        "called": False,
+    }
+
+    configure_cli_test(
+        monkeypatch,
+        [
+            "14",
+            "15",
+        ],
+    )
+
+    def fake_run_financial_coach():
+        captured["called"] = True
+
+    monkeypatch.setattr(
+        cli,
+        "run_financial_coach",
+        fake_run_financial_coach,
     )
 
     cli.run_cli()

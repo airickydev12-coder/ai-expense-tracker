@@ -28,6 +28,10 @@ from src.presentation.combined_plan_cli import (
     run_combined_plan_builder,
 )
 
+from src.presentation.optimizer_cli import (
+    manage_optimizer,
+)
+
 
 def _read_positive_float(
     prompt: str,
@@ -338,7 +342,7 @@ def manage_scenarios() -> None:
 
         choice = input("Choose an option: ").strip()
 
-        if choice == "7":
+        if choice == "8":
             return
 
         if choice == "5":
@@ -346,6 +350,10 @@ def manage_scenarios() -> None:
             continue
 
         if choice == "6":
+            manage_optimizer()
+            continue
+
+        if choice == "7":
             manage_scenario_workspace()
             continue
 
@@ -364,4 +372,4 @@ def manage_scenarios() -> None:
             run_extra_debt_payment_flow(snapshot)
 
         else:
-            print("Invalid scenario option. " "Please choose 1 through 7.")
+            print("Invalid scenario option. " "Please choose 1 through 8.")

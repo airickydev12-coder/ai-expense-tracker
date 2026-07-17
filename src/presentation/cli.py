@@ -33,6 +33,10 @@ from src.presentation.views import (
     show_menu,
 )
 
+from src.presentation.coach_cli import (
+    run_financial_coach,
+)
+
 
 def run_cli() -> None:
     """Run the primary command-line menu."""
@@ -90,6 +94,9 @@ def run_cli() -> None:
             manage_scenarios()
 
         elif choice == "14":
+            run_financial_coach()
+
+        elif choice == "15":
             print("Goodbye!")
             break
 
@@ -97,5 +104,5 @@ def run_cli() -> None:
             print(
                 "Invalid option. Please choose "
                 "1, 2, 3, 4, 5, 6, 7, 8, "
-                "9, 10, 11, 12, 13, or 14."
+                "9, 10, 11, 12, 13, 14 or 15."
             )

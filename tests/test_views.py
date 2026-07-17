@@ -14,13 +14,17 @@ from src.financial.forecasting.models import (
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
+    ScenarioRequest,
     ScenarioResult,
     ScenarioType,
 )
-
-from src.financial.scenarios.models import (
-    ScenarioRequest,
-    ScenarioType,
+from src.financial.scenarios.optimizer import (
+    OptimizationFailure,
+    OptimizationResult,
+)
+from src.financial.scenarios.ranking import (
+    ScenarioRankingMetric,
+    rank_scenarios,
 )
 from src.financial.scenarios.plan import (
     ScenarioPlanResult,
@@ -215,7 +219,8 @@ def test_show_menu_includes_financial_trends(
     assert "11. View Financial Trends" in output
     assert "12. View Financial Forecast" in output
     assert "13. Model Financial Scenarios" in output
-    assert "14. Exit" in output
+    assert "14. AI Financial Coach" in output
+    assert "15. Exit" in output
 
 
 def test_recommendation_management_menu(
@@ -474,7 +479,8 @@ def test_show_menu_includes_financial_forecast(
     assert "11. View Financial Trends" in output
     assert "12. View Financial Forecast" in output
     assert "13. Model Financial Scenarios" in output
-    assert "14. Exit" in output
+    assert "14. AI Financial Coach" in output
+    assert "15. Exit" in output
 
 
 def test_display_financial_forecast(
@@ -609,3 +615,140 @@ def test_display_combined_plan_result(
     assert "Debt Reduction:" in output
     assert "$1,000.00" in output
     assert "No conflicts detected." in output
+
+
+def test_display_scenario_management_menu(
+    capsys,
+):
+    """Verify the scenario-management menu options."""
+    views.display_scenario_management_menu()
+
+    output = capsys.readouterr().out
+
+    assert "1. Reduce an Expense Category" in output
+    assert "2. Increase Income" in output
+    assert "3. Add Monthly Savings" in output
+    assert "4. Make an Extra Debt Payment" in output
+    assert "5. Build Combined Plan" in output
+    assert "6. Run Financial Optimizer" in output
+    assert "7. Open Planning Workspace" in output
+    assert "8. Back" in output
+
+
+def build_optimizer_result() -> OptimizationResult:
+    """Create an optimization result for view tests."""
+    original = {
+        "total_income": 5000,
+        "total_expenses": 3000,
+        "net_cash_flow": 2000,
+        "total_account_balance": 8000,
+        "total_goal_progress": 2500,
+        "total_debt": 10000,
+        "net_worth": 500,
+        "health_score": 70,
+        "health_status": "Good",
+    }
+
+    projected = {
+        **original,
+        "total_income": 5500,
+        "net_cash_flow": 2500,
+        "total_account_balance": 14000,
+        "net_worth": 6500,
+        "health_score": 82,
+    }
+
+    scenario = ScenarioResult(
+        scenario_type=(ScenarioType.INCOME_INCREASE),
+        name="Increase Income by 10%",
+        description="",
+        assumptions=[],
+        original_snapshot=original,
+        projected_snapshot=projected,
+        impacts=[],
+    )
+
+    ranked = rank_scenarios(
+        [
+            scenario,
+        ],
+        ScenarioRankingMetric.OVERALL,
+    )
+
+    return OptimizationResult(
+        snapshot=original,
+        candidates=[],
+        successful_results=[
+            scenario,
+        ],
+        ranked_scenarios=ranked,
+        failures=[],
+        ranking_metric=(ScenarioRankingMetric.OVERALL),
+    )
+
+
+def test_display_optimizer_menu(
+    capsys,
+):
+    """Verify the financial optimizer menu."""
+    views.display_optimizer_menu()
+
+    output = capsys.readouterr().out
+
+    assert "Financial Plan Optimizer" in output
+    assert "1. Optimize Overall Plan" in output
+    assert "2. Maximize Net Worth" in output
+    assert "3. Improve Cash Flow" in output
+    assert "4. Reduce Debt" in output
+    assert "5. Find Lowest-Risk Option" in output
+    assert "6. Find Most Sustainable Option" in output
+    assert "7. Back" in output
+
+
+def test_display_optimizer_result(
+    capsys,
+):
+    """Verify a successful optimizer result display."""
+    views.display_optimizer_result(build_optimizer_result())
+
+    output = capsys.readouterr().out
+
+    assert "Financial Optimization" in output
+    assert "Ranking Objective:" in output
+    assert "Candidates Generated:" in output
+    assert "Ranked Recommendations" in output
+    assert "Increase Income by 10%" in output
+    assert "Overall Score:" in output
+    assert "Risk:" in output
+    assert "Sustainability:" in output
+    assert "Best Recommended Scenario" in output
+    assert "Score Components" in output
+
+
+def test_display_optimizer_result_with_failure(
+    capsys,
+):
+    """Verify optimizer candidate failures are displayed."""
+    result = build_optimizer_result()
+
+    result_with_failure = OptimizationResult(
+        snapshot=result.snapshot,
+        candidates=result.candidates,
+        successful_results=(result.successful_results),
+        ranked_scenarios=(result.ranked_scenarios),
+        failures=[
+            OptimizationFailure(
+                candidate_name="Debt Candidate",
+                error="Unable to amortize debt.",
+            )
+        ],
+        ranking_metric=result.ranking_metric,
+    )
+
+    views.display_optimizer_result(result_with_failure)
+
+    output = capsys.readouterr().out
+
+    assert "Candidate Failures" in output
+    assert "Debt Candidate" in output
+    assert "Unable to amortize debt." in output

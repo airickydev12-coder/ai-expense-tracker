@@ -39,6 +39,13 @@ from src.financial.scenarios.plan import (
     ScenarioPlanResult,
 )
 
+from src.financial.scenarios.optimizer import (
+    OptimizationResult,
+)
+from src.financial.scenarios.scoring import (
+    ScenarioScore,
+)
+
 
 def _format_signed_currency(value: float) -> str:
     """Format a currency change with an explicit sign."""
@@ -129,7 +136,8 @@ def show_menu() -> None:
     print("11. View Financial Trends")
     print("12. View Financial Forecast")
     print("13. Model Financial Scenarios")
-    print("14. Exit")
+    print("14. AI Financial Coach")
+    print("15. Exit")
 
 
 def display_recommendation_management_menu() -> None:
@@ -544,8 +552,9 @@ def display_scenario_management_menu() -> None:
     print("3. Add Monthly Savings")
     print("4. Make an Extra Debt Payment")
     print("5. Build Combined Plan")
-    print("6. Open Planning Workspace")
-    print("7. Back")
+    print("6. Run Financial Optimizer")
+    print("7. Open Planning Workspace")
+    print("8. Back")
 
 
 def _display_scenario_impact(
@@ -777,5 +786,99 @@ def display_combined_plan_result(
     else:
         for recommendation in plan.recommendations:
             print(f"- {recommendation}")
+
+    print("========================================")
+
+
+def display_optimizer_menu() -> None:
+    """Display the financial optimizer menu."""
+    print("\nFinancial Plan Optimizer")
+    print("1. Optimize Overall Plan")
+    print("2. Maximize Net Worth")
+    print("3. Improve Cash Flow")
+    print("4. Reduce Debt")
+    print("5. Find Lowest-Risk Option")
+    print("6. Find Most Sustainable Option")
+    print("7. Back")
+
+
+def display_scenario_score(
+    scenario_score: ScenarioScore,
+) -> None:
+    """Display a scenario score summary."""
+    print(f"Overall Score:         " f"{scenario_score.overall_score:.2f}/100")
+    print(f"Rating:                " f"{scenario_score.rating.value}")
+    print(f"Risk Level:            " f"{scenario_score.risk_level.value}")
+    print(f"Sustainability:        " f"{scenario_score.sustainability.value}")
+
+    print("\nScore Components")
+    print("----------------------------------------")
+
+    for component in scenario_score.components:
+        print(
+            f"{component.name:<25}"
+            f"{component.score:>7.2f}/100 "
+            f"({component.weight * 100:.0f}%)"
+        )
+
+    print("\nOptimizer Recommendation")
+    print("----------------------------------------")
+    print(scenario_score.recommendation)
+
+
+def display_optimizer_result(
+    result: OptimizationResult,
+) -> None:
+    """Display a completed financial optimization result."""
+    print("\n========================================")
+    print("       Financial Optimization")
+    print("========================================")
+    print(f"Ranking Objective:     " f"{result.ranking_metric.value}")
+    print(f"Candidates Generated:  " f"{result.candidate_count}")
+    print(f"Successful Candidates: " f"{result.success_count}")
+    print(f"Failed Candidates:     " f"{result.failure_count}")
+
+    if not result.ranked_scenarios:
+        print("\nNo viable optimization scenarios " "were generated.")
+
+        if result.failures:
+            print("\nCandidate Failures")
+            print("----------------------------------------")
+
+            for failure in result.failures:
+                print(f"- {failure.candidate_name}: " f"{failure.error}")
+
+        print("========================================")
+        return
+
+    print("\nRanked Recommendations")
+    print("----------------------------------------")
+
+    for ranked in result.ranked_scenarios:
+        print(f"{ranked.rank}. " f"{ranked.scenario_name}")
+        print(f"   Ranking Score: " f"{ranked.score:,.2f}")
+        print(f"   Overall Score: " f"{ranked.scenario_score.overall_score:.2f}/100")
+        print(f"   Rating: " f"{ranked.scenario_score.rating.value}")
+        print(f"   Risk: " f"{ranked.scenario_score.risk_level.value}")
+        print(f"   Sustainability: " f"{ranked.scenario_score.sustainability.value}")
+        print(f"   Why: {ranked.reason}")
+
+    best = result.best_scenario
+
+    print("\nBest Recommended Scenario")
+    print("----------------------------------------")
+
+    if best is None:
+        print("No best scenario was identified.")
+    else:
+        print(best.scenario_name)
+        display_scenario_score(best.scenario_score)
+
+    if result.failures:
+        print("\nCandidate Failures")
+        print("----------------------------------------")
+
+        for failure in result.failures:
+            print(f"- {failure.candidate_name}: " f"{failure.error}")
 
     print("========================================")

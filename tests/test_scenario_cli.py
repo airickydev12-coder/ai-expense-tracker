@@ -153,7 +153,7 @@ def test_manage_scenarios_routes_income(
     choices = iter(
         [
             "2",
-            "7",
+            "8",
         ]
     )
 
@@ -197,8 +197,8 @@ def test_manage_scenarios_routes_workspace(
 
     choices = iter(
         [
-            "6",
             "7",
+            "8",
         ]
     )
 
@@ -355,7 +355,7 @@ def test_manage_scenarios_routes_combined_plan(
     choices = iter(
         [
             "5",
-            "7",
+            "8",
         ]
     )
 
