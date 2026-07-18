@@ -1,14 +1,18 @@
+"""Primary command-line interface controller."""
+
 from src.financial.application.financial_state import (
     load_financial_state,
     record_current_financial_snapshot,
 )
 from src.financial.expenses.analytics import get_total
 from src.financial.expenses.service import get_expenses
+from src.financial.goals.service import get_goals
 from src.financial.history.service import get_history
 from src.financial.scenarios.factory import (
     register_default_scenario_handlers,
 )
 from src.presentation.budget_cli import manage_budgets
+from src.presentation.coach_cli import run_financial_coach
 from src.presentation.expense_cli import (
     add_expense_flow,
     delete_expense_flow,
@@ -16,6 +20,12 @@ from src.presentation.expense_cli import (
 )
 from src.presentation.forecast_cli import (
     display_current_forecast,
+)
+from src.presentation.goal_planning_cli import (
+    run_goal_planning_menu,
+)
+from src.presentation.main_menu_view import (
+    show_main_menu,
 )
 from src.presentation.recommendation_cli import (
     manage_recommendations,
@@ -30,12 +40,10 @@ from src.presentation.views import (
     display_financial_snapshot,
     display_financial_trends,
     display_saved_budget_summaries,
-    show_menu,
 )
 
-from src.presentation.coach_cli import (
-    run_financial_coach,
-)
+
+EXIT_OPTION = "16"
 
 
 def run_cli() -> None:
@@ -45,7 +53,7 @@ def run_cli() -> None:
     display_dashboard()
 
     while True:
-        show_menu()
+        show_main_menu()
 
         choice = input("Choose an option: ").strip()
 
@@ -57,6 +65,7 @@ def run_cli() -> None:
 
         elif choice == "3":
             total = get_total(get_expenses())
+
             print(f"Total spending: ${total:.2f}")
 
         elif choice == "4":
@@ -79,7 +88,7 @@ def run_cli() -> None:
 
             display_financial_snapshot(snapshot)
 
-            print("\nFinancial snapshot saved to history.")
+            print("\nFinancial snapshot saved " "to history.")
 
         elif choice == "10":
             manage_recommendations()
@@ -97,12 +106,11 @@ def run_cli() -> None:
             run_financial_coach()
 
         elif choice == "15":
+            run_goal_planning_menu(get_goals())
+
+        elif choice == EXIT_OPTION:
             print("Goodbye!")
             break
 
         else:
-            print(
-                "Invalid option. Please choose "
-                "1, 2, 3, 4, 5, 6, 7, 8, "
-                "9, 10, 11, 12, 13, 14 or 15."
-            )
+            print("Invalid option. Please choose " "a number from 1 through 16.")

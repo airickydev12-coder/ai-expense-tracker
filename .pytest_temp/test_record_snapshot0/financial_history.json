@@ -1,0 +1,14 @@
+[
+    {
+        "timestamp": "2026-07-18T16:11:20.259980+00:00",
+        "total_income": 5000.0,
+        "total_expenses": 1500.0,
+        "net_cash_flow": 3500.0,
+        "total_account_balance": 2000.0,
+        "total_goal_progress": 2500.0,
+        "total_debt": 1000.0,
+        "net_worth": 3500.0,
+        "health_score": 85,
+        "health_status": "Excellent"
+    }
+]

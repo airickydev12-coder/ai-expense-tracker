@@ -37,7 +37,7 @@ def test_run_cli_displays_financial_trends(
     choices = iter(
         [
             "11",
-            "15",
+            "16",
         ]
     )
 
@@ -60,7 +60,7 @@ def test_run_cli_displays_financial_trends(
 
     monkeypatch.setattr(
         cli,
-        "show_menu",
+        "show_main_menu",
         lambda: None,
     )
 

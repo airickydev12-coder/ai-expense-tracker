@@ -1,0 +1,8 @@
+[
+    {
+        "id": 1,
+        "name": "Emergency Fund",
+        "target_amount": 10000,
+        "current_amount": 10000
+    }
+]

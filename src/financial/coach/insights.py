@@ -95,13 +95,16 @@ class FinancialCoachInsight:
 
 
 def _to_float(
-    value: object,
+    value: int | float | str | None,
     default: float = 0.0,
 ) -> float:
-    """Convert a value to float safely."""
+    """Convert a supported value to float safely."""
+    if value is None:
+        return default
+
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except ValueError:
         return default
 
 
