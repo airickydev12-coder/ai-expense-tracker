@@ -1,6 +1,7 @@
 """Integration tests for the goal dashboard in the planner CLI."""
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -17,8 +18,8 @@ def test_run_goal_planning_menu_displays_dashboard(
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("4000.00"),
     )
     expected_dashboard = object()
     captured: dict[str, object] = {}
@@ -48,7 +49,7 @@ def test_run_goal_planning_menu_displays_dashboard(
 
     goal_planning_cli.run_goal_planning_menu(
         [goal],
-        input_fn=lambda prompt: "5",
+        input_fn=lambda prompt: "6",
         output_fn=messages.append,
         today=date(2027, 1, 1),
     )
