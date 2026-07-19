@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
@@ -17,7 +17,10 @@ from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
     GoalPlanningResult,
     analyze_goals,
+    MoneyInput,
+    to_money,
 )
+from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 from src.presentation.goal_planning_helpers import (
     pause,
@@ -43,7 +46,7 @@ InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 
 GOAL_PLANNING_MENU_MINIMUM = 1
-GOAL_PLANNING_MENU_MAXIMUM = 5
+GOAL_PLANNING_MENU_MAXIMUM = 6
 
 
 def run_goal_planning_menu(
@@ -136,6 +139,17 @@ def run_goal_planning_menu(
                 input_fn=input_fn,
                 output_fn=output_fn,
             )
+        elif choice == 5:
+            update_planning_request_workflow(
+                requests_by_goal_id,
+                today=planning_date,
+                input_fn=input_fn,
+                output_fn=output_fn,
+            )
+            save_goal_planning_requests_to_file(
+                requests_by_goal_id,
+                file_path=planning_file_path,
+            )
         else:
             output_fn("Returning to the main menu.")
             return
@@ -155,7 +169,8 @@ def display_goal_planning_menu(
     output_fn("2. Analyze One Goal")
     output_fn("3. Monthly Allocation Planner")
     output_fn("4. View Planning Requests")
-    output_fn("5. Return to Main Menu")
+    output_fn("5. Update Planning Request")
+    output_fn("6. Return to Main Menu")
 
 
 def analyze_all_goals_workflow(
@@ -360,6 +375,180 @@ def view_planning_requests_workflow(
     )
 
 
+def update_planning_request_workflow(
+    requests_by_goal_id: dict[int, GoalPlanningRequest],
+    *,
+    today: date,
+    input_fn: InputFunction = input,
+    output_fn: OutputFunction = print,
+) -> GoalPlanningRequest | None:
+    """Update one saved planning request while preserving blank fields."""
+    print_section(
+        "Update Planning Request",
+        output_fn=output_fn,
+    )
+
+    requests = list(requests_by_goal_id.values())
+
+    if not requests:
+        output_fn("No planning requests have been saved yet.")
+        pause(input_fn=input_fn)
+        return None
+
+    output_fn(render_goal_planning_request_list(requests))
+    output_fn("")
+
+    selection = prompt_for_menu_choice(
+        "Select a planning request to update: ",
+        minimum=1,
+        maximum=len(requests),
+        input_fn=input_fn,
+        output_fn=output_fn,
+    )
+    current_request = requests[selection - 1]
+
+    output_fn("")
+    output_fn(render_goal_planning_request(current_request))
+    output_fn("")
+    output_fn("Press Enter to keep the current value.")
+
+    target_date = _prompt_for_updated_date(
+        current_request.target_date,
+        minimum=today,
+        input_fn=input_fn,
+        output_fn=output_fn,
+    )
+    monthly_contribution = _prompt_for_updated_currency(
+        current_request.planned_monthly_contribution,
+        input_fn=input_fn,
+        output_fn=output_fn,
+    )
+    priority = _prompt_for_updated_priority(
+        current_request.priority,
+        input_fn=input_fn,
+        output_fn=output_fn,
+    )
+
+    updated_request = GoalPlanningRequest(
+        goal=current_request.goal,
+        target_date=target_date,
+        planned_monthly_contribution=monthly_contribution,
+        priority=priority,
+    )
+    requests_by_goal_id[current_request.goal.id] = updated_request
+
+    output_fn("")
+    output_fn("Planning request updated successfully.")
+    output_fn(render_goal_planning_request(updated_request))
+
+    pause(input_fn=input_fn)
+    return updated_request
+
+
+def _prompt_for_updated_date(
+    current_value: date,
+    *,
+    minimum: date,
+    input_fn: InputFunction,
+    output_fn: OutputFunction,
+) -> date:
+    """Prompt for an optional replacement date."""
+    while True:
+        raw_value = input_fn(
+            f"Target date [{current_value.isoformat()}] (YYYY-MM-DD): "
+        ).strip()
+
+        if not raw_value:
+            return current_value
+
+        try:
+            updated_value = date.fromisoformat(raw_value)
+        except ValueError:
+            output_fn("Enter a valid date in YYYY-MM-DD format.")
+            continue
+
+        if updated_value < minimum:
+            output_fn(f"Date must be on or after {minimum.isoformat()}.")
+            continue
+
+        return updated_value
+
+
+def _prompt_for_updated_currency(
+    current_value: MoneyInput,
+    *,
+    input_fn: InputFunction,
+    output_fn: OutputFunction,
+) -> Decimal:
+    """Prompt for an optional nonnegative monetary replacement."""
+    try:
+        current_amount = Decimal(str(current_value)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError) as error:
+        raise ValueError("current_value must be a valid monetary amount.") from error
+
+    if not current_amount.is_finite():
+        raise ValueError("current_value must be a finite monetary amount.")
+
+    if current_amount < 0:
+        raise ValueError("current_value cannot be negative.")
+
+    while True:
+        raw_value = input_fn(
+            f"Monthly contribution [${current_amount:,.2f}]: $"
+        ).strip()
+
+        if not raw_value:
+            return current_amount
+
+        try:
+            updated_value = Decimal(raw_value.replace(",", "")).quantize(
+                Decimal("0.01")
+            )
+        except InvalidOperation:
+            output_fn("Enter a valid monetary amount.")
+            continue
+
+        if not updated_value.is_finite():
+            output_fn("Enter a finite monetary amount.")
+            continue
+
+        if updated_value < 0:
+            output_fn("Monetary amount cannot be negative.")
+            continue
+
+        return updated_value
+
+
+def _prompt_for_updated_priority(
+    current_value: GoalPriority,
+    *,
+    input_fn: InputFunction,
+    output_fn: OutputFunction,
+) -> GoalPriority:
+    """Prompt for an optional replacement goal priority."""
+    priorities = list(GoalPriority)
+    choices = ", ".join(priority.name for priority in priorities)
+
+    while True:
+        raw_value = input_fn(f"Priority [{current_value.name}] ({choices}): ").strip()
+
+        if not raw_value:
+            return current_value
+
+        normalized = raw_value.upper().replace(" ", "_")
+        priority = GoalPriority.__members__.get(normalized)
+
+        if priority is not None:
+            return priority
+
+        if raw_value.isdigit():
+            index = int(raw_value) - 1
+            if 0 <= index < len(priorities):
+                return priorities[index]
+
+        output_fn("Enter a valid priority name or its menu number.")
+
+
 def build_goal_planning_request(
     goal: Goal,
     *,
@@ -460,11 +649,13 @@ def collect_monthly_budget(
     """Collect the total amount available for monthly goal funding."""
     output_fn("")
 
-    return prompt_for_currency(
+    value = prompt_for_currency(
         "Enter total monthly funding available: $",
         input_fn=input_fn,
         output_fn=output_fn,
     )
+
+    return Decimal(str(value)).quantize(Decimal("0.01"))
 
 
 def analyze_planning_requests(

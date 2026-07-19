@@ -118,7 +118,8 @@ def test_display_goal_planning_menu() -> None:
         "2. Analyze One Goal",
         "3. Monthly Allocation Planner",
         "4. View Planning Requests",
-        "5. Return to Main Menu",
+        "5. Update Planning Request",
+        "6. Return to Main Menu",
     ]
 
 
@@ -127,7 +128,7 @@ def test_run_goal_planning_menu_returns_to_main_menu() -> None:
 
     result = goal_planning_cli.run_goal_planning_menu(
         build_goals(),
-        input_fn=make_input(["5"]),
+        input_fn=make_input(["6"]),
         output_fn=output_fn,
         today=date(2027, 1, 1),
     )
@@ -140,7 +141,7 @@ def test_run_goal_planning_menu_routes_to_analyze_all(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([1, 5])
+    choices = iter([1, 6])
 
     def fake_prompt_for_menu_choice(
         prompt: str,
@@ -196,7 +197,7 @@ def test_run_goal_planning_menu_routes_to_analyze_single(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([2, 5])
+    choices = iter([2, 6])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -238,7 +239,7 @@ def test_run_goal_planning_menu_routes_to_monthly_allocation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([3, 5])
+    choices = iter([3, 6])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -280,7 +281,7 @@ def test_run_goal_planning_menu_routes_to_view_requests(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([4, 5])
+    choices = iter([4, 6])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -318,7 +319,7 @@ def test_run_goal_planning_menu_reuses_session_request_storage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     request_store_ids: list[int] = []
-    choices = iter([1, 4, 5])
+    choices = iter([1, 4, 6])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -1013,3 +1014,200 @@ def test_ensure_goals_exist(
             "No financial goals are available.",
             "Create at least one goal before using the planner.",
         ]
+
+
+def test_run_goal_planning_menu_routes_to_update_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    choices = iter([5, 6])
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: next(choices),
+    )
+
+    def fake_workflow(
+        requests_by_goal_id: dict[int, GoalPlanningRequest],
+        *,
+        today: date,
+        input_fn: InputFunction,
+        output_fn: OutputFunction,
+    ) -> None:
+        del requests_by_goal_id
+        del today
+        del input_fn
+        del output_fn
+        calls.append("update_request")
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "update_planning_request_workflow",
+        fake_workflow,
+    )
+
+    goal_planning_cli.run_goal_planning_menu(
+        build_goals(),
+        output_fn=lambda message: None,
+        today=date(2027, 1, 1),
+    )
+
+    assert calls == ["update_request"]
+
+
+def test_update_planning_request_workflow_handles_empty_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    messages, output_fn = collect_output()
+    pause_calls: list[bool] = []
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: pause_calls.append(True),
+    )
+
+    result = goal_planning_cli.update_planning_request_workflow(
+        {},
+        today=date(2027, 1, 1),
+        output_fn=output_fn,
+    )
+
+    assert result is None
+    assert "No planning requests have been saved yet." in messages
+    assert pause_calls == [True]
+
+
+def test_update_planning_request_workflow_keeps_blank_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goal = build_goal()
+    original = build_request(goal)
+    request_store = {goal.id: original}
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: 1,
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request_list",
+        lambda requests: "Rendered request list",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request",
+        lambda request: f"Rendered {request.goal.name}",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: None,
+    )
+
+    result = goal_planning_cli.update_planning_request_workflow(
+        request_store,
+        today=date(2027, 1, 1),
+        input_fn=make_input(["", "", ""]),
+        output_fn=lambda message: None,
+    )
+
+    assert result is not None
+    assert result is request_store[goal.id]
+    assert result is not original
+    assert result.goal is goal
+    assert result.target_date == original.target_date
+    assert result.planned_monthly_contribution == original.planned_monthly_contribution
+    assert result.priority == original.priority
+
+
+def test_update_planning_request_workflow_replaces_changed_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goal = build_goal()
+    original = build_request(goal)
+    request_store = {goal.id: original}
+    messages, output_fn = collect_output()
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: 1,
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request_list",
+        lambda requests: "Rendered request list",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request",
+        lambda request: f"Rendered {request.goal.name}",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: None,
+    )
+
+    result = goal_planning_cli.update_planning_request_workflow(
+        request_store,
+        today=date(2027, 1, 1),
+        input_fn=make_input(["2028-06-30", "725.50", "CRITICAL"]),
+        output_fn=output_fn,
+    )
+
+    assert result is not None
+    assert result.goal is goal
+    assert result.target_date == date(2028, 6, 30)
+    assert result.planned_monthly_contribution == Decimal("725.50")
+    assert result.priority == GoalPriority.CRITICAL
+    assert request_store[goal.id] is result
+    assert "Planning request updated successfully." in messages
+
+
+def test_prompt_for_updated_date_reprompts_after_invalid_values() -> None:
+    messages, output_fn = collect_output()
+
+    result = goal_planning_cli._prompt_for_updated_date(
+        date(2027, 12, 31),
+        minimum=date(2027, 1, 1),
+        input_fn=make_input(["not-a-date", "2026-12-31", "2028-01-31"]),
+        output_fn=output_fn,
+    )
+
+    assert result == date(2028, 1, 31)
+    assert "Enter a valid date in YYYY-MM-DD format." in messages
+    assert "Date must be on or after 2027-01-01." in messages
+
+
+def test_prompt_for_updated_currency_reprompts_after_invalid_values() -> None:
+    messages, output_fn = collect_output()
+
+    result = goal_planning_cli._prompt_for_updated_currency(
+        Decimal("500.00"),
+        input_fn=make_input(["invalid", "-1", "625.555"]),
+        output_fn=output_fn,
+    )
+
+    assert result == Decimal("625.56")
+    assert "Enter a valid monetary amount." in messages
+    assert "Monetary amount cannot be negative." in messages
+
+
+def test_prompt_for_updated_priority_accepts_name_and_number() -> None:
+    named_result = goal_planning_cli._prompt_for_updated_priority(
+        GoalPriority.HIGH,
+        input_fn=make_input(["critical"]),
+        output_fn=lambda message: None,
+    )
+    numbered_result = goal_planning_cli._prompt_for_updated_priority(
+        GoalPriority.HIGH,
+        input_fn=make_input(["1"]),
+        output_fn=lambda message: None,
+    )
+
+    assert named_result == GoalPriority.CRITICAL
+    assert numbered_result == list(GoalPriority)[0]

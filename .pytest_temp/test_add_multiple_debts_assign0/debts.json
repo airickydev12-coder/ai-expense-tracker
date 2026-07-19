@@ -1,0 +1,16 @@
+[
+    {
+        "id": 1,
+        "name": "Credit Card",
+        "balance": 2500,
+        "interest_rate": 24.99,
+        "minimum_payment": 75
+    },
+    {
+        "id": 2,
+        "name": "Car Loan",
+        "balance": 12000,
+        "interest_rate": 6.5,
+        "minimum_payment": 350
+    }
+]
