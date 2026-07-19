@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
@@ -455,7 +456,7 @@ def collect_monthly_budget(
     *,
     input_fn: InputFunction = input,
     output_fn: OutputFunction = print,
-) -> float:
+) -> Decimal:
     """Collect the total amount available for monthly goal funding."""
     output_fn("")
 
@@ -469,7 +470,7 @@ def collect_monthly_budget(
 def analyze_planning_requests(
     requests: Sequence[GoalPlanningRequest],
     *,
-    total_available: float,
+    total_available: Decimal,
     as_of_date: date | None = None,
 ) -> GoalPlanningResult:
     """Validate and analyze a collection of goal-planning requests."""

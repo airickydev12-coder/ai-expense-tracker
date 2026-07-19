@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from datetime import date
+from decimal import Decimal
 from typing import cast
 
 import pytest
@@ -50,8 +51,8 @@ def build_goal(
     *,
     goal_id: int = 1,
     name: str = "Emergency Fund",
-    target_amount: float = 10000.0,
-    current_amount: float = 4000.0,
+    target_amount: Decimal = Decimal("10000.00"),
+    current_amount: Decimal = Decimal("4000.00"),
 ) -> Goal:
     """Create a representative financial goal."""
     return Goal(
@@ -68,20 +69,20 @@ def build_goals() -> list[Goal]:
         build_goal(
             goal_id=1,
             name="Emergency Fund",
-            target_amount=10000.0,
-            current_amount=4000.0,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("4000.00"),
         ),
         build_goal(
             goal_id=2,
             name="Vacation",
-            target_amount=3000.0,
-            current_amount=600.0,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("600.00"),
         ),
         build_goal(
             goal_id=3,
             name="Car Fund",
-            target_amount=12000.0,
-            current_amount=4800.0,
+            target_amount=Decimal("12000.00"),
+            current_amount=Decimal("4800.00"),
         ),
     ]
 
@@ -90,7 +91,7 @@ def build_request(
     goal: Goal,
     *,
     target_date: date = date(2027, 12, 31),
-    monthly_contribution: float = 500.0,
+    monthly_contribution: Decimal = Decimal("500.00"),
     priority: GoalPriority = GoalPriority.HIGH,
 ) -> GoalPlanningRequest:
     """Create a representative goal-planning request."""
@@ -384,7 +385,7 @@ def test_build_goal_planning_request(
     monkeypatch.setattr(
         goal_planning_cli,
         "prompt_for_currency",
-        lambda *args, **kwargs: 750.0,
+        lambda *args, **kwargs: Decimal("750.00"),
     )
     monkeypatch.setattr(
         goal_planning_cli,
@@ -406,7 +407,7 @@ def test_build_goal_planning_request(
 
     assert result.goal is goal
     assert result.target_date == date(2028, 6, 30)
-    assert result.planned_monthly_contribution == 750.0
+    assert result.planned_monthly_contribution == Decimal("750.00")
     assert result.priority == GoalPriority.CRITICAL
     assert "Target amount: $10,000.00" in messages
     assert "Current amount: $4,000.00" in messages
@@ -440,7 +441,7 @@ def test_build_goal_planning_request_passes_today_as_minimum_date(
     monkeypatch.setattr(
         goal_planning_cli,
         "prompt_for_currency",
-        lambda *args, **kwargs: 500.0,
+        lambda *args, **kwargs: Decimal("500.00"),
     )
     monkeypatch.setattr(
         goal_planning_cli,
@@ -495,11 +496,11 @@ def test_collect_monthly_budget(
         *,
         input_fn: InputFunction,
         output_fn: OutputFunction,
-    ) -> float:
+    ) -> Decimal:
         del input_fn
         del output_fn
         captured["prompt"] = prompt
-        return 1200.0
+        return Decimal("1200.00")
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -512,7 +513,7 @@ def test_collect_monthly_budget(
         output_fn=output_fn,
     )
 
-    assert result == 1200.0
+    assert result == Decimal("1200.00")
     assert captured["prompt"] == "Enter total monthly funding available: $"
     assert messages == [""]
 
@@ -600,7 +601,7 @@ def test_analyze_planning_requests_delegates_to_service(
     def fake_analyze_goals(
         requests: list[GoalPlanningRequest],
         *,
-        total_available: float,
+        total_available: Decimal,
         as_of_date: date | None = None,
     ) -> GoalPlanningResult:
         captured["requests"] = requests
@@ -616,14 +617,14 @@ def test_analyze_planning_requests_delegates_to_service(
 
     result = goal_planning_cli.analyze_planning_requests(
         (request,),
-        total_available=900.0,
+        total_available=Decimal("900.00"),
         as_of_date=date(2027, 1, 1),
     )
 
     assert result is expected_result
     assert captured["requests"] == [request]
     assert isinstance(captured["requests"], list)
-    assert captured["total_available"] == 900.0
+    assert captured["total_available"] == Decimal("900.00")
     assert captured["as_of_date"] == date(2027, 1, 1)
 
 
@@ -634,7 +635,7 @@ def test_analyze_planning_requests_rejects_empty_requests() -> None:
     ):
         goal_planning_cli.analyze_planning_requests(
             [],
-            total_available=500.0,
+            total_available=Decimal("500.00"),
         )
 
 
@@ -647,7 +648,7 @@ def test_analyze_planning_requests_rejects_negative_funding() -> None:
     ):
         goal_planning_cli.analyze_planning_requests(
             [request],
-            total_available=-1.0,
+            total_available=Decimal("-1.00"),
         )
 
 
@@ -789,17 +790,17 @@ def test_analyze_all_goals_workflow_collects_and_stores_requests(
     monkeypatch.setattr(
         goal_planning_cli,
         "collect_monthly_budget",
-        lambda **kwargs: 1500.0,
+        lambda **kwargs: Decimal("1500.00"),
     )
 
     def fake_analyze(
         requests: list[GoalPlanningRequest],
         *,
-        total_available: float,
+        total_available: Decimal,
         as_of_date: date | None = None,
     ) -> GoalPlanningResult:
         captured_requests.extend(requests)
-        assert total_available == 1500.0
+        assert total_available == Decimal("1500.00")
         assert as_of_date == date(2027, 1, 1)
         return expected_result
 
@@ -841,11 +842,11 @@ def test_analyze_single_goal_workflow_replaces_existing_request(
     goals = build_goals()
     old_request = build_request(
         goals[1],
-        monthly_contribution=100.0,
+        monthly_contribution=Decimal("100.00"),
     )
     new_request = build_request(
         goals[1],
-        monthly_contribution=700.0,
+        monthly_contribution=Decimal("700.00"),
     )
     request_store = {
         goals[1].id: old_request,
@@ -868,7 +869,7 @@ def test_analyze_single_goal_workflow_replaces_existing_request(
     monkeypatch.setattr(
         goal_planning_cli,
         "collect_monthly_budget",
-        lambda **kwargs: 700.0,
+        lambda **kwargs: Decimal("700.00"),
     )
     monkeypatch.setattr(
         goal_planning_cli,
@@ -927,7 +928,7 @@ def test_monthly_allocation_workflow_reuses_requests(
     def fake_analyze(
         supplied_requests: list[GoalPlanningRequest],
         *,
-        total_available: float,
+        total_available: Decimal,
         as_of_date: date | None = None,
     ) -> GoalPlanningResult:
         captured["analyzed_requests"] = supplied_requests
@@ -943,7 +944,7 @@ def test_monthly_allocation_workflow_reuses_requests(
     monkeypatch.setattr(
         goal_planning_cli,
         "collect_monthly_budget",
-        lambda **kwargs: 1800.0,
+        lambda **kwargs: Decimal("1800.00"),
     )
     monkeypatch.setattr(
         goal_planning_cli,
@@ -972,7 +973,7 @@ def test_monthly_allocation_workflow_reuses_requests(
     assert captured["goals"] == goals
     assert captured["request_store"] is request_store
     assert captured["analyzed_requests"] == requests
-    assert captured["total_available"] == 1800.0
+    assert captured["total_available"] == Decimal("1800.00")
     assert captured["as_of_date"] == date(2027, 1, 1)
 
 
