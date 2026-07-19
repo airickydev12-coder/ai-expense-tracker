@@ -1,23 +1,53 @@
-from pathlib import Path
+"""Application services for financial goals."""
 
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+from typing import TypeAlias
+
+from src.core.config import (
+    GOAL_LEDGER_FILE,
+    GOALS_FILE,
+)
+from src.core.money import (
+    ZERO,
+    to_money,
+)
+from src.financial.goal_ledger.service import (
+    migrate_existing_goal_balances,
+    record_contribution,
+)
 from src.financial.goals.models import Goal
 from src.financial.goals.repository import (
-    GOALS_FILE,
     load_goals_from_file,
     save_goals_to_file,
 )
+from src.financial.planning.repository import (
+    remove_goal_planning_request_from_file,
+)
 
+
+MoneyInput: TypeAlias = Decimal | int | float | str
 
 goals: list[Goal] = []
 
 
 def load_goals(
     file_path: Path = GOALS_FILE,
+    ledger_file_path: Path | None = None,
 ) -> None:
-    """Load goals into application memory."""
+    """Load goals and migrate existing balances."""
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
+    )
+
     goals.clear()
-    goals.extend(
-        load_goals_from_file(file_path)
+    goals.extend(load_goals_from_file(file_path))
+
+    migrate_existing_goal_balances(
+        goals,
+        ledger_file_path=resolved_ledger_path,
     )
 
 
@@ -52,28 +82,40 @@ def get_next_goal_id() -> int:
     if not goals:
         return 1
 
-    return max(
-        goal.id
-        for goal in goals
-    ) + 1
+    return max(goal.id for goal in goals) + 1
 
 
 def add_goal(
     name: str,
-    target_amount: float,
-    current_amount: float = 0,
+    target_amount: MoneyInput,
+    current_amount: MoneyInput = ZERO,
     file_path: Path = GOALS_FILE,
+    ledger_file_path: Path | None = None,
 ) -> Goal:
     """Create and save a financial goal."""
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
+    )
+
+    normalized_target = to_money(target_amount)
+    normalized_current = to_money(current_amount)
+
     goal = Goal(
         id=get_next_goal_id(),
         name=name,
-        target_amount=target_amount,
-        current_amount=current_amount,
+        target_amount=normalized_target,
+        current_amount=normalized_current,
     )
 
     goals.append(goal)
     save_goals(file_path)
+
+    if normalized_current > ZERO:
+        migrate_existing_goal_balances(
+            [goal],
+            ledger_file_path=resolved_ledger_path,
+        )
 
     return goal
 
@@ -81,33 +123,35 @@ def add_goal(
 def update_goal(
     goal_id: int,
     name: str | None = None,
-    target_amount: float | None = None,
-    current_amount: float | None = None,
+    target_amount: MoneyInput | None = None,
+    current_amount: MoneyInput | None = None,
     file_path: Path = GOALS_FILE,
 ) -> Goal | None:
-    """Update an existing financial goal."""
+    """
+    Update an existing goal.
+
+    Direct cached-balance changes remain temporarily available
+    for backward compatibility. New contributions must use the
+    append-only goal ledger.
+    """
     goal = get_goal_by_id(goal_id)
 
     if goal is None:
         return None
 
+    normalized_target = (
+        to_money(target_amount) if target_amount is not None else goal.target_amount
+    )
+
+    normalized_current = (
+        to_money(current_amount) if current_amount is not None else goal.current_amount
+    )
+
     updated_goal = Goal(
         id=goal.id,
-        name=(
-            name.strip()
-            if name is not None
-            else goal.name
-        ),
-        target_amount=(
-            target_amount
-            if target_amount is not None
-            else goal.target_amount
-        ),
-        current_amount=(
-            current_amount
-            if current_amount is not None
-            else goal.current_amount
-        ),
+        name=(name.strip() if name is not None else goal.name),
+        target_amount=normalized_target,
+        current_amount=normalized_current,
     )
 
     goal_index = goals.index(goal)
@@ -120,11 +164,18 @@ def update_goal(
 
 def contribute_to_goal(
     goal_id: int,
-    contribution: float,
+    contribution: MoneyInput,
     file_path: Path = GOALS_FILE,
+    ledger_file_path: Path | None = None,
+    effective_date: date | None = None,
+    source: str = "MANUAL",
+    note: str = "",
+    correlation_id: str | None = None,
 ) -> Goal | None:
-    """Apply a contribution to an existing goal."""
-    if contribution < 0:
+    """Record a contribution through the goal ledger."""
+    normalized_contribution = to_money(contribution)
+
+    if normalized_contribution < ZERO:
         raise ValueError("Goal contribution cannot be negative.")
 
     goal = get_goal_by_id(goal_id)
@@ -132,27 +183,70 @@ def contribute_to_goal(
     if goal is None:
         return None
 
-    updated_amount = min(
-        goal.current_amount + contribution,
-        goal.target_amount,
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
     )
 
-    return update_goal(
-        goal_id=goal.id,
-        current_amount=updated_amount,
-        file_path=file_path,
+    record_contribution(
+        goal,
+        normalized_contribution,
+        goals=goals,
+        effective_date=effective_date,
+        source=source,
+        note=note,
+        correlation_id=correlation_id,
+        ledger_file_path=resolved_ledger_path,
+        goals_file_path=file_path,
     )
+
+    return get_goal_by_id(goal_id)
 
 
 def delete_goal(
     goal_id: int,
     file_path: Path = GOALS_FILE,
 ) -> Goal | None:
-    """Delete a goal by ID."""
+    """
+    Delete a goal from the active goal list.
+
+    Ledger entries remain preserved as an audit trail.
+    """
     for index, goal in enumerate(goals):
-        if goal.id == goal_id:
-            deleted_goal = goals.pop(index)
-            save_goals(file_path)
-            return deleted_goal
+        if goal.id != goal_id:
+            continue
+
+        deleted_goal = goals.pop(index)
+        save_goals(file_path)
+
+        planning_file_path = file_path.parent / "goal_planning_requests.json"
+
+        remove_goal_planning_request_from_file(
+            goal_id,
+            file_path=planning_file_path,
+        )
+
+        return deleted_goal
 
     return None
+
+
+def _resolve_ledger_file_path(
+    *,
+    goals_file_path: Path,
+    ledger_file_path: Path | None,
+) -> Path:
+    """
+    Resolve the ledger associated with a goals repository.
+
+    Production goals use the configured production ledger.
+    Temporary or alternate goal repositories receive a ledger
+    in the same directory, preserving repository isolation.
+    """
+    if ledger_file_path is not None:
+        return ledger_file_path
+
+    if goals_file_path == GOALS_FILE:
+        return GOAL_LEDGER_FILE
+
+    return goals_file_path.parent / GOAL_LEDGER_FILE.name

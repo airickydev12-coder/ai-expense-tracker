@@ -1,4 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from decimal import Decimal
+
+from src.core.money import (
+    money_from_json,
+    money_to_json,
+    to_money,
+)
 
 
 @dataclass
@@ -7,38 +16,44 @@ class Goal:
 
     id: int
     name: str
-    target_amount: float
-    current_amount: float
+    target_amount: Decimal
+    current_amount: Decimal
 
     def __post_init__(self) -> None:
-        """Validate the goal after initialization."""
+        """Validate and normalize the goal."""
+        self.target_amount = to_money(self.target_amount)
+        self.current_amount = to_money(self.current_amount)
+
         if self.id <= 0:
             raise ValueError("Goal ID must be greater than zero.")
 
         if not self.name.strip():
             raise ValueError("Goal name cannot be empty.")
 
-        if self.target_amount <= 0:
+        if self.target_amount <= Decimal("0.00"):
             raise ValueError("Goal target amount must be greater than zero.")
 
-        if self.current_amount < 0:
+        if self.current_amount < Decimal("0.00"):
             raise ValueError("Goal current amount cannot be negative.")
 
     def to_dict(self) -> dict:
-        """Convert the goal to a dictionary for JSON storage."""
+        """Convert the goal into JSON-compatible data."""
         return {
             "id": self.id,
             "name": self.name,
-            "target_amount": self.target_amount,
-            "current_amount": self.current_amount,
+            "target_amount": money_to_json(self.target_amount),
+            "current_amount": money_to_json(self.current_amount),
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Goal":
-        """Create a Goal from a dictionary."""
+    def from_dict(
+        cls,
+        data: dict,
+    ) -> "Goal":
+        """Create a Goal from JSON data."""
         return cls(
             id=int(data["id"]),
             name=data["name"],
-            target_amount=float(data["target_amount"]),
-            current_amount=float(data["current_amount"]),
+            target_amount=money_from_json(str(data["target_amount"])),
+            current_amount=money_from_json(str(data["current_amount"])),
         )

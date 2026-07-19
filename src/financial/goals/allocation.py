@@ -1,7 +1,13 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import IntEnum
 from typing import Any
 
+from src.core.money import (
+    ZERO,
+    money_to_json,
+    to_money,
+)
 from src.financial.goals.planning_models import (
     GoalProjection,
 )
@@ -38,12 +44,15 @@ class GoalAllocation:
     goal_id: int
     goal_name: str
     priority: GoalPriority
-    required_amount: float
-    allocated_amount: float
+    required_amount: Decimal
+    allocated_amount: Decimal
 
     def __post_init__(self) -> None:
         """Validate and normalize allocation data."""
         normalized_name = self.goal_name.strip()
+
+        required_amount = to_money(self.required_amount)
+        allocated_amount = to_money(self.allocated_amount)
 
         if self.goal_id <= 0:
             raise ValueError("Goal allocation ID must be greater than zero.")
@@ -51,32 +60,30 @@ class GoalAllocation:
         if not normalized_name:
             raise ValueError("Goal allocation name cannot be empty.")
 
-        if self.required_amount < 0:
+        if required_amount < ZERO:
             raise ValueError("Goal required amount cannot be negative.")
 
-        if self.allocated_amount < 0:
+        if allocated_amount < ZERO:
             raise ValueError("Goal allocated amount cannot be negative.")
 
-        object.__setattr__(
-            self,
-            "goal_name",
-            normalized_name,
-        )
+        object.__setattr__(self, "goal_name", normalized_name)
+        object.__setattr__(self, "required_amount", required_amount)
+        object.__setattr__(self, "allocated_amount", allocated_amount)
 
     @property
-    def shortfall(self) -> float:
+    def shortfall(self) -> Decimal:
         """Return the amount still required for this funding period."""
         return max(
             self.required_amount - self.allocated_amount,
-            0.0,
+            ZERO,
         )
 
     @property
-    def surplus(self) -> float:
+    def surplus(self) -> Decimal:
         """Return any amount allocated above the requirement."""
         return max(
             self.allocated_amount - self.required_amount,
-            0.0,
+            ZERO,
         )
 
     @property
@@ -90,10 +97,10 @@ class GoalAllocation:
             "goal_id": self.goal_id,
             "goal_name": self.goal_name,
             "priority": self.priority.name,
-            "required_amount": self.required_amount,
-            "allocated_amount": self.allocated_amount,
-            "shortfall": self.shortfall,
-            "surplus": self.surplus,
+            "required_amount": money_to_json(self.required_amount),
+            "allocated_amount": money_to_json(self.allocated_amount),
+            "shortfall": money_to_json(self.shortfall),
+            "surplus": money_to_json(self.surplus),
             "is_fully_funded": self.is_fully_funded,
         }
 
@@ -105,10 +112,12 @@ class GoalAllocationPlan:
         self,
         *,
         allocations: list[GoalAllocation],
-        total_available: float,
+        total_available: Decimal,
     ) -> None:
         """Create and validate an allocation plan."""
-        if total_available < 0:
+        total_available = to_money(total_available)
+
+        if total_available < ZERO:
             raise ValueError("Total available funding cannot be negative.")
 
         goal_ids = [allocation.goal_id for allocation in allocations]
@@ -125,31 +134,40 @@ class GoalAllocationPlan:
         return list(self._allocations)
 
     @property
-    def total_available(self) -> float:
+    def total_available(self) -> Decimal:
         """Return the total amount available for allocation."""
         return self._total_available
 
     @property
-    def total_required(self) -> float:
+    def total_required(self) -> Decimal:
         """Return the combined monthly funding requirement."""
-        return sum(allocation.required_amount for allocation in self._allocations)
+        return sum(
+            (allocation.required_amount for allocation in self._allocations),
+            ZERO,
+        )
 
     @property
-    def total_allocated(self) -> float:
+    def total_allocated(self) -> Decimal:
         """Return the total amount allocated to goals."""
-        return sum(allocation.allocated_amount for allocation in self._allocations)
+        return sum(
+            (allocation.allocated_amount for allocation in self._allocations),
+            ZERO,
+        )
 
     @property
-    def total_shortfall(self) -> float:
+    def total_shortfall(self) -> Decimal:
         """Return the combined funding shortfall."""
-        return sum(allocation.shortfall for allocation in self._allocations)
+        return sum(
+            (allocation.shortfall for allocation in self._allocations),
+            ZERO,
+        )
 
     @property
-    def remaining_cash(self) -> float:
+    def remaining_cash(self) -> Decimal:
         """Return available cash remaining after allocation."""
         return max(
             self.total_available - self.total_allocated,
-            0.0,
+            ZERO,
         )
 
     @property
@@ -172,11 +190,11 @@ class GoalAllocationPlan:
         """Convert the allocation plan to a dictionary."""
         return {
             "allocations": [allocation.to_dict() for allocation in self._allocations],
-            "total_available": self.total_available,
-            "total_required": self.total_required,
-            "total_allocated": self.total_allocated,
-            "total_shortfall": self.total_shortfall,
-            "remaining_cash": self.remaining_cash,
+            "total_available": money_to_json(self.total_available),
+            "total_required": money_to_json(self.total_required),
+            "total_allocated": money_to_json(self.total_allocated),
+            "total_shortfall": money_to_json(self.total_shortfall),
+            "remaining_cash": money_to_json(self.remaining_cash),
             "all_goals_funded": self.all_goals_funded,
         }
 
@@ -208,16 +226,14 @@ def prioritize_goal_funding_requests(
 def allocate_goal_funding(
     requests: list[GoalFundingRequest],
     *,
-    total_available: float,
+    total_available: Decimal,
 ) -> GoalAllocationPlan:
     """
     Allocate available monthly funding across financial goals.
-
-    Higher-priority goals receive funding first. Goals with the
-    same priority are ordered by target date and required amount.
-    Allocations never exceed a goal's monthly requirement.
     """
-    if total_available < 0:
+    total_available = to_money(total_available)
+
+    if total_available < ZERO:
         raise ValueError("Total available funding cannot be negative.")
 
     goal_ids = [request.projection.goal_id for request in requests]

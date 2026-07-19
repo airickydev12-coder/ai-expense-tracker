@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -18,13 +19,13 @@ def build_projection(
         "goal_name": "Emergency Fund",
         "as_of_date": date(2026, 7, 16),
         "target_date": date(2027, 7, 16),
-        "target_amount": 10000,
-        "current_amount": 4000,
-        "remaining_amount": 6000,
+        "target_amount": Decimal("10000.00"),
+        "current_amount": Decimal("4000.00"),
+        "remaining_amount": Decimal("6000.00"),
         "months_remaining": 12,
-        "required_monthly_contribution": 500,
-        "planned_monthly_contribution": 600,
-        "monthly_contribution_difference": 100,
+        "required_monthly_contribution": Decimal("500.00"),
+        "planned_monthly_contribution": Decimal("600.00"),
+        "monthly_contribution_difference": Decimal("100.00"),
         "projected_completion_date": date(
             2027,
             5,
@@ -42,10 +43,10 @@ def test_goal_projection_creation():
 
     assert projection.goal_id == 1
     assert projection.goal_name == "Emergency Fund"
-    assert projection.remaining_amount == 6000
+    assert projection.remaining_amount == Decimal("6000.00")
     assert projection.months_remaining == 12
-    assert projection.monthly_shortfall == 0
-    assert projection.monthly_surplus == 100
+    assert projection.monthly_shortfall == Decimal("0.00")
+    assert projection.monthly_surplus == Decimal("100.00")
     assert projection.is_complete is False
 
 
@@ -83,27 +84,27 @@ def test_goal_projection_rejects_negative_remaining_amount():
         match="remaining",
     ):
         build_projection(
-            remaining_amount=-1,
+            remaining_amount=Decimal("-1.00"),
         )
 
 
 def test_goal_projection_calculates_shortfall():
     projection = build_projection(
-        required_monthly_contribution=500,
-        planned_monthly_contribution=350,
-        monthly_contribution_difference=-150,
+        required_monthly_contribution=Decimal("500.00"),
+        planned_monthly_contribution=Decimal("350.00"),
+        monthly_contribution_difference=Decimal("-150.00"),
     )
 
-    assert projection.monthly_shortfall == 150
-    assert projection.monthly_surplus == 0
+    assert projection.monthly_shortfall == Decimal("150.00")
+    assert projection.monthly_surplus == Decimal("0.00")
 
 
 def test_goal_projection_identifies_complete_goal():
     projection = build_projection(
-        current_amount=10000,
-        remaining_amount=0,
-        required_monthly_contribution=0,
-        monthly_contribution_difference=600,
+        current_amount=Decimal("10000.00"),
+        remaining_amount=Decimal("0.00"),
+        required_monthly_contribution=Decimal("0.00"),
+        monthly_contribution_difference=Decimal("600.00"),
         projected_completion_date=date(
             2026,
             7,
@@ -119,8 +120,8 @@ def test_goal_projection_identifies_passed_deadline():
     projection = build_projection(
         target_date=date(2026, 7, 1),
         months_remaining=0,
-        required_monthly_contribution=6000,
-        monthly_contribution_difference=-5400,
+        required_monthly_contribution=Decimal("6000.00"),
+        monthly_contribution_difference=Decimal("-5400.00"),
     )
 
     assert projection.has_deadline_passed is True
@@ -135,9 +136,12 @@ def test_goal_projection_to_dict():
     assert result["goal_name"] == "Emergency Fund"
     assert result["as_of_date"] == "2026-07-16"
     assert result["target_date"] == "2027-07-16"
-    assert result["monthly_shortfall"] == 0
-    assert result["monthly_surplus"] == 100
-    assert result["projected_completion_date"] == ("2027-05-16")
+
+    # Monetary values are serialized with money_to_json().
+    assert result["monthly_shortfall"] == "0.00"
+    assert result["monthly_surplus"] == "100.00"
+
+    assert result["projected_completion_date"] == "2027-05-16"
 
 
 def test_goal_feasibility_assessment_creation():
@@ -146,10 +150,10 @@ def test_goal_feasibility_assessment_creation():
         status=GoalFeasibilityStatus.FEASIBLE,
         is_feasible=True,
         summary="The goal is on track.",
-        recommendation=("Maintain the monthly contribution."),
+        recommendation="Maintain the monthly contribution.",
     )
 
-    assert assessment.status == (GoalFeasibilityStatus.FEASIBLE)
+    assert assessment.status == GoalFeasibilityStatus.FEASIBLE
     assert assessment.is_feasible is True
 
 

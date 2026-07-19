@@ -1,7 +1,15 @@
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
+
+import pytest
 from typing import Any
 
+from src.core.money import (
+    ZERO,
+    money_to_json,
+    to_money,
+)
 from src.financial.goals.allocation import (
     GoalAllocationPlan,
     GoalFundingRequest,
@@ -22,29 +30,42 @@ from src.financial.goals.projections import (
 )
 
 
+MoneyInput = Decimal | int | float
+
+
 @dataclass(frozen=True)
 class GoalPlanningRequest:
     """Contains the planning information required for one goal."""
 
     goal: Goal
     target_date: date
-    planned_monthly_contribution: float
+    planned_monthly_contribution: MoneyInput
     priority: GoalPriority = GoalPriority.MEDIUM
 
     def __post_init__(self) -> None:
-        """Validate the goal-planning request."""
-        if self.planned_monthly_contribution < 0:
+        """Validate and normalize the goal-planning request."""
+        normalized_contribution = to_money(self.planned_monthly_contribution)
+
+        if normalized_contribution < ZERO:
             raise ValueError("Planned monthly contribution cannot be negative.")
 
         if not isinstance(self.priority, GoalPriority):
             raise TypeError("Goal planning priority must be a GoalPriority.")
+
+        object.__setattr__(
+            self,
+            "planned_monthly_contribution",
+            normalized_contribution,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert the request to a dictionary."""
         return {
             "goal": self.goal.to_dict(),
             "target_date": self.target_date.isoformat(),
-            "planned_monthly_contribution": (self.planned_monthly_contribution),
+            "planned_monthly_contribution": money_to_json(
+                to_money(self.planned_monthly_contribution)
+            ),
             "priority": self.priority.name,
         }
 
@@ -144,22 +165,22 @@ class GoalPlanningResult:
         return self._count_status(GoalFeasibilityStatus.MISSED_DEADLINE)
 
     @property
-    def total_monthly_required(self) -> float:
+    def total_monthly_required(self) -> Decimal:
         """Return the combined required monthly funding."""
         return self._allocation_plan.total_required
 
     @property
-    def total_monthly_allocated(self) -> float:
+    def total_monthly_allocated(self) -> Decimal:
         """Return the combined allocated monthly funding."""
         return self._allocation_plan.total_allocated
 
     @property
-    def overall_funding_gap(self) -> float:
+    def overall_funding_gap(self) -> Decimal:
         """Return the combined monthly funding shortfall."""
         return self._allocation_plan.total_shortfall
 
     @property
-    def remaining_monthly_cash(self) -> float:
+    def remaining_monthly_cash(self) -> Decimal:
         """Return unallocated monthly cash."""
         return self._allocation_plan.remaining_cash
 
@@ -210,10 +231,10 @@ class GoalPlanningResult:
                 "at_risk_goals": self.at_risk_goals,
                 "unfunded_goals": self.unfunded_goals,
                 "missed_deadline_goals": (self.missed_deadline_goals),
-                "total_monthly_required": (self.total_monthly_required),
-                "total_monthly_allocated": (self.total_monthly_allocated),
-                "overall_funding_gap": (self.overall_funding_gap),
-                "remaining_monthly_cash": (self.remaining_monthly_cash),
+                "total_monthly_required": money_to_json(self.total_monthly_required),
+                "total_monthly_allocated": money_to_json(self.total_monthly_allocated),
+                "overall_funding_gap": money_to_json(self.overall_funding_gap),
+                "remaining_monthly_cash": money_to_json(self.remaining_monthly_cash),
                 "all_goals_feasible": (self.all_goals_feasible),
             },
         }
@@ -228,7 +249,7 @@ def build_projection(
     return build_goal_projection(
         request.goal,
         target_date=request.target_date,
-        planned_monthly_contribution=(request.planned_monthly_contribution),
+        planned_monthly_contribution=to_money(request.planned_monthly_contribution),
         as_of_date=as_of_date,
     )
 
@@ -250,10 +271,15 @@ def assess_goal(
 def allocate_monthly_funding(
     requests: list[GoalPlanningRequest],
     *,
-    total_available: float,
+    total_available: MoneyInput,
     as_of_date: date | None = None,
 ) -> GoalAllocationPlan:
     """Build projections and allocate monthly funding."""
+    normalized_total_available = to_money(total_available)
+
+    if normalized_total_available < ZERO:
+        raise ValueError("Total available funding cannot be negative.")
+
     _validate_unique_goal_ids(requests)
 
     funding_requests = [
@@ -269,14 +295,14 @@ def allocate_monthly_funding(
 
     return allocate_goal_funding(
         funding_requests,
-        total_available=total_available,
+        total_available=normalized_total_available,
     )
 
 
 def analyze_goals(
     requests: list[GoalPlanningRequest],
     *,
-    total_available: float,
+    total_available: MoneyInput,
     as_of_date: date | None = None,
 ) -> GoalPlanningResult:
     """
@@ -285,7 +311,9 @@ def analyze_goals(
     This is the primary application-facing entry point for the
     financial-goal planning feature.
     """
-    if total_available < 0:
+    normalized_total_available = to_money(total_available)
+
+    if normalized_total_available < ZERO:
         raise ValueError("Total available funding cannot be negative.")
 
     _validate_unique_goal_ids(requests)
@@ -314,7 +342,7 @@ def analyze_goals(
 
     allocation_plan = allocate_goal_funding(
         funding_requests,
-        total_available=total_available,
+        total_available=normalized_total_available,
     )
 
     return GoalPlanningResult(

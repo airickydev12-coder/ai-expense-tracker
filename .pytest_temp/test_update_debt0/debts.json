@@ -1,9 +1,0 @@
-[
-    {
-        "id": 1,
-        "name": "Primary Credit Card",
-        "balance": 2000,
-        "interest_rate": 24.99,
-        "minimum_payment": 100
-    }
-]

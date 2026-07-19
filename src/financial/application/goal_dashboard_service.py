@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from enum import Enum
 from typing import Mapping, Sequence
 
@@ -12,6 +13,9 @@ from src.financial.application.goal_planning_service import (
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 from src.financial.goals.planning_models import GoalFeasibilityStatus
+
+
+ZERO_MONEY = Decimal("0.00")
 
 
 class GoalDashboardStatus(Enum):
@@ -31,9 +35,9 @@ class GoalDashboardItem:
 
     goal_id: int
     goal_name: str
-    target_amount: float
-    current_amount: float
-    remaining_amount: float
+    target_amount: Decimal
+    current_amount: Decimal
+    remaining_amount: Decimal
     funding_percentage: float
     status: GoalDashboardStatus
     priority: GoalPriority | None
@@ -49,9 +53,9 @@ class GoalDashboard:
     """Aggregate dashboard information for all financial goals."""
 
     items: tuple[GoalDashboardItem, ...]
-    total_target_amount: float
-    total_current_amount: float
-    total_remaining_amount: float
+    total_target_amount: Decimal
+    total_current_amount: Decimal
+    total_remaining_amount: Decimal
     overall_funding_percentage: float
     completed_goals: int
     on_track_goals: int
@@ -97,9 +101,18 @@ def build_goal_dashboard(
         for goal in goals
     )
 
-    total_target_amount = sum(item.target_amount for item in items)
-    total_current_amount = sum(item.current_amount for item in items)
-    total_remaining_amount = sum(item.remaining_amount for item in items)
+    total_target_amount = sum(
+        (item.target_amount for item in items),
+        ZERO_MONEY,
+    )
+    total_current_amount = sum(
+        (item.current_amount for item in items),
+        ZERO_MONEY,
+    )
+    total_remaining_amount = sum(
+        (item.remaining_amount for item in items),
+        ZERO_MONEY,
+    )
 
     overall_funding_percentage = _calculate_percentage(
         total_current_amount,
@@ -114,10 +127,22 @@ def build_goal_dashboard(
         total_current_amount=total_current_amount,
         total_remaining_amount=total_remaining_amount,
         overall_funding_percentage=overall_funding_percentage,
-        completed_goals=_count_status(items, GoalDashboardStatus.COMPLETED),
-        on_track_goals=_count_status(items, GoalDashboardStatus.ON_TRACK),
-        at_risk_goals=_count_status(items, GoalDashboardStatus.AT_RISK),
-        unfunded_goals=_count_status(items, GoalDashboardStatus.UNFUNDED),
+        completed_goals=_count_status(
+            items,
+            GoalDashboardStatus.COMPLETED,
+        ),
+        on_track_goals=_count_status(
+            items,
+            GoalDashboardStatus.ON_TRACK,
+        ),
+        at_risk_goals=_count_status(
+            items,
+            GoalDashboardStatus.AT_RISK,
+        ),
+        unfunded_goals=_count_status(
+            items,
+            GoalDashboardStatus.UNFUNDED,
+        ),
         missed_deadline_goals=_count_status(
             items,
             GoalDashboardStatus.MISSED_DEADLINE,
@@ -139,7 +164,7 @@ def _build_dashboard_item(
     """Build one dashboard item."""
     remaining_amount = max(
         goal.target_amount - goal.current_amount,
-        0.0,
+        ZERO_MONEY,
     )
 
     funding_percentage = _calculate_percentage(
@@ -161,7 +186,7 @@ def _build_dashboard_item(
         remaining_amount=remaining_amount,
         funding_percentage=funding_percentage,
         status=status,
-        priority=request.priority if request is not None else None,
+        priority=(request.priority if request is not None else None),
     )
 
 
@@ -184,16 +209,23 @@ def _resolve_status(
     )
 
     status_map = {
-        GoalFeasibilityStatus.COMPLETED: GoalDashboardStatus.COMPLETED,
-        GoalFeasibilityStatus.FEASIBLE: GoalDashboardStatus.ON_TRACK,
-        GoalFeasibilityStatus.AT_RISK: GoalDashboardStatus.AT_RISK,
-        GoalFeasibilityStatus.UNFUNDED: GoalDashboardStatus.UNFUNDED,
-        GoalFeasibilityStatus.MISSED_DEADLINE: (
-            GoalDashboardStatus.MISSED_DEADLINE
-        ),
+        GoalFeasibilityStatus.COMPLETED: (GoalDashboardStatus.COMPLETED),
+        GoalFeasibilityStatus.FEASIBLE: (GoalDashboardStatus.ON_TRACK),
+        GoalFeasibilityStatus.AT_RISK: (GoalDashboardStatus.AT_RISK),
+        GoalFeasibilityStatus.UNFUNDED: (GoalDashboardStatus.UNFUNDED),
+        GoalFeasibilityStatus.MISSED_DEADLINE: (GoalDashboardStatus.MISSED_DEADLINE),
     }
 
     return status_map[assessment.status]
+
+
+def _priority_rank(
+    item: GoalDashboardItem,
+) -> int:
+    """Return the numeric rank for a dashboard item's priority."""
+    assert item.priority is not None
+
+    return _PRIORITY_RANK[item.priority]
 
 
 def _select_highest_priority_goal(
@@ -201,9 +233,7 @@ def _select_highest_priority_goal(
 ) -> GoalDashboardItem | None:
     """Return the highest-priority incomplete goal with a planning request."""
     candidates = [
-        item
-        for item in items
-        if not item.is_complete and item.priority is not None
+        item for item in items if not item.is_complete and item.priority is not None
     ]
 
     if not candidates:
@@ -212,7 +242,7 @@ def _select_highest_priority_goal(
     return max(
         candidates,
         key=lambda item: (
-            _PRIORITY_RANK[item.priority],
+            _priority_rank(item),
             item.remaining_amount,
             -item.goal_id,
         ),
@@ -220,17 +250,26 @@ def _select_highest_priority_goal(
 
 
 def _calculate_percentage(
-    current_amount: float,
-    target_amount: float,
+    current_amount: Decimal,
+    target_amount: Decimal,
 ) -> float:
-    """Calculate a funding percentage capped at 100 percent."""
-    if target_amount <= 0:
+    """
+    Calculate a funding percentage capped at 100 percent.
+
+    Monetary arithmetic remains Decimal. The final analytical
+    percentage is converted to float for dashboard compatibility.
+    """
+    if target_amount <= ZERO_MONEY:
         return 0.0
 
-    return min(
-        current_amount / target_amount * 100,
-        100.0,
+    percentage = current_amount / target_amount * Decimal("100")
+
+    capped_percentage = min(
+        percentage,
+        Decimal("100"),
     )
+
+    return float(capped_percentage)
 
 
 def _count_status(
@@ -258,14 +297,20 @@ def _validate_goals(
 
 
 def _validate_requests(
-    requests_by_goal_id: Mapping[int, GoalPlanningRequest],
+    requests_by_goal_id: Mapping[
+        int,
+        GoalPlanningRequest,
+    ],
 ) -> None:
     """Validate planning-request mappings."""
     for goal_id, request in requests_by_goal_id.items():
         if not isinstance(goal_id, int):
             raise TypeError("Goal planning request keys must be integers.")
 
-        if not isinstance(request, GoalPlanningRequest):
+        if not isinstance(
+            request,
+            GoalPlanningRequest,
+        ):
             raise TypeError(
                 "Every dashboard planning request must be "
                 "a GoalPlanningRequest instance."
@@ -273,5 +318,5 @@ def _validate_requests(
 
         if request.goal.id != goal_id:
             raise ValueError(
-                "Goal planning request key must match the request goal ID."
+                "Goal planning request key must match " "the request goal ID."
             )

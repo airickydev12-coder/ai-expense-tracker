@@ -1,7 +1,16 @@
+"""Projection calculations for financial goals."""
+
 import calendar
 import math
 from datetime import date
+from decimal import Decimal
+from typing import TypeAlias
 
+from src.core.money import (
+    ZERO,
+    subtract_money,
+    to_money,
+)
 from src.financial.goals.analytics import (
     get_remaining_goal_amount,
 )
@@ -9,6 +18,9 @@ from src.financial.goals.models import Goal
 from src.financial.goals.planning_models import (
     GoalProjection,
 )
+
+
+MoneyInput: TypeAlias = Decimal | int | float | str
 
 
 def calculate_months_remaining(
@@ -37,23 +49,25 @@ def calculate_months_remaining(
 
 
 def calculate_required_monthly_contribution(
-    remaining_amount: float,
+    remaining_amount: MoneyInput,
     months_remaining: int,
-) -> float:
+) -> Decimal:
     """Calculate the monthly contribution required by a deadline."""
-    if remaining_amount < 0:
+    normalized_remaining = to_money(remaining_amount)
+
+    if normalized_remaining < ZERO:
         raise ValueError("Remaining goal amount cannot be negative.")
 
     if months_remaining < 0:
         raise ValueError("Months remaining cannot be negative.")
 
-    if remaining_amount == 0:
-        return 0.0
+    if normalized_remaining == ZERO:
+        return ZERO
 
     if months_remaining == 0:
-        return remaining_amount
+        return normalized_remaining
 
-    return remaining_amount / months_remaining
+    return to_money(normalized_remaining / Decimal(months_remaining))
 
 
 def add_months(
@@ -87,23 +101,26 @@ def add_months(
 def calculate_projected_completion_date(
     *,
     as_of_date: date,
-    remaining_amount: float,
-    monthly_contribution: float,
+    remaining_amount: MoneyInput,
+    monthly_contribution: MoneyInput,
 ) -> date | None:
     """Calculate the estimated completion date for a goal."""
-    if remaining_amount < 0:
+    normalized_remaining = to_money(remaining_amount)
+    normalized_contribution = to_money(monthly_contribution)
+
+    if normalized_remaining < ZERO:
         raise ValueError("Remaining goal amount cannot be negative.")
 
-    if monthly_contribution < 0:
+    if normalized_contribution < ZERO:
         raise ValueError("Monthly contribution cannot be negative.")
 
-    if remaining_amount == 0:
+    if normalized_remaining == ZERO:
         return as_of_date
 
-    if monthly_contribution == 0:
+    if normalized_contribution == ZERO:
         return None
 
-    months_needed = math.ceil(remaining_amount / monthly_contribution)
+    months_needed = math.ceil(normalized_remaining / normalized_contribution)
 
     return add_months(
         as_of_date,
@@ -115,11 +132,13 @@ def build_goal_projection(
     goal: Goal,
     *,
     target_date: date,
-    planned_monthly_contribution: float,
+    planned_monthly_contribution: MoneyInput,
     as_of_date: date | None = None,
 ) -> GoalProjection:
     """Build a financial projection for one goal."""
-    if planned_monthly_contribution < 0:
+    normalized_planned_contribution = to_money(planned_monthly_contribution)
+
+    if normalized_planned_contribution < ZERO:
         raise ValueError("Planned monthly contribution cannot be negative.")
 
     effective_as_of_date = as_of_date if as_of_date is not None else date.today()
@@ -136,14 +155,15 @@ def build_goal_projection(
         months_remaining,
     )
 
-    monthly_contribution_difference = (
-        planned_monthly_contribution - required_monthly_contribution
+    monthly_contribution_difference = subtract_money(
+        normalized_planned_contribution,
+        required_monthly_contribution,
     )
 
     projected_completion_date = calculate_projected_completion_date(
         as_of_date=effective_as_of_date,
         remaining_amount=remaining_amount,
-        monthly_contribution=(planned_monthly_contribution),
+        monthly_contribution=(normalized_planned_contribution),
     )
 
     return GoalProjection(
@@ -156,7 +176,7 @@ def build_goal_projection(
         remaining_amount=remaining_amount,
         months_remaining=months_remaining,
         required_monthly_contribution=(required_monthly_contribution),
-        planned_monthly_contribution=(planned_monthly_contribution),
+        planned_monthly_contribution=(normalized_planned_contribution),
         monthly_contribution_difference=(monthly_contribution_difference),
         projected_completion_date=(projected_completion_date),
     )

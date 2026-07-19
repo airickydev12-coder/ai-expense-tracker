@@ -1,3 +1,6 @@
+"""Goal feasibility evaluation."""
+
+from src.core.money import ZERO
 from src.financial.goals.planning_models import (
     GoalFeasibilityAssessment,
     GoalFeasibilityStatus,
@@ -14,7 +17,7 @@ def assess_goal_feasibility(
             projection=projection,
             status=GoalFeasibilityStatus.COMPLETED,
             is_feasible=True,
-            summary=(f"{projection.goal_name} is fully funded."),
+            summary=f"{projection.goal_name} is fully funded.",
             recommendation=(
                 "Maintain the completed balance or begin "
                 "planning the next financial goal."
@@ -24,7 +27,7 @@ def assess_goal_feasibility(
     if projection.has_deadline_passed:
         return GoalFeasibilityAssessment(
             projection=projection,
-            status=(GoalFeasibilityStatus.MISSED_DEADLINE),
+            status=GoalFeasibilityStatus.MISSED_DEADLINE,
             is_feasible=False,
             summary=(
                 f"{projection.goal_name} has an outstanding "
@@ -37,7 +40,7 @@ def assess_goal_feasibility(
             ),
         )
 
-    if projection.planned_monthly_contribution == 0:
+    if projection.planned_monthly_contribution == ZERO:
         return GoalFeasibilityAssessment(
             projection=projection,
             status=GoalFeasibilityStatus.UNFUNDED,
@@ -52,8 +55,9 @@ def assess_goal_feasibility(
             ),
         )
 
-    if projection.planned_monthly_contribution >= (
-        projection.required_monthly_contribution
+    if (
+        projection.planned_monthly_contribution
+        >= projection.required_monthly_contribution
     ):
         return GoalFeasibilityAssessment(
             projection=projection,

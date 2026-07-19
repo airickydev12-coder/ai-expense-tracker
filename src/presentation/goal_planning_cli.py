@@ -2,7 +2,13 @@
 
 from collections.abc import Callable, Sequence
 from datetime import date
+from pathlib import Path
 
+from src.core.config import GOAL_PLANNING_REQUESTS_FILE
+from src.financial.planning.repository import (
+    load_goal_planning_requests_from_file,
+    save_goal_planning_requests_to_file,
+)
 from src.financial.application.goal_dashboard_service import (
     build_goal_dashboard,
 )
@@ -45,15 +51,24 @@ def run_goal_planning_menu(
     input_fn: InputFunction = input,
     output_fn: OutputFunction = print,
     today: date | None = None,
+    planning_file_path: Path = GOAL_PLANNING_REQUESTS_FILE,
 ) -> None:
     """
     Run the interactive Financial Goal Planner menu.
 
-    Planning requests are retained only for the duration of the current menu
-    session. The underlying Goal objects are not modified.
+    Planning requests are loaded from and saved to persistent JSON storage.
+    The underlying Goal objects are not modified.
     """
     planning_date = today or date.today()
-    requests_by_goal_id: dict[int, GoalPlanningRequest] = {}
+    requests_by_goal_id = load_goal_planning_requests_from_file(
+        goals,
+        file_path=planning_file_path,
+    )
+
+    save_goal_planning_requests_to_file(
+        requests_by_goal_id,
+        file_path=planning_file_path,
+    )
 
     while True:
         dashboard = build_goal_dashboard(
@@ -86,6 +101,10 @@ def run_goal_planning_menu(
                 input_fn=input_fn,
                 output_fn=output_fn,
             )
+            save_goal_planning_requests_to_file(
+                requests_by_goal_id,
+                file_path=planning_file_path,
+            )
         elif choice == 2:
             analyze_single_goal_workflow(
                 goals,
@@ -94,6 +113,10 @@ def run_goal_planning_menu(
                 input_fn=input_fn,
                 output_fn=output_fn,
             )
+            save_goal_planning_requests_to_file(
+                requests_by_goal_id,
+                file_path=planning_file_path,
+            )
         elif choice == 3:
             monthly_allocation_workflow(
                 goals,
@@ -101,6 +124,10 @@ def run_goal_planning_menu(
                 today=planning_date,
                 input_fn=input_fn,
                 output_fn=output_fn,
+            )
+            save_goal_planning_requests_to_file(
+                requests_by_goal_id,
+                file_path=planning_file_path,
             )
         elif choice == 4:
             view_planning_requests_workflow(
@@ -314,7 +341,7 @@ def view_planning_requests_workflow(
     input_fn: InputFunction = input,
     output_fn: OutputFunction = print,
 ) -> None:
-    """Display all planning requests created during the current session."""
+    """Display all persisted planning requests."""
     print_section(
         "Planning Requests",
         output_fn=output_fn,
@@ -323,7 +350,7 @@ def view_planning_requests_workflow(
     requests = list(requests_by_goal_id.values())
 
     if not requests:
-        output_fn("No planning requests have been created yet.")
+        output_fn("No planning requests have been saved yet.")
     else:
         output_fn(render_goal_planning_request_list(requests))
 
@@ -397,7 +424,7 @@ def collect_missing_planning_requests(
     Return one planning request per goal.
 
     Existing requests are reused. Requests are collected only for goals that
-    do not already have one in the current session.
+    do not already have a persisted request.
     """
     requests: list[GoalPlanningRequest] = []
 

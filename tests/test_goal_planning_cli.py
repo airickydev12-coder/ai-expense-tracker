@@ -669,7 +669,7 @@ def test_view_planning_requests_workflow_empty_state(
     )
 
     assert result is None
-    assert "No planning requests have been created yet." in messages
+    assert "No planning requests have been saved yet." in messages
     assert pause_calls == [True]
 
 

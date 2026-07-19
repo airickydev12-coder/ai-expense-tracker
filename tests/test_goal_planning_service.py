@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -36,14 +37,10 @@ def build_request(
     *,
     goal_id: int = 1,
     name: str = "Emergency Fund",
-    target_amount: float = 10000,
-    current_amount: float = 4000,
-    target_date: date = date(
-        2027,
-        7,
-        18,
-    ),
-    planned_monthly_contribution: float = 500,
+    target_amount: Decimal = Decimal("10000.00"),
+    current_amount: Decimal = Decimal("4000.00"),
+    target_date: date = date(2027, 7, 18),
+    planned_monthly_contribution: Decimal = Decimal("500.00"),
     priority: GoalPriority = GoalPriority.HIGH,
 ) -> GoalPlanningRequest:
     """Create a valid goal-planning request."""
@@ -66,40 +63,40 @@ def build_standard_requests() -> list[GoalPlanningRequest]:
         build_request(
             goal_id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=4000,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("4000.00"),
             target_date=date(
                 2027,
                 7,
                 18,
             ),
-            planned_monthly_contribution=500,
+            planned_monthly_contribution=Decimal("500.00"),
             priority=GoalPriority.CRITICAL,
         ),
         build_request(
             goal_id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=600,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("600.00"),
             target_date=date(
                 2027,
                 3,
                 18,
             ),
-            planned_monthly_contribution=200,
+            planned_monthly_contribution=Decimal("200.00"),
             priority=GoalPriority.LOW,
         ),
         build_request(
             goal_id=3,
             name="Car Fund",
-            target_amount=12000,
-            current_amount=4800,
+            target_amount=Decimal("12000.00"),
+            current_amount=Decimal("4800.00"),
             target_date=date(
                 2027,
                 7,
                 18,
             ),
-            planned_monthly_contribution=0,
+            planned_monthly_contribution=Decimal("0.00"),
             priority=GoalPriority.HIGH,
         ),
     ]
@@ -124,7 +121,7 @@ def test_goal_planning_request_rejects_negative_contribution():
         match="cannot be negative",
     ):
         build_request(
-            planned_monthly_contribution=-1,
+            planned_monthly_contribution=-Decimal("1.00"),
         )
 
 
@@ -137,8 +134,8 @@ def test_goal_planning_request_rejects_invalid_priority():
             goal=Goal(
                 id=1,
                 name="Emergency Fund",
-                target_amount=10000,
-                current_amount=4000,
+                target_amount=Decimal("10000.00"),
+                current_amount=Decimal("4000.00"),
             ),
             target_date=date(
                 2027,
@@ -155,7 +152,7 @@ def test_goal_planning_request_to_dict():
 
     assert result["goal"]["id"] == 1
     assert result["target_date"] == "2027-07-18"
-    assert result["planned_monthly_contribution"] == 500
+    assert result["planned_monthly_contribution"] == "500.00"
     assert result["priority"] == "HIGH"
 
 
@@ -271,8 +268,8 @@ def test_analyze_goals_funding_summary():
 
 def test_analyze_completed_goal():
     request = build_request(
-        current_amount=10000,
-        planned_monthly_contribution=0,
+        current_amount=Decimal("10000.00"),
+        planned_monthly_contribution=Decimal("0.00"),
     )
 
     result = analyze_goals(
@@ -395,8 +392,8 @@ def test_goal_planning_result_rejects_mismatched_ids():
         Goal(
             id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=500,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("500.00"),
         ),
         target_date=date(
             2027,
@@ -431,7 +428,7 @@ def test_goal_planning_result_rejects_mismatched_ids():
 def test_goal_planning_result_to_dict():
     result = analyze_goals(
         build_standard_requests(),
-        total_available=1000,
+        total_available=Decimal("1400.00"),
         as_of_date=AS_OF_DATE,
     )
 
@@ -447,6 +444,7 @@ def test_goal_planning_result_to_dict():
     assert summary["feasible_goals"] == 1
     assert summary["at_risk_goals"] == 1
     assert summary["unfunded_goals"] == 1
-    assert summary["total_monthly_required"] == 1400
-    assert summary["total_monthly_allocated"] == 1000
-    assert summary["overall_funding_gap"] == 400
+    assert summary["total_monthly_required"] == "1400.00"
+    assert summary["total_monthly_allocated"] == "1400.00"
+    assert summary["overall_funding_gap"] == "0.00"
+    assert summary["remaining_monthly_cash"] == "0.00"

@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -27,11 +28,11 @@ def build_request(
     *,
     goal_id: int,
     name: str,
-    target_amount: float,
-    current_amount: float,
+    target_amount: Decimal,
+    current_amount: Decimal,
     target_date: date,
     priority: GoalPriority,
-    planned_monthly_contribution: float = 0,
+    planned_monthly_contribution: Decimal = Decimal("0.00"),
 ) -> GoalFundingRequest:
     """Build a valid funding request for tests."""
     goal = Goal(
@@ -60,8 +61,8 @@ def build_standard_requests() -> list[GoalFundingRequest]:
         build_request(
             goal_id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=5200,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("5200.00"),
             target_date=date(
                 2027,
                 7,
@@ -72,8 +73,8 @@ def build_standard_requests() -> list[GoalFundingRequest]:
         build_request(
             goal_id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=600,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("600.00"),
             target_date=date(
                 2027,
                 3,
@@ -84,8 +85,8 @@ def build_standard_requests() -> list[GoalFundingRequest]:
         build_request(
             goal_id=3,
             name="Car Fund",
-            target_amount=12000,
-            current_amount=4800,
+            target_amount=Decimal("12000.00"),
+            current_amount=Decimal("4800.00"),
             target_date=date(
                 2027,
                 7,
@@ -116,15 +117,15 @@ def test_goal_allocation_creation():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.CRITICAL,
-        required_amount=400,
-        allocated_amount=300,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("300.00"),
     )
 
     assert allocation.goal_id == 1
-    assert allocation.required_amount == 400
-    assert allocation.allocated_amount == 300
-    assert allocation.shortfall == 100
-    assert allocation.surplus == 0
+    assert allocation.required_amount == Decimal("400.00")
+    assert allocation.allocated_amount == Decimal("300.00")
+    assert allocation.shortfall == Decimal("100.00")
+    assert allocation.surplus == Decimal("0.00")
     assert allocation.is_fully_funded is False
 
 
@@ -133,8 +134,8 @@ def test_goal_allocation_normalizes_name():
         goal_id=1,
         goal_name="  Emergency Fund  ",
         priority=GoalPriority.HIGH,
-        required_amount=400,
-        allocated_amount=400,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("400.00"),
     )
 
     assert allocation.goal_name == "Emergency Fund"
@@ -149,8 +150,8 @@ def test_goal_allocation_rejects_invalid_id():
             goal_id=0,
             goal_name="Emergency Fund",
             priority=GoalPriority.HIGH,
-            required_amount=400,
-            allocated_amount=400,
+            required_amount=Decimal("400.00"),
+            allocated_amount=Decimal("400.00"),
         )
 
 
@@ -163,8 +164,8 @@ def test_goal_allocation_rejects_empty_name():
             goal_id=1,
             goal_name=" ",
             priority=GoalPriority.HIGH,
-            required_amount=400,
-            allocated_amount=400,
+            required_amount=Decimal("400.00"),
+            allocated_amount=Decimal("400.00"),
         )
 
 
@@ -177,8 +178,8 @@ def test_goal_allocation_rejects_negative_required_amount():
             goal_id=1,
             goal_name="Emergency Fund",
             priority=GoalPriority.HIGH,
-            required_amount=-1,
-            allocated_amount=0,
+            required_amount=Decimal("-1.00"),
+            allocated_amount=Decimal("0.00"),
         )
 
 
@@ -191,8 +192,8 @@ def test_goal_allocation_rejects_negative_allocated_amount():
             goal_id=1,
             goal_name="Emergency Fund",
             priority=GoalPriority.HIGH,
-            required_amount=400,
-            allocated_amount=-1,
+            required_amount=Decimal("400.00"),
+            allocated_amount=Decimal("-1.00"),
         )
 
 
@@ -201,11 +202,11 @@ def test_goal_allocation_identifies_fully_funded_goal():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.HIGH,
-        required_amount=400,
-        allocated_amount=400,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("400.00"),
     )
 
-    assert allocation.shortfall == 0
+    assert allocation.shortfall == Decimal("0.00")
     assert allocation.is_fully_funded is True
 
 
@@ -214,12 +215,12 @@ def test_goal_allocation_calculates_surplus():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.HIGH,
-        required_amount=400,
-        allocated_amount=450,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("450.00"),
     )
 
-    assert allocation.shortfall == 0
-    assert allocation.surplus == 50
+    assert allocation.shortfall == Decimal("0.00")
+    assert allocation.surplus == Decimal("50.00")
     assert allocation.is_fully_funded is True
 
 
@@ -228,8 +229,8 @@ def test_goal_allocation_to_dict():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.CRITICAL,
-        required_amount=400,
-        allocated_amount=300,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("300.00"),
     )
 
     result = allocation.to_dict()
@@ -238,10 +239,10 @@ def test_goal_allocation_to_dict():
         "goal_id": 1,
         "goal_name": "Emergency Fund",
         "priority": "CRITICAL",
-        "required_amount": 400,
-        "allocated_amount": 300,
-        "shortfall": 100,
-        "surplus": 0,
+        "required_amount": "400.00",
+        "allocated_amount": "300.00",
+        "shortfall": "100.00",
+        "surplus": "0.00",
         "is_fully_funded": False,
     }
 
@@ -258,8 +259,8 @@ def test_prioritize_same_priority_by_earliest_deadline():
     later_goal = build_request(
         goal_id=1,
         name="Later Goal",
-        target_amount=6000,
-        current_amount=0,
+        target_amount=Decimal("6000.00"),
+        current_amount=Decimal("0.00"),
         target_date=date(
             2027,
             7,
@@ -271,8 +272,8 @@ def test_prioritize_same_priority_by_earliest_deadline():
     earlier_goal = build_request(
         goal_id=2,
         name="Earlier Goal",
-        target_amount=6000,
-        current_amount=0,
+        target_amount=Decimal("6000.00"),
+        current_amount=Decimal("0.00"),
         target_date=date(
             2027,
             1,
@@ -295,8 +296,8 @@ def test_prioritize_same_priority_and_date_by_requirement():
     smaller_requirement = build_request(
         goal_id=1,
         name="Smaller Goal",
-        target_amount=2400,
-        current_amount=0,
+        target_amount=Decimal("2400.00"),
+        current_amount=Decimal("0.00"),
         target_date=date(
             2027,
             7,
@@ -308,8 +309,8 @@ def test_prioritize_same_priority_and_date_by_requirement():
     larger_requirement = build_request(
         goal_id=2,
         name="Larger Goal",
-        target_amount=6000,
-        current_amount=0,
+        target_amount=Decimal("6000.00"),
+        current_amount=Decimal("0.00"),
         target_date=date(
             2027,
             7,
@@ -331,7 +332,7 @@ def test_prioritize_same_priority_and_date_by_requirement():
 def test_allocate_goal_funding_by_priority():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=700,
+        total_available=Decimal("700.00"),
     )
 
     emergency = plan.get_allocation_by_goal_id(1)
@@ -342,65 +343,65 @@ def test_allocate_goal_funding_by_priority():
     assert car is not None
     assert vacation is not None
 
-    assert emergency.required_amount == 400
-    assert emergency.allocated_amount == 400
+    assert emergency.required_amount == Decimal("400.00")
+    assert emergency.allocated_amount == Decimal("400.00")
 
-    assert car.required_amount == 600
-    assert car.allocated_amount == 300
+    assert car.required_amount == Decimal("600.00")
+    assert car.allocated_amount == Decimal("300.00")
 
-    assert vacation.required_amount == 300
-    assert vacation.allocated_amount == 0
+    assert vacation.required_amount == Decimal("300.00")
+    assert vacation.allocated_amount == Decimal("0.00")
 
 
 def test_allocate_goal_funding_when_all_goals_can_be_funded():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=1500,
+        total_available=Decimal("1500.00"),
     )
 
-    assert plan.total_required == 1300
-    assert plan.total_allocated == 1300
-    assert plan.total_shortfall == 0
-    assert plan.remaining_cash == 200
+    assert plan.total_required == Decimal("1300.00")
+    assert plan.total_allocated == Decimal("1300.00")
+    assert plan.total_shortfall == Decimal("0.00")
+    assert plan.remaining_cash == Decimal("200.00")
     assert plan.all_goals_funded is True
 
 
 def test_allocate_goal_funding_with_partial_funding():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=1000,
+        total_available=Decimal("1000.00"),
     )
 
-    assert plan.total_required == 1300
-    assert plan.total_allocated == 1000
-    assert plan.total_shortfall == 300
-    assert plan.remaining_cash == 0
+    assert plan.total_required == Decimal("1300.00")
+    assert plan.total_allocated == Decimal("1000.00")
+    assert plan.total_shortfall == Decimal("300.00")
+    assert plan.remaining_cash == Decimal("0.00")
     assert plan.all_goals_funded is False
 
 
 def test_allocate_goal_funding_with_no_available_cash():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=0,
+        total_available=Decimal("0.00"),
     )
 
-    assert plan.total_allocated == 0
-    assert plan.total_shortfall == 1300
-    assert plan.remaining_cash == 0
+    assert plan.total_allocated == Decimal("0.00")
+    assert plan.total_shortfall == Decimal("1300.00")
+    assert plan.remaining_cash == Decimal("0.00")
     assert plan.all_goals_funded is False
 
 
 def test_allocate_goal_funding_with_no_requests():
     plan = allocate_goal_funding(
         [],
-        total_available=1000,
+        total_available=Decimal("1000.00"),
     )
 
     assert plan.allocations == []
-    assert plan.total_required == 0
-    assert plan.total_allocated == 0
-    assert plan.total_shortfall == 0
-    assert plan.remaining_cash == 1000
+    assert plan.total_required == Decimal("0.00")
+    assert plan.total_allocated == Decimal("0.00")
+    assert plan.total_shortfall == Decimal("0.00")
+    assert plan.remaining_cash == Decimal("1000.00")
     assert plan.all_goals_funded is True
 
 
@@ -410,7 +411,7 @@ def test_allocate_goal_funding_does_not_modify_requests():
 
     allocate_goal_funding(
         requests,
-        total_available=700,
+        total_available=Decimal("700.00"),
     )
 
     assert [request.projection.goal_id for request in requests] == original_ids
@@ -423,7 +424,7 @@ def test_allocate_goal_funding_rejects_negative_total():
     ):
         allocate_goal_funding(
             build_standard_requests(),
-            total_available=-1,
+            total_available=Decimal("-1.00"),
         )
 
 
@@ -439,14 +440,14 @@ def test_allocate_goal_funding_rejects_duplicate_goal_ids():
                 request,
                 request,
             ],
-            total_available=1000,
+            total_available=Decimal("1000.00"),
         )
 
 
 def test_goal_allocation_plan_returns_defensive_copy():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=1000,
+        total_available=Decimal("1000.00"),
     )
 
     returned_allocations = plan.allocations
@@ -460,8 +461,8 @@ def test_goal_allocation_plan_rejects_duplicate_goal_ids():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.HIGH,
-        required_amount=400,
-        allocated_amount=400,
+        required_amount=Decimal("400.00"),
+        allocated_amount=Decimal("400.00"),
     )
 
     with pytest.raises(
@@ -473,22 +474,22 @@ def test_goal_allocation_plan_rejects_duplicate_goal_ids():
                 allocation,
                 allocation,
             ],
-            total_available=1000,
+            total_available=Decimal("1000.00"),
         )
 
 
 def test_goal_allocation_plan_to_dict():
     plan = allocate_goal_funding(
         build_standard_requests(),
-        total_available=1500,
+        total_available=Decimal("1500.00"),
     )
 
     result = plan.to_dict()
 
     assert len(result["allocations"]) == 3
-    assert result["total_available"] == 1500
-    assert result["total_required"] == 1300
-    assert result["total_allocated"] == 1300
-    assert result["total_shortfall"] == 0
-    assert result["remaining_cash"] == 200
+    assert result["total_available"] == "1500.00"
+    assert result["total_required"] == "1300.00"
+    assert result["total_allocated"] == "1300.00"
+    assert result["total_shortfall"] == "0.00"
+    assert result["remaining_cash"] == "200.00"
     assert result["all_goals_funded"] is True

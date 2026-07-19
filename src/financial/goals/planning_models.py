@@ -1,7 +1,16 @@
+"""Models for financial-goal planning and feasibility."""
+
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from enum import Enum
 from typing import Any
+
+from src.core.money import (
+    ZERO,
+    money_to_json,
+    to_money,
+)
 
 
 class GoalFeasibilityStatus(Enum):
@@ -22,18 +31,27 @@ class GoalProjection:
     goal_name: str
     as_of_date: date
     target_date: date
-    target_amount: float
-    current_amount: float
-    remaining_amount: float
+    target_amount: Decimal
+    current_amount: Decimal
+    remaining_amount: Decimal
     months_remaining: int
-    required_monthly_contribution: float
-    planned_monthly_contribution: float
-    monthly_contribution_difference: float
+    required_monthly_contribution: Decimal
+    planned_monthly_contribution: Decimal
+    monthly_contribution_difference: Decimal
     projected_completion_date: date | None
 
     def __post_init__(self) -> None:
         """Validate and normalize projection data."""
         normalized_name = self.goal_name.strip()
+
+        normalized_target_amount = to_money(self.target_amount)
+        normalized_current_amount = to_money(self.current_amount)
+        normalized_remaining_amount = to_money(self.remaining_amount)
+        normalized_required_contribution = to_money(self.required_monthly_contribution)
+        normalized_planned_contribution = to_money(self.planned_monthly_contribution)
+        normalized_contribution_difference = to_money(
+            self.monthly_contribution_difference
+        )
 
         if self.goal_id <= 0:
             raise ValueError("Goal projection ID must be greater than zero.")
@@ -41,24 +59,24 @@ class GoalProjection:
         if not normalized_name:
             raise ValueError("Goal projection name cannot be empty.")
 
-        if self.target_amount <= 0:
+        if normalized_target_amount <= ZERO:
             raise ValueError(
                 "Goal projection target amount must be " "greater than zero."
             )
 
-        if self.current_amount < 0:
+        if normalized_current_amount < ZERO:
             raise ValueError("Goal projection current amount cannot be negative.")
 
-        if self.remaining_amount < 0:
+        if normalized_remaining_amount < ZERO:
             raise ValueError("Goal projection remaining amount cannot be negative.")
 
         if self.months_remaining < 0:
             raise ValueError("Goal projection months remaining cannot be negative.")
 
-        if self.required_monthly_contribution < 0:
+        if normalized_required_contribution < ZERO:
             raise ValueError("Required monthly contribution cannot be negative.")
 
-        if self.planned_monthly_contribution < 0:
+        if normalized_planned_contribution < ZERO:
             raise ValueError("Planned monthly contribution cannot be negative.")
 
         object.__setattr__(
@@ -66,11 +84,41 @@ class GoalProjection:
             "goal_name",
             normalized_name,
         )
+        object.__setattr__(
+            self,
+            "target_amount",
+            normalized_target_amount,
+        )
+        object.__setattr__(
+            self,
+            "current_amount",
+            normalized_current_amount,
+        )
+        object.__setattr__(
+            self,
+            "remaining_amount",
+            normalized_remaining_amount,
+        )
+        object.__setattr__(
+            self,
+            "required_monthly_contribution",
+            normalized_required_contribution,
+        )
+        object.__setattr__(
+            self,
+            "planned_monthly_contribution",
+            normalized_planned_contribution,
+        )
+        object.__setattr__(
+            self,
+            "monthly_contribution_difference",
+            normalized_contribution_difference,
+        )
 
     @property
     def is_complete(self) -> bool:
         """Return whether the goal is fully funded."""
-        return self.remaining_amount <= 0
+        return self.remaining_amount <= ZERO
 
     @property
     def has_deadline_passed(self) -> bool:
@@ -78,37 +126,49 @@ class GoalProjection:
         return not self.is_complete and self.target_date <= self.as_of_date
 
     @property
-    def monthly_shortfall(self) -> float:
+    def monthly_shortfall(self) -> Decimal:
         """Return the monthly contribution shortfall."""
+        shortfall = (
+            self.required_monthly_contribution - self.planned_monthly_contribution
+        )
+
         return max(
-            self.required_monthly_contribution - self.planned_monthly_contribution,
-            0.0,
+            shortfall,
+            ZERO,
         )
 
     @property
-    def monthly_surplus(self) -> float:
+    def monthly_surplus(self) -> Decimal:
         """Return the monthly contribution surplus."""
+        surplus = self.planned_monthly_contribution - self.required_monthly_contribution
+
         return max(
-            self.planned_monthly_contribution - self.required_monthly_contribution,
-            0.0,
+            surplus,
+            ZERO,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the projection to a dictionary."""
+        """Convert the projection to a JSON-safe dictionary."""
         return {
             "goal_id": self.goal_id,
             "goal_name": self.goal_name,
             "as_of_date": self.as_of_date.isoformat(),
             "target_date": self.target_date.isoformat(),
-            "target_amount": self.target_amount,
-            "current_amount": self.current_amount,
-            "remaining_amount": self.remaining_amount,
+            "target_amount": money_to_json(self.target_amount),
+            "current_amount": money_to_json(self.current_amount),
+            "remaining_amount": money_to_json(self.remaining_amount),
             "months_remaining": self.months_remaining,
-            "required_monthly_contribution": (self.required_monthly_contribution),
-            "planned_monthly_contribution": (self.planned_monthly_contribution),
-            "monthly_contribution_difference": (self.monthly_contribution_difference),
-            "monthly_shortfall": self.monthly_shortfall,
-            "monthly_surplus": self.monthly_surplus,
+            "required_monthly_contribution": money_to_json(
+                self.required_monthly_contribution
+            ),
+            "planned_monthly_contribution": money_to_json(
+                self.planned_monthly_contribution
+            ),
+            "monthly_contribution_difference": money_to_json(
+                self.monthly_contribution_difference
+            ),
+            "monthly_shortfall": money_to_json(self.monthly_shortfall),
+            "monthly_surplus": money_to_json(self.monthly_surplus),
             "projected_completion_date": (
                 self.projected_completion_date.isoformat()
                 if self.projected_completion_date is not None
@@ -133,6 +193,22 @@ class GoalFeasibilityAssessment:
         """Validate and normalize assessment text."""
         normalized_summary = self.summary.strip()
         normalized_recommendation = self.recommendation.strip()
+
+        if not isinstance(
+            self.projection,
+            GoalProjection,
+        ):
+            raise TypeError(
+                "Goal feasibility projection must be " "a GoalProjection instance."
+            )
+
+        if not isinstance(
+            self.status,
+            GoalFeasibilityStatus,
+        ):
+            raise TypeError(
+                "Goal feasibility status must be " "a GoalFeasibilityStatus."
+            )
 
         if not normalized_summary:
             raise ValueError("Goal feasibility summary cannot be empty.")

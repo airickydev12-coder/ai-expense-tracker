@@ -1,11 +1,8 @@
 import json
 from pathlib import Path
 
-from src.core.config import DATA_DIR
+from src.core.config import GOALS_FILE
 from src.financial.goals.models import Goal
-
-
-GOALS_FILE = DATA_DIR / "goals.json"
 
 
 def load_goals_from_file(
@@ -16,8 +13,12 @@ def load_goals_from_file(
         return []
 
     try:
-        with file_path.open("r", encoding="utf-8") as file:
+        with file_path.open(
+            "r",
+            encoding="utf-8",
+        ) as file:
             raw_data = json.load(file)
+
     except json.JSONDecodeError as error:
         raise ValueError(
             f"Goal data file contains invalid JSON: {file_path}"
@@ -26,30 +27,38 @@ def load_goals_from_file(
     if not isinstance(raw_data, list):
         raise ValueError("Goal data must be stored as a JSON list.")
 
-    return [
-        Goal.from_dict(goal_data)
-        for goal_data in raw_data
-    ]
+    return [Goal.from_dict(goal_data) for goal_data in raw_data]
 
 
 def save_goals_to_file(
     goals: list[Goal],
     file_path: Path = GOALS_FILE,
 ) -> None:
-    """Save goals to a JSON file."""
+    """Atomically save goals to disk."""
     file_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    goal_data = [
-        goal.to_dict()
-        for goal in goals
-    ]
+    goal_data = [goal.to_dict() for goal in goals]
 
-    with file_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            goal_data,
-            file,
-            indent=4,
+    temporary_path = file_path.with_suffix(file_path.suffix + ".tmp")
+
+    try:
+        with temporary_path.open(
+            "w",
+            encoding="utf-8",
+        ) as file:
+            json.dump(
+                goal_data,
+                file,
+                indent=4,
+            )
+
+        temporary_path.replace(file_path)
+
+    except OSError:
+        temporary_path.unlink(
+            missing_ok=True,
         )
+        raise
