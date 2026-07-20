@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
@@ -9,13 +10,9 @@ from src.financial.goals.allocation import (
     GoalAllocationPlan,
     GoalPriority,
 )
+from src.financial.goals.feasibility import assess_goal_feasibility
 from src.financial.goals.models import Goal
-from src.financial.goals.projections import (
-    build_goal_projection,
-)
-from src.financial.goals.feasibility import (
-    assess_goal_feasibility,
-)
+from src.financial.goals.projections import build_goal_projection
 from src.presentation.goal_planning_views import (
     format_boolean,
     format_currency,
@@ -24,10 +21,12 @@ from src.presentation.goal_planning_views import (
     render_goal_allocation,
     render_goal_allocation_plan,
     render_goal_feasibility_assessment,
+    render_goal_funding_gap_report,
     render_goal_planning_request,
     render_goal_planning_request_list,
     render_goal_planning_result,
     render_goal_planning_summary,
+    render_goal_priority_report,
     render_goal_projection,
 )
 
@@ -43,14 +42,14 @@ def build_request(
     *,
     goal_id: int = 1,
     name: str = "Emergency Fund",
-    target_amount: float = 10000,
-    current_amount: float = 4000,
+    target_amount: Decimal = Decimal("10000.00"),
+    current_amount: Decimal = Decimal("4000.00"),
     target_date: date = date(
         2027,
         7,
         18,
     ),
-    planned_monthly_contribution: float = 500,
+    planned_monthly_contribution: Decimal = Decimal("500.00"),
     priority: GoalPriority = GoalPriority.HIGH,
 ) -> GoalPlanningRequest:
     """Build a valid request for view tests."""
@@ -62,7 +61,7 @@ def build_request(
             current_amount=current_amount,
         ),
         target_date=target_date,
-        planned_monthly_contribution=(planned_monthly_contribution),
+        planned_monthly_contribution=planned_monthly_contribution,
         priority=priority,
     )
 
@@ -73,40 +72,40 @@ def build_standard_requests() -> list[GoalPlanningRequest]:
         build_request(
             goal_id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=4000,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("4000.00"),
             target_date=date(
                 2027,
                 7,
                 18,
             ),
-            planned_monthly_contribution=500,
+            planned_monthly_contribution=Decimal("500.00"),
             priority=GoalPriority.CRITICAL,
         ),
         build_request(
             goal_id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=600,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("600.00"),
             target_date=date(
                 2027,
                 3,
                 18,
             ),
-            planned_monthly_contribution=200,
+            planned_monthly_contribution=Decimal("200.00"),
             priority=GoalPriority.LOW,
         ),
         build_request(
             goal_id=3,
             name="Car Fund",
-            target_amount=12000,
-            current_amount=4800,
+            target_amount=Decimal("12000.00"),
+            current_amount=Decimal("4800.00"),
             target_date=date(
                 2027,
                 7,
                 18,
             ),
-            planned_monthly_contribution=0,
+            planned_monthly_contribution=Decimal("0.00"),
             priority=GoalPriority.HIGH,
         ),
     ]
@@ -114,7 +113,7 @@ def build_standard_requests() -> list[GoalPlanningRequest]:
 
 def build_result(
     *,
-    total_available: float = 1000,
+    total_available: Decimal = Decimal("1000.00"),
 ):
     """Build a complete result for view tests."""
     return analyze_goals(
@@ -125,20 +124,18 @@ def build_result(
 
 
 def test_format_currency():
-    assert format_currency(1250) == "$1,250.00"
-    assert format_currency(0) == "$0.00"
-    assert format_currency(12.5) == "$12.50"
+    assert format_currency(Decimal("1250.00")) == "$1,250.00"
+    assert format_currency(Decimal("0.00")) == "$0.00"
+    assert format_currency(Decimal("12.50")) == "$12.50"
 
 
 def test_format_date():
     assert format_date(date(2027, 7, 18)) == "July 18, 2027"
-
     assert format_date(None) == "Not projected"
 
 
 def test_format_priority():
     assert format_priority(GoalPriority.CRITICAL) == "Critical"
-
     assert format_priority(GoalPriority.MEDIUM) == "Medium"
 
 
@@ -165,7 +162,7 @@ def test_render_goal_projection():
     projection = build_goal_projection(
         request.goal,
         target_date=request.target_date,
-        planned_monthly_contribution=(request.planned_monthly_contribution),
+        planned_monthly_contribution=request.planned_monthly_contribution,
         as_of_date=AS_OF_DATE,
     )
 
@@ -184,13 +181,13 @@ def test_render_goal_projection():
 
 def test_render_projection_with_shortfall():
     request = build_request(
-        planned_monthly_contribution=300,
+        planned_monthly_contribution=Decimal("300.00"),
     )
 
     projection = build_goal_projection(
         request.goal,
         target_date=request.target_date,
-        planned_monthly_contribution=(request.planned_monthly_contribution),
+        planned_monthly_contribution=request.planned_monthly_contribution,
         as_of_date=AS_OF_DATE,
     )
 
@@ -201,13 +198,13 @@ def test_render_projection_with_shortfall():
 
 def test_render_projection_without_completion_date():
     request = build_request(
-        planned_monthly_contribution=0,
+        planned_monthly_contribution=Decimal("0.00"),
     )
 
     projection = build_goal_projection(
         request.goal,
         target_date=request.target_date,
-        planned_monthly_contribution=0,
+        planned_monthly_contribution=Decimal("0.00"),
         as_of_date=AS_OF_DATE,
     )
 
@@ -222,18 +219,47 @@ def test_render_goal_feasibility_assessment():
     projection = build_goal_projection(
         request.goal,
         target_date=request.target_date,
-        planned_monthly_contribution=(request.planned_monthly_contribution),
+        planned_monthly_contribution=request.planned_monthly_contribution,
         as_of_date=AS_OF_DATE,
     )
 
     assessment = assess_goal_feasibility(projection)
-
     output = render_goal_feasibility_assessment(assessment)
 
     assert "Goal: Emergency Fund" in output
     assert "Status: Feasible" in output
     assert "Feasible: Yes" in output
+    assert "Remaining Amount: $6,000.00" in output
+    assert "Months Remaining: 12" in output
+    assert "Required Monthly Contribution: $500.00" in output
+    assert "Planned Monthly Contribution: $500.00" in output
+    assert "Monthly Contribution Surplus: $0.00" in output
+    assert "Projected Completion Date: July 18, 2027" in output
     assert "Summary:" in output
+    assert "Recommendation:" in output
+
+
+def test_render_goal_feasibility_assessment_with_shortfall():
+    request = build_request(
+        planned_monthly_contribution=Decimal("300.00"),
+    )
+
+    projection = build_goal_projection(
+        request.goal,
+        target_date=request.target_date,
+        planned_monthly_contribution=request.planned_monthly_contribution,
+        as_of_date=AS_OF_DATE,
+    )
+
+    assessment = assess_goal_feasibility(projection)
+    output = render_goal_feasibility_assessment(assessment)
+
+    assert "Status: At Risk" in output
+    assert "Feasible: No" in output
+    assert "Required Monthly Contribution: $500.00" in output
+    assert "Planned Monthly Contribution: $300.00" in output
+    assert "Monthly Contribution Shortfall: $200.00" in output
+    assert "Projected Completion Date:" in output
     assert "Recommendation:" in output
 
 
@@ -242,8 +268,8 @@ def test_render_goal_allocation():
         goal_id=1,
         goal_name="Emergency Fund",
         priority=GoalPriority.CRITICAL,
-        required_amount=500,
-        allocated_amount=300,
+        required_amount=Decimal("500.00"),
+        allocated_amount=Decimal("300.00"),
     )
 
     output = render_goal_allocation(allocation)
@@ -258,7 +284,6 @@ def test_render_goal_allocation():
 
 def test_render_goal_allocation_plan():
     result = build_result()
-
     output = render_goal_allocation_plan(result.allocation_plan)
 
     assert "MONTHLY GOAL FUNDING ALLOCATION" in output
@@ -277,7 +302,7 @@ def test_render_goal_allocation_plan():
 def test_render_empty_goal_allocation_plan():
     plan = GoalAllocationPlan(
         allocations=[],
-        total_available=1000,
+        total_available=Decimal("1000.00"),
     )
 
     output = render_goal_allocation_plan(plan)
@@ -286,6 +311,95 @@ def test_render_empty_goal_allocation_plan():
     assert "Total Available: $1,000.00" in output
     assert "Remaining Cash: $1,000.00" in output
     assert "All Goals Funded: Yes" in output
+
+
+def test_render_goal_priority_report_uses_priority_funding_order():
+    output = render_goal_priority_report(build_result())
+
+    assert "GOAL PRIORITIZATION REPORT" in output
+    assert "RECOMMENDED FUNDING ORDER" in output
+
+    emergency_position = output.index("Goal: Emergency Fund")
+    car_position = output.index("Goal: Car Fund")
+    vacation_position = output.index("Goal: Vacation")
+
+    assert emergency_position < car_position < vacation_position
+    assert "Rank 1\nGoal: Emergency Fund\nPriority: Critical" in output
+    assert "Rank 2\nGoal: Car Fund\nPriority: High" in output
+    assert "Rank 3\nGoal: Vacation\nPriority: Low" in output
+    assert "Funding Status: Fully funded" in output
+    assert "Funding Status: $100.00 short" in output
+    assert "Funding Status: $300.00 short" in output
+    assert "Direct the next $100.00 of available monthly cash to Car Fund" in output
+
+
+def test_render_goal_priority_report_when_all_goals_are_funded():
+    output = render_goal_priority_report(
+        build_result(
+            total_available=Decimal("1400.00"),
+        )
+    )
+
+    assert "Funding Status: Fully funded" in output
+    assert "$100.00 short" not in output
+    assert "$300.00 short" not in output
+    assert "every goal is fully funded" in output
+
+
+def test_render_goal_priority_report_without_goals():
+    result = analyze_goals(
+        [],
+        total_available=Decimal("1000.00"),
+        as_of_date=AS_OF_DATE,
+    )
+
+    output = render_goal_priority_report(result)
+
+    assert "GOAL PRIORITIZATION REPORT" in output
+    assert "No goals are available for prioritization." in output
+    assert "assign a priority" in output
+
+
+def test_render_goal_funding_gap_report_with_shortfall():
+    output = render_goal_funding_gap_report(build_result())
+
+    assert "MONTHLY FUNDING GAP REPORT" in output
+    assert "Monthly Funding Required: $1,400.00" in output
+    assert "Monthly Funding Available: $1,000.00" in output
+    assert "Monthly Funding Gap: $400.00" in output
+    assert "Status: Funding shortfall" in output
+    assert "Car Fund (High): $100.00 short" in output
+    assert "Vacation (Low): $300.00 short" in output
+    assert "Increase monthly goal funding by $400.00" in output
+
+
+def test_render_goal_funding_gap_report_when_fully_funded():
+    output = render_goal_funding_gap_report(
+        build_result(
+            total_available=Decimal("1400.00"),
+        )
+    )
+
+    assert "Monthly Funding Gap: $0.00" in output
+    assert "Status: Fully funded" in output
+    assert "Maintain the current monthly funding level" in output
+    assert "GOALS REQUIRING ADDITIONAL FUNDING" not in output
+
+
+def test_render_goal_funding_gap_report_without_goals():
+    result = analyze_goals(
+        [],
+        total_available=Decimal("1000.00"),
+        as_of_date=AS_OF_DATE,
+    )
+
+    output = render_goal_funding_gap_report(result)
+
+    assert "Monthly Funding Required: $0.00" in output
+    assert "Monthly Funding Available: $1,000.00" in output
+    assert "Monthly Funding Gap: $0.00" in output
+    assert "Status: No goals available" in output
+    assert "Create a financial goal" in output
 
 
 def test_render_goal_planning_summary():
@@ -310,6 +424,9 @@ def test_render_goal_planning_result():
 
     assert "FINANCIAL GOAL PLANNING REPORT" in output
     assert "GOAL PLANNING SUMMARY" in output
+    assert "GOAL PRIORITIZATION REPORT" in output
+    assert "MONTHLY FUNDING GAP REPORT" in output
+    assert "Monthly Funding Gap: $400.00" in output
     assert "GOAL PROJECTIONS" in output
     assert "Projection 1" in output
     assert "FEASIBILITY ASSESSMENTS" in output
@@ -323,13 +440,15 @@ def test_render_goal_planning_result():
 def test_render_empty_goal_planning_result():
     result = analyze_goals(
         [],
-        total_available=1000,
+        total_available=Decimal("1000.00"),
         as_of_date=AS_OF_DATE,
     )
 
     output = render_goal_planning_result(result)
 
     assert "Total Goals: 0" in output
+    assert "GOAL PRIORITIZATION REPORT" in output
+    assert "MONTHLY FUNDING GAP REPORT" in output
     assert "No financial goals are available for analysis." in output
     assert "No financial goals were provided for allocation." in output
     assert "Remaining Cash: $1,000.00" in output
@@ -350,4 +469,4 @@ def test_render_goal_planning_request_list():
 def test_render_empty_goal_planning_request_list():
     output = render_goal_planning_request_list([])
 
-    assert output == ("No goal-planning requests are available.")
+    assert output == "No goal-planning requests are available."
