@@ -1,0 +1,5207 @@
+{
+  "warning": "Static AST analysis cannot detect every dynamic import, framework registration, string-based import, or runtime entry point. Candidates must be manually reviewed before deletion.",
+  "summary": {
+    "python_file_count": 296,
+    "source_file_count": 176,
+    "test_file_count": 120,
+    "active_source_dependency_count": 136,
+    "referenced_only_by_tests_count": 12,
+    "unreferenced_static_candidate_count": 8,
+    "parse_error_count": 0
+  },
+  "parse_errors": [],
+  "modules": [
+    {
+      "file": "src\\core\\__init__.py",
+      "module": "src.core",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\core\\config.py",
+      "module": "src.core.config",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.accounts.repository",
+        "src.financial.bills.repository",
+        "src.financial.budgets.repository",
+        "src.financial.debt.repository",
+        "src.financial.expenses.repository",
+        "src.financial.goal_ledger.repository",
+        "src.financial.goal_ledger.service",
+        "src.financial.goals.repository",
+        "src.financial.goals.service",
+        "src.financial.history.repository",
+        "src.financial.income.repository",
+        "src.financial.planning.repository",
+        "src.financial.recommendations.history_repository",
+        "src.financial.scenarios.workspace_repository",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\core\\money.py",
+      "module": "src.core.money",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goal_ledger.calculator",
+        "src.financial.goal_ledger.models",
+        "src.financial.goal_ledger.service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.analytics",
+        "src.financial.goals.feasibility",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models",
+        "src.financial.goals.projections",
+        "src.financial.goals.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "__future__",
+        "decimal"
+      ]
+    },
+    {
+      "file": "src\\financial\\accounts\\__init__.py",
+      "module": "src.financial.accounts",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\accounts\\models.py",
+      "module": "src.financial.accounts.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.accounts.repository",
+        "src.financial.accounts.service",
+        "src.financial.engine.financial_engine",
+        "src.financial.workflows.account_cash_flow"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_account_cash_flow_workflow",
+        "tests.test_account_repository",
+        "tests.test_accounts",
+        "tests.test_financial_engine",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\accounts\\repository.py",
+      "module": "src.financial.accounts.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.accounts.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.accounts.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_account_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\accounts\\service.py",
+      "module": "src.financial.accounts.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.accounts.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_account_service",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\application\\__init__.py",
+      "module": "src.financial.application",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\application\\financial_state.py",
+      "module": "src.financial.application.financial_state",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.accounts.service",
+        "src.financial.bills.service",
+        "src.financial.budgets.service",
+        "src.financial.debt.service",
+        "src.financial.engine.financial_engine",
+        "src.financial.expenses.service",
+        "src.financial.goals.service",
+        "src.financial.history.models",
+        "src.financial.history.service",
+        "src.financial.income.service",
+        "src.financial.recommendations.history_service",
+        "src.financial.scenarios.workspace_service"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli",
+        "src.presentation.coach_cli",
+        "src.presentation.combined_plan_cli",
+        "src.presentation.optimizer_cli",
+        "src.presentation.recommendation_cli",
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\application\\goal_dashboard_service.py",
+      "module": "src.financial.application.goal_dashboard_service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.goal_dashboard_views",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_dashboard_cli_integration",
+        "tests.test_goal_dashboard_service",
+        "tests.test_goal_dashboard_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "enum",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\application\\goal_planning_service.py",
+      "module": "src.financial.application.goal_planning_service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goals.allocation",
+        "src.financial.goals.feasibility",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models",
+        "src.financial.goals.projections"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.planning.repository",
+        "src.presentation.goal_planning_cli",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_dashboard_service",
+        "tests.test_goal_dashboard_views",
+        "tests.test_goal_planning_cli",
+        "tests.test_goal_planning_delete_cleanup",
+        "tests.test_goal_planning_persistence_cli",
+        "tests.test_goal_planning_repository",
+        "tests.test_goal_planning_service",
+        "tests.test_goal_planning_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "pytest",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\bills\\__init__.py",
+      "module": "src.financial.bills",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\bills\\analytics.py",
+      "module": "src.financial.bills.analytics",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.bills.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_bill_analytics"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\bills\\models.py",
+      "module": "src.financial.bills.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.bills.analytics",
+        "src.financial.bills.repository",
+        "src.financial.bills.service",
+        "src.financial.engine.financial_engine",
+        "src.financial.workflows.bill_payment"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_analytics",
+        "tests.test_bill_payment_workflow",
+        "tests.test_bill_repository",
+        "tests.test_bills",
+        "tests.test_financial_engine",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\bills\\repository.py",
+      "module": "src.financial.bills.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.bills.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.bills.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\bills\\service.py",
+      "module": "src.financial.bills.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.bills.models",
+        "src.financial.bills.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_service",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\budgets\\__init__.py",
+      "module": "src.financial.budgets",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\budgets\\analytics.py",
+      "module": "src.financial.budgets.analytics",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.expenses.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.reports.budget_report",
+        "src.presentation.budget_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_analytics"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\budgets\\models.py",
+      "module": "src.financial.budgets.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.budgets.analytics",
+        "src.financial.budgets.repository",
+        "src.financial.budgets.service",
+        "src.financial.engine.financial_engine",
+        "src.financial.reports.budget_report"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget",
+        "tests.test_budget_analytics",
+        "tests.test_budget_cli",
+        "tests.test_budget_report",
+        "tests.test_financial_engine",
+        "tests.test_financial_state",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\budgets\\repository.py",
+      "module": "src.financial.budgets.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.budgets.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.budgets.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json"
+      ]
+    },
+    {
+      "file": "src\\financial\\budgets\\service.py",
+      "module": "src.financial.budgets.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.budgets.repository",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.presentation.budget_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_service",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\coach\\__init__.py",
+      "module": "src.financial.coach",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\coach\\advisor.py",
+      "module": "src.financial.coach.advisor",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.coach.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.scoring"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.coaching"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_advisor",
+        "tests.test_financial_explanation"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\coach\\coaching.py",
+      "module": "src.financial.coach.coaching",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.coach.explanation",
+        "src.financial.coach.insights",
+        "src.financial.coach.models",
+        "src.financial.scenarios.optimizer"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.coach_cli",
+        "src.presentation.coach_views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_cli",
+        "tests.test_coach_views",
+        "tests.test_financial_coaching"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\coach\\explanation.py",
+      "module": "src.financial.coach.explanation",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.coach.models",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.coaching"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_explanation"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\coach\\insights.py",
+      "module": "src.financial.coach.insights",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.coach.coaching",
+        "src.presentation.coach_views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_views",
+        "tests.test_financial_coaching",
+        "tests.test_financial_insights"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\coach\\models.py",
+      "module": "src.financial.coach.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.coach.coaching",
+        "src.financial.coach.explanation"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_views",
+        "tests.test_financial_advisor",
+        "tests.test_financial_explanation"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\debt\\__init__.py",
+      "module": "src.financial.debt",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\debt\\analytics.py",
+      "module": "src.financial.debt.analytics",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.debt.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_debt_analytics"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\debt\\models.py",
+      "module": "src.financial.debt.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.debt.analytics",
+        "src.financial.debt.repository",
+        "src.financial.debt.service",
+        "src.financial.engine.financial_engine",
+        "src.financial.workflows.debt_payment"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt",
+        "tests.test_debt_analytics",
+        "tests.test_debt_payment_workflow",
+        "tests.test_debt_repository",
+        "tests.test_financial_engine",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\debt\\repository.py",
+      "module": "src.financial.debt.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.debt.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.debt.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\debt\\service.py",
+      "module": "src.financial.debt.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.debt.models",
+        "src.financial.debt.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_service",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\engine\\__init__.py",
+      "module": "src.financial.engine",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\engine\\financial_engine.py",
+      "module": "src.financial.engine.financial_engine",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.bills.models",
+        "src.financial.budgets.models",
+        "src.financial.debt.models",
+        "src.financial.engine.health_score",
+        "src.financial.engine.health_status",
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.models",
+        "src.financial.goals.models",
+        "src.financial.income.analytics",
+        "src.financial.income.models",
+        "src.financial.insights.insight_engine",
+        "src.financial.recommendations.service",
+        "src.financial.reports.budget_report"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_engine"
+      ],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\engine\\health_score.py",
+      "module": "src.financial.engine.health_score",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_health_score"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\engine\\health_status.py",
+      "module": "src.financial.engine.health_status",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_health_status"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\events\\__init__.py",
+      "module": "src.financial.events",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\events\\bus.py",
+      "module": "src.financial.events.bus",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.events.event_bus"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.events.register",
+        "src.financial.expenses.service",
+        "src.financial.income.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\events\\event_bus.py",
+      "module": "src.financial.events.event_bus",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.events.event_types"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.events.bus"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections"
+      ]
+    },
+    {
+      "file": "src\\financial\\events\\event_types.py",
+      "module": "src.financial.events.event_types",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.events.event_bus",
+        "src.financial.events.handlers",
+        "src.financial.events.register",
+        "src.financial.expenses.service",
+        "src.financial.income.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\events\\handlers.py",
+      "module": "src.financial.events.handlers",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.events.event_types"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.events.register"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\events\\register.py",
+      "module": "src.financial.events.register",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [
+        "src.financial.events.bus",
+        "src.financial.events.event_types",
+        "src.financial.events.handlers"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\expenses\\__init__.py",
+      "module": "src.financial.expenses",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\expenses\\analytics.py",
+      "module": "src.financial.expenses.analytics",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.expenses.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine",
+        "src.financial.workflows.cash_flow",
+        "src.presentation.cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_expense_tracker"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\expenses\\models.py",
+      "module": "src.financial.expenses.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.budgets.analytics",
+        "src.financial.engine.financial_engine",
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.repository",
+        "src.financial.expenses.service",
+        "src.financial.reports.budget_report",
+        "src.financial.workflows.bill_payment",
+        "src.financial.workflows.cash_flow"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_analytics",
+        "tests.test_budget_report",
+        "tests.test_cash_flow_workflow",
+        "tests.test_expense_cli",
+        "tests.test_expense_tracker",
+        "tests.test_financial_engine",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\expenses\\repository.py",
+      "module": "src.financial.expenses.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.expenses.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.expenses.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json"
+      ]
+    },
+    {
+      "file": "src\\financial\\expenses\\service.py",
+      "module": "src.financial.expenses.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.events.bus",
+        "src.financial.events.event_types",
+        "src.financial.expenses.models",
+        "src.financial.expenses.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.workflows.bill_payment",
+        "src.presentation.budget_cli",
+        "src.presentation.cli",
+        "src.presentation.expense_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_payment_workflow",
+        "tests.test_expense_tracker",
+        "tests.test_financial_state"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\forecasting\\__init__.py",
+      "module": "src.financial.forecasting",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\forecasting\\models.py",
+      "module": "src.financial.forecasting.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.forecasting.projections",
+        "src.financial.forecasting.service",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_forecasting_cli",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\forecasting\\projections.py",
+      "module": "src.financial.forecasting.projections",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.forecasting.models",
+        "src.financial.history.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.forecasting.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_projections"
+      ],
+      "external_top_level_imports": [
+        "collections"
+      ]
+    },
+    {
+      "file": "src\\financial\\forecasting\\service.py",
+      "module": "src.financial.forecasting.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.forecasting.models",
+        "src.financial.forecasting.projections",
+        "src.financial.history.models",
+        "src.financial.history.service"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.forecast_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_forecasting_service"
+      ],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\goal_history\\analytics.py",
+      "module": "src.financial.goal_history.analytics",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goal_history\\models.py",
+      "module": "src.financial.goal_history.models",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goal_history\\repository.py",
+      "module": "src.financial.goal_history.repository",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goal_history\\service.py",
+      "module": "src.financial.goal_history.service",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goal_ledger\\__init__.py",
+      "module": "src.financial.goal_ledger",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goal_ledger\\calculator.py",
+      "module": "src.financial.goal_ledger.calculator",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goal_ledger.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goal_ledger.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections",
+        "decimal"
+      ]
+    },
+    {
+      "file": "src\\financial\\goal_ledger\\models.py",
+      "module": "src.financial.goal_ledger.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goal_ledger.calculator",
+        "src.financial.goal_ledger.repository",
+        "src.financial.goal_ledger.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "__future__",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "enum",
+        "typing",
+        "uuid"
+      ]
+    },
+    {
+      "file": "src\\financial\\goal_ledger\\repository.py",
+      "module": "src.financial.goal_ledger.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.goal_ledger.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goal_ledger.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pathlib",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\goal_ledger\\service.py",
+      "module": "src.financial.goal_ledger.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.core.money",
+        "src.financial.goal_ledger.calculator",
+        "src.financial.goal_ledger.models",
+        "src.financial.goal_ledger.repository",
+        "src.financial.goals.models",
+        "src.financial.goals.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goals.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections",
+        "datetime",
+        "decimal",
+        "pathlib",
+        "typing",
+        "uuid"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\__init__.py",
+      "module": "src.financial.goals",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_goal_planning_delete_cleanup"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goals\\allocation.py",
+      "module": "src.financial.goals.allocation",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.planning.repository",
+        "src.presentation.goal_planning_cli",
+        "src.presentation.goal_planning_helpers",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_allocation",
+        "tests.test_goal_dashboard_service",
+        "tests.test_goal_dashboard_views",
+        "tests.test_goal_planning_cli",
+        "tests.test_goal_planning_delete_cleanup",
+        "tests.test_goal_planning_helpers",
+        "tests.test_goal_planning_persistence_cli",
+        "tests.test_goal_planning_repository",
+        "tests.test_goal_planning_service",
+        "tests.test_goal_planning_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "decimal",
+        "enum",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\analytics.py",
+      "module": "src.financial.goals.analytics",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goals.projections"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_analytics"
+      ],
+      "external_top_level_imports": [
+        "decimal"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\feasibility.py",
+      "module": "src.financial.goals.feasibility",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_planning_service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_feasibility",
+        "tests.test_goal_planning_service",
+        "tests.test_goal_planning_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\goals\\models.py",
+      "module": "src.financial.goals.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.engine.financial_engine",
+        "src.financial.goal_ledger.service",
+        "src.financial.goals.analytics",
+        "src.financial.goals.projections",
+        "src.financial.goals.repository",
+        "src.financial.goals.service",
+        "src.financial.planning.repository",
+        "src.financial.workflows.goal_contribution",
+        "src.presentation.goal_planning_cli",
+        "src.presentation.goal_planning_helpers"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_engine",
+        "tests.test_financial_state",
+        "tests.test_goal_allocation",
+        "tests.test_goal_analytics",
+        "tests.test_goal_contribution_workflow",
+        "tests.test_goal_dashboard_cli_integration",
+        "tests.test_goal_dashboard_service",
+        "tests.test_goal_dashboard_views",
+        "tests.test_goal_feasibility",
+        "tests.test_goal_planning_cli",
+        "tests.test_goal_planning_helpers",
+        "tests.test_goal_planning_persistence_cli",
+        "tests.test_goal_planning_repository",
+        "tests.test_goal_planning_service",
+        "tests.test_goal_planning_views",
+        "tests.test_goal_projections",
+        "tests.test_goal_repository",
+        "tests.test_goals",
+        "tests.test_main_cli"
+      ],
+      "external_top_level_imports": [
+        "__future__",
+        "dataclasses",
+        "decimal"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\planning_models.py",
+      "module": "src.financial.goals.planning_models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.feasibility",
+        "src.financial.goals.projections",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_feasibility",
+        "tests.test_goal_planning_models",
+        "tests.test_goal_planning_service"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "enum",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\projections.py",
+      "module": "src.financial.goals.projections",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.money",
+        "src.financial.goals.analytics",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.goal_planning_service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_allocation",
+        "tests.test_goal_feasibility",
+        "tests.test_goal_planning_service",
+        "tests.test_goal_planning_views",
+        "tests.test_goal_projections"
+      ],
+      "external_top_level_imports": [
+        "calendar",
+        "datetime",
+        "decimal",
+        "math",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\repository.py",
+      "module": "src.financial.goals.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goal_ledger.service",
+        "src.financial.goals.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\goals\\service.py",
+      "module": "src.financial.goals.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.core.money",
+        "src.financial.goal_ledger.service",
+        "src.financial.goals.models",
+        "src.financial.goals.repository",
+        "src.financial.planning.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_state",
+        "tests.test_goal_planning_delete_cleanup",
+        "tests.test_goal_service"
+      ],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pathlib",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\analytics.py",
+      "module": "src.financial.history.analytics",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.history.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.history.trends",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_history_analytics"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\history\\models.py",
+      "module": "src.financial.history.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.forecasting.projections",
+        "src.financial.forecasting.service",
+        "src.financial.history.analytics",
+        "src.financial.history.repository",
+        "src.financial.history.service",
+        "src.financial.history.trends",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_history_analytics",
+        "tests.test_financial_history_cli",
+        "tests.test_financial_history_repository",
+        "tests.test_financial_projections",
+        "tests.test_financial_trends",
+        "tests.test_forecasting_service",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\repository.py",
+      "module": "src.financial.history.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.history.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.history.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_history_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\service.py",
+      "module": "src.financial.history.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.history.models",
+        "src.financial.history.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.forecasting.service",
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_history_service",
+        "tests.test_financial_state",
+        "tests.test_forecasting_service"
+      ],
+      "external_top_level_imports": [
+        "datetime",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\trend_direction.py",
+      "module": "src.financial.history.trend_direction",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.history.trend_summary",
+        "src.financial.history.trends"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_trends"
+      ],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\trend_summary.py",
+      "module": "src.financial.history.trend_summary",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.history.trend_direction"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.history.trends"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_trends"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\history\\trends.py",
+      "module": "src.financial.history.trends",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.history.analytics",
+        "src.financial.history.models",
+        "src.financial.history.trend_direction",
+        "src.financial.history.trend_summary"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_trends"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\income\\__init__.py",
+      "module": "src.financial.income",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\income\\analytics.py",
+      "module": "src.financial.income.analytics",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.income.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine",
+        "src.financial.workflows.cash_flow"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_income_analytics"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\income\\models.py",
+      "module": "src.financial.income.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine",
+        "src.financial.income.analytics",
+        "src.financial.income.repository",
+        "src.financial.income.service",
+        "src.financial.workflows.cash_flow"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_cash_flow_workflow",
+        "tests.test_financial_engine",
+        "tests.test_financial_state",
+        "tests.test_income",
+        "tests.test_income_analytics"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\income\\repository.py",
+      "module": "src.financial.income.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.income.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.income.service"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json"
+      ]
+    },
+    {
+      "file": "src\\financial\\income\\service.py",
+      "module": "src.financial.income.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.events.bus",
+        "src.financial.events.event_types",
+        "src.financial.income.models",
+        "src.financial.income.repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_state",
+        "tests.test_income_service"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\insights\\__init__.py",
+      "module": "src.financial.insights",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\insights\\insight_engine.py",
+      "module": "src.financial.insights.insight_engine",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_insight_engine"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\planning\\__init__.py",
+      "module": "src.financial.planning",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\planning\\repository.py",
+      "module": "src.financial.planning.repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.goals.service",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_planning_delete_cleanup",
+        "tests.test_goal_planning_persistence_cli",
+        "tests.test_goal_planning_repository"
+      ],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "json",
+        "pathlib",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\__init__.py",
+      "module": "src.financial.recommendations",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\recommendations\\category.py",
+      "module": "src.financial.recommendations.category",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.engine",
+        "src.financial.recommendations.models",
+        "src.financial.rules.bill_due_rule",
+        "src.financial.rules.budget_overrun_rule",
+        "src.financial.rules.debt_minimum_payment_rule",
+        "src.financial.rules.debt_payoff_priority_rule",
+        "src.financial.rules.debt_rule",
+        "src.financial.rules.debt_to_income_rule",
+        "src.financial.rules.emergency_fund_rule",
+        "src.financial.rules.expense_spike_rule",
+        "src.financial.rules.financial_independence_rule",
+        "src.financial.rules.goal_completion_rule",
+        "src.financial.rules.goal_progress_rule",
+        "src.financial.rules.goal_progress_threshold_rule",
+        "src.financial.rules.health_score_rule",
+        "src.financial.rules.high_interest_debt_rule",
+        "src.financial.rules.income_coverage_rule",
+        "src.financial.rules.low_account_balance_rule",
+        "src.financial.rules.net_worth_rule",
+        "src.financial.rules.positive_cash_flow_rule",
+        "src.financial.rules.savings_rate_rule",
+        "src.financial.rules.spending_concentration_rule",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_due_rule",
+        "tests.test_budget_overrun_rule",
+        "tests.test_budget_rule",
+        "tests.test_cash_flow_rule",
+        "tests.test_debt_minimum_payment_rule",
+        "tests.test_debt_payoff_priority_rule",
+        "tests.test_debt_rule",
+        "tests.test_debt_to_income_rule",
+        "tests.test_emergency_fund_rule",
+        "tests.test_expense_spike_rule",
+        "tests.test_financial_independence_rule",
+        "tests.test_goal_completion_rule",
+        "tests.test_goal_progress_rule",
+        "tests.test_goal_progress_threshold_rule",
+        "tests.test_health_score_rule",
+        "tests.test_high_interest_debt_rule",
+        "tests.test_income_coverage_rule",
+        "tests.test_low_account_balance_rule",
+        "tests.test_net_worth_rule",
+        "tests.test_positive_cash_flow_rule",
+        "tests.test_recommendation_engine",
+        "tests.test_recommendation_explainability",
+        "tests.test_recommendation_history_service",
+        "tests.test_recommendation_lifecycle",
+        "tests.test_rule_engine",
+        "tests.test_savings_rate_rule",
+        "tests.test_spending_concentration_rule",
+        "tests.test_zero_income_rule"
+      ],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\engine.py",
+      "module": "src.financial.recommendations.engine",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.scoring"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_engine"
+      ],
+      "external_top_level_imports": [
+        "collections"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\explainability.py",
+      "module": "src.financial.recommendations.explainability",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.recommendations.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_explainability"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\recommendations\\history.py",
+      "module": "src.financial.recommendations.history",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.status"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.history_repository",
+        "src.financial.recommendations.history_service",
+        "src.financial.recommendations.lifecycle",
+        "src.presentation.recommendation_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_cli",
+        "tests.test_recommendation_history_repository",
+        "tests.test_recommendation_lifecycle",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\history_repository.py",
+      "module": "src.financial.recommendations.history_repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.recommendations.history"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.history_service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_history_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\history_service.py",
+      "module": "src.financial.recommendations.history_service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.history_repository",
+        "src.financial.recommendations.lifecycle",
+        "src.financial.recommendations.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.recommendations.service",
+        "src.presentation.recommendation_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_history_service"
+      ],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\lifecycle.py",
+      "module": "src.financial.recommendations.lifecycle",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.status"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.history_service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_lifecycle"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\recommendations\\models.py",
+      "module": "src.financial.recommendations.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.engine",
+        "src.financial.recommendations.explainability",
+        "src.financial.recommendations.history_service",
+        "src.financial.recommendations.lifecycle",
+        "src.financial.recommendations.scoring",
+        "src.financial.recommendations.service",
+        "src.financial.rules.base_rule",
+        "src.financial.rules.bill_due_rule",
+        "src.financial.rules.budget_overrun_rule",
+        "src.financial.rules.budget_rule",
+        "src.financial.rules.cash_flow_rule",
+        "src.financial.rules.debt_minimum_payment_rule",
+        "src.financial.rules.debt_payoff_priority_rule",
+        "src.financial.rules.debt_rule",
+        "src.financial.rules.debt_to_income_rule",
+        "src.financial.rules.emergency_fund_rule",
+        "src.financial.rules.expense_spike_rule",
+        "src.financial.rules.financial_independence_rule",
+        "src.financial.rules.goal_completion_rule",
+        "src.financial.rules.goal_progress_rule",
+        "src.financial.rules.goal_progress_threshold_rule",
+        "src.financial.rules.health_score_rule",
+        "src.financial.rules.high_interest_debt_rule",
+        "src.financial.rules.income_coverage_rule",
+        "src.financial.rules.low_account_balance_rule",
+        "src.financial.rules.net_worth_rule",
+        "src.financial.rules.positive_cash_flow_rule",
+        "src.financial.rules.rule_engine",
+        "src.financial.rules.savings_rate_rule",
+        "src.financial.rules.spending_concentration_rule",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_engine",
+        "tests.test_recommendation_explainability",
+        "tests.test_recommendation_history_service",
+        "tests.test_recommendation_lifecycle"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\priority.py",
+      "module": "src.financial.recommendations.priority",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.models",
+        "src.financial.rules.bill_due_rule",
+        "src.financial.rules.budget_overrun_rule",
+        "src.financial.rules.debt_minimum_payment_rule",
+        "src.financial.rules.debt_payoff_priority_rule",
+        "src.financial.rules.debt_rule",
+        "src.financial.rules.debt_to_income_rule",
+        "src.financial.rules.emergency_fund_rule",
+        "src.financial.rules.expense_spike_rule",
+        "src.financial.rules.financial_independence_rule",
+        "src.financial.rules.goal_completion_rule",
+        "src.financial.rules.goal_progress_rule",
+        "src.financial.rules.goal_progress_threshold_rule",
+        "src.financial.rules.health_score_rule",
+        "src.financial.rules.high_interest_debt_rule",
+        "src.financial.rules.income_coverage_rule",
+        "src.financial.rules.low_account_balance_rule",
+        "src.financial.rules.net_worth_rule",
+        "src.financial.rules.positive_cash_flow_rule",
+        "src.financial.rules.savings_rate_rule",
+        "src.financial.rules.spending_concentration_rule",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_due_rule",
+        "tests.test_budget_overrun_rule",
+        "tests.test_budget_rule",
+        "tests.test_cash_flow_rule",
+        "tests.test_debt_minimum_payment_rule",
+        "tests.test_debt_payoff_priority_rule",
+        "tests.test_debt_rule",
+        "tests.test_debt_to_income_rule",
+        "tests.test_emergency_fund_rule",
+        "tests.test_expense_spike_rule",
+        "tests.test_financial_independence_rule",
+        "tests.test_goal_completion_rule",
+        "tests.test_goal_progress_rule",
+        "tests.test_goal_progress_threshold_rule",
+        "tests.test_health_score_rule",
+        "tests.test_high_interest_debt_rule",
+        "tests.test_income_coverage_rule",
+        "tests.test_low_account_balance_rule",
+        "tests.test_net_worth_rule",
+        "tests.test_positive_cash_flow_rule",
+        "tests.test_recommendation_engine",
+        "tests.test_recommendation_explainability",
+        "tests.test_recommendation_history_service",
+        "tests.test_recommendation_lifecycle",
+        "tests.test_recommendation_service",
+        "tests.test_rule_engine",
+        "tests.test_savings_rate_rule",
+        "tests.test_spending_concentration_rule",
+        "tests.test_zero_income_rule"
+      ],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\recommendations\\scoring.py",
+      "module": "src.financial.recommendations.scoring",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.engine"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\recommendations\\service.py",
+      "module": "src.financial.recommendations.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.engine",
+        "src.financial.recommendations.history_service",
+        "src.financial.recommendations.models",
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_service"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\recommendations\\status.py",
+      "module": "src.financial.recommendations.status",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.lifecycle"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_cli",
+        "tests.test_recommendation_history_repository",
+        "tests.test_recommendation_history_service",
+        "tests.test_recommendation_lifecycle",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\reports\\__init__.py",
+      "module": "src.financial.reports",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\reports\\budget_report.py",
+      "module": "src.financial.reports.budget_report",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.budgets.analytics",
+        "src.financial.budgets.models",
+        "src.financial.expenses.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.engine.financial_engine",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_report"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\__init__.py",
+      "module": "src.financial.rules",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\base_rule.py",
+      "module": "src.financial.rules.base_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.bill_due_rule",
+        "src.financial.rules.budget_overrun_rule",
+        "src.financial.rules.budget_rule",
+        "src.financial.rules.cash_flow_rule",
+        "src.financial.rules.debt_minimum_payment_rule",
+        "src.financial.rules.debt_payoff_priority_rule",
+        "src.financial.rules.debt_rule",
+        "src.financial.rules.debt_to_income_rule",
+        "src.financial.rules.emergency_fund_rule",
+        "src.financial.rules.expense_spike_rule",
+        "src.financial.rules.financial_independence_rule",
+        "src.financial.rules.goal_completion_rule",
+        "src.financial.rules.goal_progress_rule",
+        "src.financial.rules.goal_progress_threshold_rule",
+        "src.financial.rules.health_score_rule",
+        "src.financial.rules.high_interest_debt_rule",
+        "src.financial.rules.income_coverage_rule",
+        "src.financial.rules.low_account_balance_rule",
+        "src.financial.rules.net_worth_rule",
+        "src.financial.rules.positive_cash_flow_rule",
+        "src.financial.rules.rule_engine",
+        "src.financial.rules.savings_rate_rule",
+        "src.financial.rules.spending_concentration_rule",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "abc"
+      ]
+    },
+    {
+      "file": "src\\financial\\rules\\bill_due_rule.py",
+      "module": "src.financial.rules.bill_due_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_due_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\budget_overrun_rule.py",
+      "module": "src.financial.rules.budget_overrun_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_overrun_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\budget_rule.py",
+      "module": "src.financial.rules.budget_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.models",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\cash_flow_rule.py",
+      "module": "src.financial.rules.cash_flow_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.models",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_cash_flow_rule",
+        "tests.test_recommendation_explainability",
+        "tests.test_rule_engine"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\category.py",
+      "module": "src.financial.rules.category",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\rules\\debt_minimum_payment_rule.py",
+      "module": "src.financial.rules.debt_minimum_payment_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_minimum_payment_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\debt_payoff_priority_rule.py",
+      "module": "src.financial.rules.debt_payoff_priority_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_payoff_priority_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\debt_rule.py",
+      "module": "src.financial.rules.debt_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\debt_to_income_rule.py",
+      "module": "src.financial.rules.debt_to_income_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_to_income_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\emergency_fund_rule.py",
+      "module": "src.financial.rules.emergency_fund_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_emergency_fund_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\expense_spike_rule.py",
+      "module": "src.financial.rules.expense_spike_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_expense_spike_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\financial_independence_rule.py",
+      "module": "src.financial.rules.financial_independence_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_independence_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\goal_completion_rule.py",
+      "module": "src.financial.rules.goal_completion_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_completion_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\goal_progress_rule.py",
+      "module": "src.financial.rules.goal_progress_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_progress_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\goal_progress_threshold_rule.py",
+      "module": "src.financial.rules.goal_progress_threshold_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_progress_threshold_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\health_score_rule.py",
+      "module": "src.financial.rules.health_score_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_health_score_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\high_interest_debt_rule.py",
+      "module": "src.financial.rules.high_interest_debt_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_high_interest_debt_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\income_coverage_rule.py",
+      "module": "src.financial.rules.income_coverage_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_income_coverage_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\low_account_balance_rule.py",
+      "module": "src.financial.rules.low_account_balance_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_low_account_balance_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\net_worth_rule.py",
+      "module": "src.financial.rules.net_worth_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_net_worth_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\positive_cash_flow_rule.py",
+      "module": "src.financial.rules.positive_cash_flow_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_positive_cash_flow_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\priority.py",
+      "module": "src.financial.rules.priority",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\rules\\recommendation.py",
+      "module": "src.financial.rules.recommendation",
+      "classification": "unreferenced-static-candidate",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\rules\\rule_engine.py",
+      "module": "src.financial.rules.rule_engine",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.models",
+        "src.financial.rules.base_rule",
+        "src.financial.rules.bill_due_rule",
+        "src.financial.rules.budget_overrun_rule",
+        "src.financial.rules.budget_rule",
+        "src.financial.rules.cash_flow_rule",
+        "src.financial.rules.debt_minimum_payment_rule",
+        "src.financial.rules.debt_payoff_priority_rule",
+        "src.financial.rules.debt_rule",
+        "src.financial.rules.debt_to_income_rule",
+        "src.financial.rules.emergency_fund_rule",
+        "src.financial.rules.expense_spike_rule",
+        "src.financial.rules.financial_independence_rule",
+        "src.financial.rules.goal_completion_rule",
+        "src.financial.rules.goal_progress_rule",
+        "src.financial.rules.goal_progress_threshold_rule",
+        "src.financial.rules.health_score_rule",
+        "src.financial.rules.high_interest_debt_rule",
+        "src.financial.rules.income_coverage_rule",
+        "src.financial.rules.low_account_balance_rule",
+        "src.financial.rules.net_worth_rule",
+        "src.financial.rules.positive_cash_flow_rule",
+        "src.financial.rules.savings_rate_rule",
+        "src.financial.rules.spending_concentration_rule",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.recommendations.service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_explainability",
+        "tests.test_rule_engine"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\savings_rate_rule.py",
+      "module": "src.financial.rules.savings_rate_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_savings_rate_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\spending_concentration_rule.py",
+      "module": "src.financial.rules.spending_concentration_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_spending_concentration_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\rules\\zero_income_rule.py",
+      "module": "src.financial.rules.zero_income_rule",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.base_rule"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_zero_income_rule"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\scenarios\\__init__.py",
+      "module": "src.financial.scenarios",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\scenarios\\combined.py",
+      "module": "src.financial.scenarios.combined",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.combined_plan_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_combined_scenarios"
+      ],
+      "external_top_level_imports": [
+        "copy"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\comparison.py",
+      "module": "src.financial.scenarios.comparison",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.formatter",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.scoring"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_comparison",
+        "tests.test_scenario_formatter",
+        "tests.test_scenario_plan",
+        "tests.test_scenario_report"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\debt_scenario.py",
+      "module": "src.financial.scenarios.debt_scenario",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.factory"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_debt_scenario"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\expense_scenario.py",
+      "module": "src.financial.scenarios.expense_scenario",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.factory"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_expense_scenario"
+      ],
+      "external_top_level_imports": [
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\factory.py",
+      "module": "src.financial.scenarios.factory",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.debt_scenario",
+        "src.financial.scenarios.expense_scenario",
+        "src.financial.scenarios.income_scenario",
+        "src.financial.scenarios.savings_scenario",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.optimizer",
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_factory"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\scenarios\\formatter.py",
+      "module": "src.financial.scenarios.formatter",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_formatter"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\scenarios\\income_scenario.py",
+      "module": "src.financial.scenarios.income_scenario",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.factory"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_income_scenario"
+      ],
+      "external_top_level_imports": [
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\models.py",
+      "module": "src.financial.scenarios.models",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.coach.explanation",
+        "src.financial.scenarios.combined",
+        "src.financial.scenarios.debt_scenario",
+        "src.financial.scenarios.expense_scenario",
+        "src.financial.scenarios.income_scenario",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.portfolio",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.savings_scenario",
+        "src.financial.scenarios.scoring",
+        "src.financial.scenarios.service",
+        "src.financial.scenarios.workspace",
+        "src.financial.scenarios.workspace_repository",
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.combined_plan_cli",
+        "src.presentation.scenario_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_cli",
+        "tests.test_combined_plan_cli",
+        "tests.test_combined_scenarios",
+        "tests.test_debt_scenario",
+        "tests.test_expense_scenario",
+        "tests.test_financial_advisor",
+        "tests.test_financial_coaching",
+        "tests.test_financial_explanation",
+        "tests.test_income_scenario",
+        "tests.test_optimizer_cli",
+        "tests.test_savings_scenario",
+        "tests.test_scenario_cli",
+        "tests.test_scenario_factory",
+        "tests.test_scenario_models",
+        "tests.test_scenario_optimizer",
+        "tests.test_scenario_plan",
+        "tests.test_scenario_portfolio",
+        "tests.test_scenario_report",
+        "tests.test_scenario_scoring",
+        "tests.test_scenario_service",
+        "tests.test_scenario_workspace",
+        "tests.test_scenario_workspace_cli",
+        "tests.test_scenario_workspace_repository",
+        "tests.test_scenario_workspace_service",
+        "tests.test_scenarios_ranking",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\optimizer.py",
+      "module": "src.financial.scenarios.optimizer",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.factory",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.coach.coaching",
+        "src.presentation.coach_cli",
+        "src.presentation.optimizer_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_cli",
+        "tests.test_financial_advisor",
+        "tests.test_financial_coaching",
+        "tests.test_optimizer_cli",
+        "tests.test_scenario_optimizer",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\plan.py",
+      "module": "src.financial.scenarios.plan",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.combined",
+        "src.financial.scenarios.scoring",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_combined_plan_cli",
+        "tests.test_combined_scenarios",
+        "tests.test_scenario_plan",
+        "tests.test_scenario_scoring",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\portfolio.py",
+      "module": "src.financial.scenarios.portfolio",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.workspace"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_portfolio"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\ranking.py",
+      "module": "src.financial.scenarios.ranking",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.scoring"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.portfolio",
+        "src.financial.scenarios.workspace",
+        "src.presentation.coach_cli",
+        "src.presentation.optimizer_cli",
+        "src.presentation.scenario_cli",
+        "src.presentation.scenario_workspace_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_cli",
+        "tests.test_financial_advisor",
+        "tests.test_financial_coaching",
+        "tests.test_financial_explanation",
+        "tests.test_optimizer_cli",
+        "tests.test_scenario_optimizer",
+        "tests.test_scenario_portfolio",
+        "tests.test_scenario_workspace",
+        "tests.test_scenario_workspace_cli",
+        "tests.test_scenarios_ranking",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\report.py",
+      "module": "src.financial.scenarios.report",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.explanation",
+        "src.financial.scenarios.formatter",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.scoring",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_formatter",
+        "tests.test_scenario_report",
+        "tests.test_scenario_scoring",
+        "tests.test_scenarios_ranking"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\savings_scenario.py",
+      "module": "src.financial.scenarios.savings_scenario",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.factory"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_savings_scenario"
+      ],
+      "external_top_level_imports": [
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\scoring.py",
+      "module": "src.financial.scenarios.scoring",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.scenarios.ranking",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_scoring",
+        "tests.test_scenarios_ranking"
+      ],
+      "external_top_level_imports": [
+        "dataclasses",
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\service.py",
+      "module": "src.financial.scenarios.service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.combined",
+        "src.financial.scenarios.debt_scenario",
+        "src.financial.scenarios.expense_scenario",
+        "src.financial.scenarios.factory",
+        "src.financial.scenarios.income_scenario",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.savings_scenario",
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_combined_scenarios",
+        "tests.test_debt_scenario",
+        "tests.test_expense_scenario",
+        "tests.test_income_scenario",
+        "tests.test_savings_scenario",
+        "tests.test_scenario_factory",
+        "tests.test_scenario_optimizer",
+        "tests.test_scenario_service"
+      ],
+      "external_top_level_imports": [
+        "collections",
+        "typing"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\workspace.py",
+      "module": "src.financial.scenarios.workspace",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.portfolio",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.scenario_workspace_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_financial_state",
+        "tests.test_scenario_workspace",
+        "tests.test_scenario_workspace_cli",
+        "tests.test_scenario_workspace_service"
+      ],
+      "external_top_level_imports": [
+        "dataclasses"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\workspace_repository.py",
+      "module": "src.financial.scenarios.workspace_repository",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.scenarios.models"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.scenarios.workspace_service"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_workspace_repository"
+      ],
+      "external_top_level_imports": [
+        "json",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\scenarios\\workspace_service.py",
+      "module": "src.financial.scenarios.workspace_service",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.workspace",
+        "src.financial.scenarios.workspace_repository"
+      ],
+      "imported_by_source_modules": [
+        "src.financial.application.financial_state",
+        "src.presentation.combined_plan_cli",
+        "src.presentation.optimizer_cli",
+        "src.presentation.scenario_cli",
+        "src.presentation.scenario_workspace_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_workspace_service"
+      ],
+      "external_top_level_imports": [
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\financial\\shared\\__init__.py",
+      "module": "src.financial.shared",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\shared\\categories.py",
+      "module": "src.financial.shared.categories",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.financial.budgets.models",
+        "src.financial.budgets.service",
+        "src.financial.expenses.models",
+        "src.financial.workflows.bill_payment",
+        "src.presentation.input_handlers",
+        "src.presentation.views"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_bill_payment_workflow",
+        "tests.test_budget",
+        "tests.test_budget_analytics",
+        "tests.test_budget_cli",
+        "tests.test_budget_report",
+        "tests.test_budget_service",
+        "tests.test_cash_flow_workflow",
+        "tests.test_expense_cli",
+        "tests.test_expense_tracker",
+        "tests.test_financial_engine",
+        "tests.test_financial_state",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": [
+        "enum"
+      ]
+    },
+    {
+      "file": "src\\financial\\workflows\\__init__.py",
+      "module": "src.financial.workflows",
+      "classification": "package-initializer-review",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\workflows\\account_cash_flow.py",
+      "module": "src.financial.workflows.account_cash_flow",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.accounts.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_account_cash_flow_workflow"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\workflows\\bill_payment.py",
+      "module": "src.financial.workflows.bill_payment",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.bills.models",
+        "src.financial.expenses.models",
+        "src.financial.expenses.service",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_bill_payment_workflow"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\workflows\\cash_flow.py",
+      "module": "src.financial.workflows.cash_flow",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.models",
+        "src.financial.income.analytics",
+        "src.financial.income.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_cash_flow_workflow"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\workflows\\debt_payment.py",
+      "module": "src.financial.workflows.debt_payment",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.debt.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_debt_payment_workflow"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\financial\\workflows\\goal_contribution.py",
+      "module": "src.financial.workflows.goal_contribution",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_goal_contribution_workflow"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\__init__.py",
+      "module": "src.presentation",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_budget_cli",
+        "tests.test_coach_cli",
+        "tests.test_coach_views",
+        "tests.test_combined_plan_cli",
+        "tests.test_expense_cli",
+        "tests.test_financial_history_cli",
+        "tests.test_forecasting_cli",
+        "tests.test_goal_dashboard_cli_integration",
+        "tests.test_goal_planning_cli",
+        "tests.test_goal_planning_persistence_cli",
+        "tests.test_main_cli",
+        "tests.test_optimizer_cli",
+        "tests.test_recommendation_cli",
+        "tests.test_scenario_cli",
+        "tests.test_scenario_workspace_cli",
+        "tests.test_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\budget_cli.py",
+      "module": "src.presentation.budget_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.budgets.analytics",
+        "src.financial.budgets.service",
+        "src.financial.expenses.service",
+        "src.presentation.input_handlers",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_budget_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\cli.py",
+      "module": "src.presentation.cli",
+      "classification": "referenced-only-by-tests",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.service",
+        "src.financial.goals.service",
+        "src.financial.history.service",
+        "src.financial.scenarios.factory",
+        "src.presentation.budget_cli",
+        "src.presentation.coach_cli",
+        "src.presentation.expense_cli",
+        "src.presentation.forecast_cli",
+        "src.presentation.goal_planning_cli",
+        "src.presentation.main_menu_view",
+        "src.presentation.recommendation_cli",
+        "src.presentation.scenario_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [
+        "tests.test_financial_history_cli",
+        "tests.test_main_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\coach_cli.py",
+      "module": "src.presentation.coach_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.coach.coaching",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.presentation.coach_views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\coach_views.py",
+      "module": "src.presentation.coach_views",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.coach.coaching",
+        "src.financial.coach.insights"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.coach_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_coach_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\combined_plan_cli.py",
+      "module": "src.presentation.combined_plan_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.scenarios.combined",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_combined_plan_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\expense_cli.py",
+      "module": "src.presentation.expense_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.expenses.service",
+        "src.presentation.input_handlers",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_expense_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\forecast_cli.py",
+      "module": "src.presentation.forecast_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.forecasting.service",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_forecasting_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\goal_dashboard_views.py",
+      "module": "src.presentation.goal_dashboard_views",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_dashboard_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\goal_planning_cli.py",
+      "module": "src.presentation.goal_planning_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.core.config",
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.financial.planning.repository",
+        "src.presentation.goal_dashboard_views",
+        "src.presentation.goal_planning_helpers",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_dashboard_cli_integration",
+        "tests.test_goal_planning_cli",
+        "tests.test_goal_planning_persistence_cli"
+      ],
+      "external_top_level_imports": [
+        "collections",
+        "datetime",
+        "decimal",
+        "pathlib"
+      ]
+    },
+    {
+      "file": "src\\presentation\\goal_planning_helpers.py",
+      "module": "src.presentation.goal_planning_helpers",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.goals.allocation",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_planning_helpers"
+      ],
+      "external_top_level_imports": [
+        "collections",
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\presentation\\goal_planning_views.py",
+      "module": "src.presentation.goal_planning_views",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.goal_dashboard_views",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_goal_planning_views"
+      ],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "src\\presentation\\input_handlers.py",
+      "module": "src.presentation.input_handlers",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.shared.categories",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.budget_cli",
+        "src.presentation.expense_cli"
+      ],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\main_menu_view.py",
+      "module": "src.presentation.main_menu_view",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_main_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\optimizer_cli.py",
+      "module": "src.presentation.optimizer_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_optimizer_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\recommendation_cli.py",
+      "module": "src.presentation.recommendation_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.history_service",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_recommendation_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\scenario_cli.py",
+      "module": "src.presentation.scenario_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.application.financial_state",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.service",
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.combined_plan_cli",
+        "src.presentation.optimizer_cli",
+        "src.presentation.scenario_workspace_cli",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\scenario_workspace_cli.py",
+      "module": "src.presentation.scenario_workspace_cli",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.workspace",
+        "src.financial.scenarios.workspace_service",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_scenario_workspace_cli"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "src\\presentation\\views.py",
+      "module": "src.presentation.views",
+      "classification": "active-source-dependency",
+      "imports_project_modules": [
+        "src.financial.budgets.service",
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.service",
+        "src.financial.forecasting.models",
+        "src.financial.history.analytics",
+        "src.financial.history.models",
+        "src.financial.history.trends",
+        "src.financial.recommendations.history",
+        "src.financial.reports.budget_report",
+        "src.financial.scenarios.formatter",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.scoring",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [
+        "src.presentation.budget_cli",
+        "src.presentation.cli",
+        "src.presentation.combined_plan_cli",
+        "src.presentation.expense_cli",
+        "src.presentation.forecast_cli",
+        "src.presentation.input_handlers",
+        "src.presentation.optimizer_cli",
+        "src.presentation.recommendation_cli",
+        "src.presentation.scenario_cli",
+        "src.presentation.scenario_workspace_cli"
+      ],
+      "imported_by_test_modules": [
+        "tests.test_views"
+      ],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_account_cash_flow_workflow.py",
+      "module": "tests.test_account_cash_flow_workflow",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.workflows.account_cash_flow"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_account_repository.py",
+      "module": "tests.test_account_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.accounts.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_account_service.py",
+      "module": "tests.test_account_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_accounts.py",
+      "module": "tests.test_accounts",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_bill_analytics.py",
+      "module": "tests.test_bill_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.bills.analytics",
+        "src.financial.bills.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_bill_due_rule.py",
+      "module": "tests.test_bill_due_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.bill_due_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_bill_payment_workflow.py",
+      "module": "tests.test_bill_payment_workflow",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.bills.models",
+        "src.financial.expenses.service",
+        "src.financial.shared.categories",
+        "src.financial.workflows.bill_payment"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_bill_repository.py",
+      "module": "tests.test_bill_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.bills.models",
+        "src.financial.bills.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_bill_service.py",
+      "module": "tests.test_bill_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.bills.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_bills.py",
+      "module": "tests.test_bills",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.bills.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_budget.py",
+      "module": "tests.test_budget",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_budget_analytics.py",
+      "module": "tests.test_budget_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.analytics",
+        "src.financial.budgets.models",
+        "src.financial.expenses.models",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_budget_cli.py",
+      "module": "tests.test_budget_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.shared.categories",
+        "src.presentation",
+        "src.presentation.budget_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_budget_overrun_rule.py",
+      "module": "tests.test_budget_overrun_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.budget_overrun_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_budget_report.py",
+      "module": "tests.test_budget_report",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.expenses.models",
+        "src.financial.reports.budget_report",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_budget_rule.py",
+      "module": "tests.test_budget_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.budget_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_budget_service.py",
+      "module": "tests.test_budget_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.service",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_cash_flow_rule.py",
+      "module": "tests.test_cash_flow_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.cash_flow_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_cash_flow_workflow.py",
+      "module": "tests.test_cash_flow_workflow",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.expenses.models",
+        "src.financial.income.models",
+        "src.financial.shared.categories",
+        "src.financial.workflows.cash_flow"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_coach_cli.py",
+      "module": "tests.test_coach_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.coaching",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.presentation",
+        "src.presentation.coach_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_coach_views.py",
+      "module": "tests.test_coach_views",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.coaching",
+        "src.financial.coach.insights",
+        "src.financial.coach.models",
+        "src.presentation",
+        "src.presentation.coach_views"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_combined_plan_cli.py",
+      "module": "tests.test_combined_plan_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan",
+        "src.presentation",
+        "src.presentation.combined_plan_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_combined_scenarios.py",
+      "module": "tests.test_combined_scenarios",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.combined",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_debt.py",
+      "module": "tests.test_debt",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.debt.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_debt_analytics.py",
+      "module": "tests.test_debt_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.debt.analytics",
+        "src.financial.debt.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_debt_minimum_payment_rule.py",
+      "module": "tests.test_debt_minimum_payment_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.debt_minimum_payment_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_debt_payment_workflow.py",
+      "module": "tests.test_debt_payment_workflow",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.debt.models",
+        "src.financial.workflows.debt_payment"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_debt_payoff_priority_rule.py",
+      "module": "tests.test_debt_payoff_priority_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.debt_payoff_priority_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_debt_repository.py",
+      "module": "tests.test_debt_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.debt.models",
+        "src.financial.debt.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_debt_rule.py",
+      "module": "tests.test_debt_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.debt_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_debt_scenario.py",
+      "module": "tests.test_debt_scenario",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.debt_scenario",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_debt_service.py",
+      "module": "tests.test_debt_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.debt.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_debt_to_income_rule.py",
+      "module": "tests.test_debt_to_income_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.debt_to_income_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_emergency_fund_rule.py",
+      "module": "tests.test_emergency_fund_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.emergency_fund_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_expense_cli.py",
+      "module": "tests.test_expense_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.expenses.models",
+        "src.financial.shared.categories",
+        "src.presentation",
+        "src.presentation.expense_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_expense_scenario.py",
+      "module": "tests.test_expense_scenario",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.expense_scenario",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_expense_spike_rule.py",
+      "module": "tests.test_expense_spike_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.expense_spike_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_expense_tracker.py",
+      "module": "tests.test_expense_tracker",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.expenses.analytics",
+        "src.financial.expenses.models",
+        "src.financial.expenses.service",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_advisor.py",
+      "module": "tests.test_financial_advisor",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.coach.models",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_coaching.py",
+      "module": "tests.test_financial_coaching",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.coaching",
+        "src.financial.coach.insights",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_engine.py",
+      "module": "tests.test_financial_engine",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.bills.models",
+        "src.financial.budgets.models",
+        "src.financial.debt.models",
+        "src.financial.engine.financial_engine",
+        "src.financial.expenses.models",
+        "src.financial.goals.models",
+        "src.financial.income.models",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_explanation.py",
+      "module": "tests.test_financial_explanation",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.advisor",
+        "src.financial.coach.explanation",
+        "src.financial.coach.models",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_history_analytics.py",
+      "module": "tests.test_financial_history_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.history.analytics",
+        "src.financial.history.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_history_cli.py",
+      "module": "tests.test_financial_history_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.history.models",
+        "src.presentation",
+        "src.presentation.cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_history_repository.py",
+      "module": "tests.test_financial_history_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.history.models",
+        "src.financial.history.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_history_service.py",
+      "module": "tests.test_financial_history_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.history.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_independence_rule.py",
+      "module": "tests.test_financial_independence_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.financial_independence_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_insights.py",
+      "module": "tests.test_financial_insights",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.coach.insights"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_projections.py",
+      "module": "tests.test_financial_projections",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.forecasting.projections",
+        "src.financial.history.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_financial_state.py",
+      "module": "tests.test_financial_state",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.accounts.models",
+        "src.financial.accounts.service",
+        "src.financial.application",
+        "src.financial.application.financial_state",
+        "src.financial.bills.models",
+        "src.financial.bills.service",
+        "src.financial.budgets.models",
+        "src.financial.budgets.service",
+        "src.financial.debt.models",
+        "src.financial.debt.service",
+        "src.financial.expenses.models",
+        "src.financial.expenses.service",
+        "src.financial.goals.models",
+        "src.financial.goals.service",
+        "src.financial.history.service",
+        "src.financial.income.models",
+        "src.financial.income.service",
+        "src.financial.scenarios.workspace",
+        "src.financial.shared.categories"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_financial_trends.py",
+      "module": "tests.test_financial_trends",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.history.models",
+        "src.financial.history.trend_direction",
+        "src.financial.history.trend_summary",
+        "src.financial.history.trends"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_forecasting_cli.py",
+      "module": "tests.test_forecasting_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.forecasting.models",
+        "src.presentation",
+        "src.presentation.forecast_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_forecasting_service.py",
+      "module": "tests.test_forecasting_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.forecasting.service",
+        "src.financial.history.models",
+        "src.financial.history.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_allocation.py",
+      "module": "tests.test_goal_allocation",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.financial.goals.projections"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_analytics.py",
+      "module": "tests.test_goal_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.analytics",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_goal_completion_rule.py",
+      "module": "tests.test_goal_completion_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.goal_completion_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_goal_contribution_workflow.py",
+      "module": "tests.test_goal_contribution_workflow",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.models",
+        "src.financial.workflows.goal_contribution"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_dashboard_cli_integration.py",
+      "module": "tests.test_goal_dashboard_cli_integration",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.goals.models",
+        "src.presentation",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_dashboard_service.py",
+      "module": "tests.test_goal_dashboard_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_dashboard_views.py",
+      "module": "tests.test_goal_dashboard_views",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_dashboard_service",
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.presentation.goal_dashboard_views"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_feasibility.py",
+      "module": "tests.test_goal_feasibility",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.feasibility",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models",
+        "src.financial.goals.projections"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_cli.py",
+      "module": "tests.test_goal_planning_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.presentation",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections",
+        "datetime",
+        "decimal",
+        "pytest",
+        "typing"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_delete_cleanup.py",
+      "module": "tests.test_goal_planning_delete_cleanup",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals",
+        "src.financial.goals.allocation",
+        "src.financial.goals.service",
+        "src.financial.planning.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_helpers.py",
+      "module": "tests.test_goal_planning_helpers",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.presentation.goal_planning_helpers"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections",
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_models.py",
+      "module": "tests.test_goal_planning_models",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.planning_models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_persistence_cli.py",
+      "module": "tests.test_goal_planning_persistence_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.financial.planning.repository",
+        "src.presentation",
+        "src.presentation.goal_planning_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_repository.py",
+      "module": "tests.test_goal_planning_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.models",
+        "src.financial.planning.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_service.py",
+      "module": "tests.test_goal_planning_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.feasibility",
+        "src.financial.goals.models",
+        "src.financial.goals.planning_models",
+        "src.financial.goals.projections"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_planning_views.py",
+      "module": "tests.test_goal_planning_views",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.application.goal_planning_service",
+        "src.financial.goals.allocation",
+        "src.financial.goals.feasibility",
+        "src.financial.goals.models",
+        "src.financial.goals.projections",
+        "src.presentation.goal_planning_views"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "decimal"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_progress_rule.py",
+      "module": "tests.test_goal_progress_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.goal_progress_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_goal_progress_threshold_rule.py",
+      "module": "tests.test_goal_progress_threshold_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.goal_progress_threshold_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_goal_projections.py",
+      "module": "tests.test_goal_projections",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.models",
+        "src.financial.goals.projections"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_repository.py",
+      "module": "tests.test_goal_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.models",
+        "src.financial.goals.repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goal_service.py",
+      "module": "tests.test_goal_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_goals.py",
+      "module": "tests.test_goals",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_health_score.py",
+      "module": "tests.test_health_score",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.engine.health_score"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_health_score_rule.py",
+      "module": "tests.test_health_score_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.health_score_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_health_status.py",
+      "module": "tests.test_health_status",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.engine.health_status"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_high_interest_debt_rule.py",
+      "module": "tests.test_high_interest_debt_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.high_interest_debt_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_income.py",
+      "module": "tests.test_income",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.income.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_income_analytics.py",
+      "module": "tests.test_income_analytics",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.income.analytics",
+        "src.financial.income.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_income_coverage_rule.py",
+      "module": "tests.test_income_coverage_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.income_coverage_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_income_scenario.py",
+      "module": "tests.test_income_scenario",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.income_scenario",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_income_service.py",
+      "module": "tests.test_income_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.income.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_insight_engine.py",
+      "module": "tests.test_insight_engine",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.insights.insight_engine"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_low_account_balance_rule.py",
+      "module": "tests.test_low_account_balance_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.low_account_balance_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_main_cli.py",
+      "module": "tests.test_main_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.goals.models",
+        "src.presentation",
+        "src.presentation.cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "collections",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_main_views.py",
+      "module": "tests.test_main_views",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.presentation.main_menu_view"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_net_worth_rule.py",
+      "module": "tests.test_net_worth_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.net_worth_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_optimizer_cli.py",
+      "module": "tests.test_optimizer_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.presentation",
+        "src.presentation.optimizer_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_positive_cash_flow_rule.py",
+      "module": "tests.test_positive_cash_flow_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.positive_cash_flow_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_recommendation_cli.py",
+      "module": "tests.test_recommendation_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.status",
+        "src.presentation",
+        "src.presentation.recommendation_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_recommendation_engine.py",
+      "module": "tests.test_recommendation_engine",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.engine",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_recommendation_explainability.py",
+      "module": "tests.test_recommendation_explainability",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.explainability",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.cash_flow_rule",
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_recommendation_history_repository.py",
+      "module": "tests.test_recommendation_history_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.history_repository",
+        "src.financial.recommendations.status"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_recommendation_history_service.py",
+      "module": "tests.test_recommendation_history_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.history_service",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.recommendations.status"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_recommendation_lifecycle.py",
+      "module": "tests.test_recommendation_lifecycle",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.lifecycle",
+        "src.financial.recommendations.models",
+        "src.financial.recommendations.priority",
+        "src.financial.recommendations.status"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_recommendation_service.py",
+      "module": "tests.test_recommendation_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.priority",
+        "src.financial.recommendations.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_rule_engine.py",
+      "module": "tests.test_rule_engine",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.cash_flow_rule",
+        "src.financial.rules.rule_engine"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_savings_rate_rule.py",
+      "module": "tests.test_savings_rate_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.savings_rate_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_savings_scenario.py",
+      "module": "tests.test_savings_scenario",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.savings_scenario",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_cli.py",
+      "module": "tests.test_scenario_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.presentation",
+        "src.presentation.scenario_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_comparison.py",
+      "module": "tests.test_scenario_comparison",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_factory.py",
+      "module": "tests.test_scenario_factory",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.factory",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_formatter.py",
+      "module": "tests.test_scenario_formatter",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.formatter",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_models.py",
+      "module": "tests.test_scenario_models",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_optimizer.py",
+      "module": "tests.test_scenario_optimizer",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_plan.py",
+      "module": "tests.test_scenario_plan",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_portfolio.py",
+      "module": "tests.test_scenario_portfolio",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.portfolio",
+        "src.financial.scenarios.ranking"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_report.py",
+      "module": "tests.test_scenario_report",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.comparison",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.report"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_scoring.py",
+      "module": "tests.test_scenario_scoring",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.scoring"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_service.py",
+      "module": "tests.test_scenario_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_workspace.py",
+      "module": "tests.test_scenario_workspace",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.workspace"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_workspace_cli.py",
+      "module": "tests.test_scenario_workspace_cli",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.workspace",
+        "src.presentation",
+        "src.presentation.scenario_workspace_cli"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenario_workspace_repository.py",
+      "module": "tests.test_scenario_workspace_repository",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.workspace_repository"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "json",
+        "pytest"
+      ]
+    },
+    {
+      "file": "tests\\test_scenario_workspace_service.py",
+      "module": "tests.test_scenario_workspace_service",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.workspace",
+        "src.financial.scenarios.workspace_service"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_scenarios_ranking.py",
+      "module": "tests.test_scenarios_ranking",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.ranking",
+        "src.financial.scenarios.report",
+        "src.financial.scenarios.scoring"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_spending_concentration_rule.py",
+      "module": "tests.test_spending_concentration_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.spending_concentration_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    },
+    {
+      "file": "tests\\test_views.py",
+      "module": "tests.test_views",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.budgets.models",
+        "src.financial.forecasting.models",
+        "src.financial.history.models",
+        "src.financial.recommendations.history",
+        "src.financial.recommendations.status",
+        "src.financial.scenarios.models",
+        "src.financial.scenarios.optimizer",
+        "src.financial.scenarios.plan",
+        "src.financial.scenarios.ranking",
+        "src.financial.shared.categories",
+        "src.presentation",
+        "src.presentation.views"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": [
+        "datetime"
+      ]
+    },
+    {
+      "file": "tests\\test_zero_income_rule.py",
+      "module": "tests.test_zero_income_rule",
+      "classification": "test",
+      "imports_project_modules": [
+        "src.financial.recommendations.category",
+        "src.financial.recommendations.priority",
+        "src.financial.rules.zero_income_rule"
+      ],
+      "imported_by_source_modules": [],
+      "imported_by_test_modules": [],
+      "external_top_level_imports": []
+    }
+  ]
+}
