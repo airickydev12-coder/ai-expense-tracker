@@ -46,7 +46,7 @@ InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 
 GOAL_PLANNING_MENU_MINIMUM = 1
-GOAL_PLANNING_MENU_MAXIMUM = 6
+GOAL_PLANNING_MENU_MAXIMUM = 7
 
 
 def run_goal_planning_menu(
@@ -150,6 +150,16 @@ def run_goal_planning_menu(
                 requests_by_goal_id,
                 file_path=planning_file_path,
             )
+        elif choice == 6:
+            delete_planning_request_workflow(
+                requests_by_goal_id,
+                input_fn=input_fn,
+                output_fn=output_fn,
+            )
+            save_goal_planning_requests_to_file(
+                requests_by_goal_id,
+                file_path=planning_file_path,
+            )
         else:
             output_fn("Returning to the main menu.")
             return
@@ -170,7 +180,8 @@ def display_goal_planning_menu(
     output_fn("3. Monthly Allocation Planner")
     output_fn("4. View Planning Requests")
     output_fn("5. Update Planning Request")
-    output_fn("6. Return to Main Menu")
+    output_fn("6. Delete Planning Request")
+    output_fn("7. Return to Main Menu")
 
 
 def analyze_all_goals_workflow(
@@ -443,6 +454,62 @@ def update_planning_request_workflow(
 
     pause(input_fn=input_fn)
     return updated_request
+
+
+def delete_planning_request_workflow(
+    requests_by_goal_id: dict[int, GoalPlanningRequest],
+    *,
+    input_fn: InputFunction = input,
+    output_fn: OutputFunction = print,
+) -> GoalPlanningRequest | None:
+    """Delete one saved planning request after user confirmation."""
+    print_section(
+        "Delete Planning Request",
+        output_fn=output_fn,
+    )
+
+    requests = list(requests_by_goal_id.values())
+
+    if not requests:
+        output_fn("No planning requests have been saved yet.")
+        pause(input_fn=input_fn)
+        return None
+
+    output_fn(render_goal_planning_request_list(requests))
+    output_fn("")
+
+    selection = prompt_for_menu_choice(
+        "Select a planning request to delete: ",
+        minimum=1,
+        maximum=len(requests),
+        input_fn=input_fn,
+        output_fn=output_fn,
+    )
+    selected_request = requests[selection - 1]
+
+    while True:
+        confirmation = (
+            input_fn(
+                f'Delete planning request for "{selected_request.goal.name}"? (Y/N): '
+            )
+            .strip()
+            .upper()
+        )
+
+        if confirmation in {"Y", "YES"}:
+            del requests_by_goal_id[selected_request.goal.id]
+            output_fn("")
+            output_fn("Planning request deleted successfully.")
+            pause(input_fn=input_fn)
+            return selected_request
+
+        if confirmation in {"N", "NO"}:
+            output_fn("")
+            output_fn("Deletion cancelled.")
+            pause(input_fn=input_fn)
+            return None
+
+        output_fn("Enter Y to confirm or N to cancel.")
 
 
 def _prompt_for_updated_date(

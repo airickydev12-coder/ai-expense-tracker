@@ -119,7 +119,8 @@ def test_display_goal_planning_menu() -> None:
         "3. Monthly Allocation Planner",
         "4. View Planning Requests",
         "5. Update Planning Request",
-        "6. Return to Main Menu",
+        "6. Delete Planning Request",
+        "7. Return to Main Menu",
     ]
 
 
@@ -128,7 +129,7 @@ def test_run_goal_planning_menu_returns_to_main_menu() -> None:
 
     result = goal_planning_cli.run_goal_planning_menu(
         build_goals(),
-        input_fn=make_input(["6"]),
+        input_fn=make_input(["7"]),
         output_fn=output_fn,
         today=date(2027, 1, 1),
     )
@@ -141,7 +142,7 @@ def test_run_goal_planning_menu_routes_to_analyze_all(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([1, 6])
+    choices = iter([1, 7])
 
     def fake_prompt_for_menu_choice(
         prompt: str,
@@ -197,7 +198,7 @@ def test_run_goal_planning_menu_routes_to_analyze_single(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([2, 6])
+    choices = iter([2, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -239,7 +240,7 @@ def test_run_goal_planning_menu_routes_to_monthly_allocation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([3, 6])
+    choices = iter([3, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -281,7 +282,7 @@ def test_run_goal_planning_menu_routes_to_view_requests(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([4, 6])
+    choices = iter([4, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -319,7 +320,7 @@ def test_run_goal_planning_menu_reuses_session_request_storage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     request_store_ids: list[int] = []
-    choices = iter([1, 4, 6])
+    choices = iter([1, 4, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -1020,7 +1021,7 @@ def test_run_goal_planning_menu_routes_to_update_request(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    choices = iter([5, 6])
+    choices = iter([5, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,
@@ -1211,3 +1212,173 @@ def test_prompt_for_updated_priority_accepts_name_and_number() -> None:
 
     assert named_result == GoalPriority.CRITICAL
     assert numbered_result == list(GoalPriority)[0]
+
+
+def test_run_goal_planning_menu_routes_to_delete_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    choices = iter([6, 7])
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: next(choices),
+    )
+
+    def fake_workflow(
+        requests_by_goal_id: dict[int, GoalPlanningRequest],
+        *,
+        input_fn: InputFunction,
+        output_fn: OutputFunction,
+    ) -> None:
+        del requests_by_goal_id
+        del input_fn
+        del output_fn
+        calls.append("delete_request")
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "delete_planning_request_workflow",
+        fake_workflow,
+    )
+
+    goal_planning_cli.run_goal_planning_menu(
+        build_goals(),
+        output_fn=lambda message: None,
+        today=date(2027, 1, 1),
+    )
+
+    assert calls == ["delete_request"]
+
+
+def test_delete_planning_request_workflow_handles_empty_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    messages, output_fn = collect_output()
+    pause_calls: list[bool] = []
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: pause_calls.append(True),
+    )
+
+    result = goal_planning_cli.delete_planning_request_workflow(
+        {},
+        output_fn=output_fn,
+    )
+
+    assert result is None
+    assert "No planning requests have been saved yet." in messages
+    assert pause_calls == [True]
+
+
+def test_delete_planning_request_workflow_deletes_confirmed_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goals = build_goals()
+    first_request = build_request(goals[0])
+    second_request = build_request(goals[1])
+    request_store = {
+        goals[0].id: first_request,
+        goals[1].id: second_request,
+    }
+    messages, output_fn = collect_output()
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: 2,
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request_list",
+        lambda requests: "Rendered request list",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: None,
+    )
+
+    result = goal_planning_cli.delete_planning_request_workflow(
+        request_store,
+        input_fn=make_input(["y"]),
+        output_fn=output_fn,
+    )
+
+    assert result is second_request
+    assert goals[0].id in request_store
+    assert goals[1].id not in request_store
+    assert "Planning request deleted successfully." in messages
+
+
+def test_delete_planning_request_workflow_cancels_deletion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goal = build_goal()
+    request = build_request(goal)
+    request_store = {goal.id: request}
+    messages, output_fn = collect_output()
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: 1,
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request_list",
+        lambda requests: "Rendered request list",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: None,
+    )
+
+    result = goal_planning_cli.delete_planning_request_workflow(
+        request_store,
+        input_fn=make_input(["n"]),
+        output_fn=output_fn,
+    )
+
+    assert result is None
+    assert request_store == {goal.id: request}
+    assert "Deletion cancelled." in messages
+
+
+def test_delete_planning_request_workflow_reprompts_invalid_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goal = build_goal()
+    request = build_request(goal)
+    request_store = {goal.id: request}
+    messages, output_fn = collect_output()
+
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "prompt_for_menu_choice",
+        lambda *args, **kwargs: 1,
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "render_goal_planning_request_list",
+        lambda requests: "Rendered request list",
+    )
+    monkeypatch.setattr(
+        goal_planning_cli,
+        "pause",
+        lambda **kwargs: None,
+    )
+
+    result = goal_planning_cli.delete_planning_request_workflow(
+        request_store,
+        input_fn=make_input(["maybe", "yes"]),
+        output_fn=output_fn,
+    )
+
+    assert result is request
+    assert request_store == {}
+    assert "Enter Y to confirm or N to cancel." in messages

@@ -60,7 +60,7 @@ def test_goal_planning_menu_loads_persisted_requests(
     monkeypatch.setattr(
         goal_planning_cli,
         "prompt_for_menu_choice",
-        lambda *args, **kwargs: 6,
+        lambda *args, **kwargs: 7,
     )
 
     goal_planning_cli.run_goal_planning_menu(
@@ -87,7 +87,7 @@ def test_goal_planning_menu_saves_new_request(
         current_amount=Decimal("4000.00"),
     )
     file_path = tmp_path / "planning.json"
-    choices = iter([2, 6])
+    choices = iter([2, 7])
 
     monkeypatch.setattr(
         goal_planning_cli,

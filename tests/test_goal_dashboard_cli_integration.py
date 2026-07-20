@@ -49,7 +49,7 @@ def test_run_goal_planning_menu_displays_dashboard(
 
     goal_planning_cli.run_goal_planning_menu(
         [goal],
-        input_fn=lambda prompt: "6",
+        input_fn=lambda prompt: "7",
         output_fn=messages.append,
         today=date(2027, 1, 1),
     )
