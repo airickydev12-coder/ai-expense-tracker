@@ -1,6 +1,7 @@
 """Tests for the financial-goal dashboard service."""
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -18,12 +19,15 @@ from src.financial.goals.models import Goal
 AS_OF_DATE = date(2027, 1, 1)
 
 
+from decimal import Decimal
+
+
 def build_goal(
     *,
     goal_id: int,
     name: str,
-    target_amount: float,
-    current_amount: float,
+    target_amount: Decimal,
+    current_amount: Decimal,
 ) -> Goal:
     """Build a dashboard test goal."""
     return Goal(
@@ -69,14 +73,14 @@ def test_build_goal_dashboard_calculates_portfolio_totals() -> None:
         build_goal(
             goal_id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=4000,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("4000.00"),
         ),
         build_goal(
             goal_id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=3000,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("3000.00"),
         ),
     ]
 
@@ -89,9 +93,7 @@ def test_build_goal_dashboard_calculates_portfolio_totals() -> None:
     assert dashboard.total_target_amount == 13000
     assert dashboard.total_current_amount == 7000
     assert dashboard.total_remaining_amount == 6000
-    assert dashboard.overall_funding_percentage == pytest.approx(
-        53.8461538
-    )
+    assert dashboard.overall_funding_percentage == pytest.approx(53.8461538)
     assert dashboard.completed_goals == 1
     assert dashboard.planning_required_goals == 1
 
@@ -100,14 +102,14 @@ def test_build_goal_dashboard_uses_feasibility_statuses() -> None:
     feasible_goal = build_goal(
         goal_id=1,
         name="Emergency Fund",
-        target_amount=12000,
-        current_amount=6000,
+        target_amount=Decimal("12000.00"),
+        current_amount=Decimal("6000.00"),
     )
     unfunded_goal = build_goal(
         goal_id=2,
         name="Car Fund",
-        target_amount=12000,
-        current_amount=3000,
+        target_amount=Decimal("12000.00"),
+        current_amount=Decimal("3000.00"),
     )
 
     requests = {
@@ -134,10 +136,7 @@ def test_build_goal_dashboard_uses_feasibility_statuses() -> None:
         as_of_date=AS_OF_DATE,
     )
 
-    statuses = {
-        item.goal_id: item.status
-        for item in dashboard.items
-    }
+    statuses = {item.goal_id: item.status for item in dashboard.items}
 
     assert statuses[1] == GoalDashboardStatus.ON_TRACK
     assert statuses[2] == GoalDashboardStatus.UNFUNDED
@@ -149,14 +148,14 @@ def test_build_goal_dashboard_selects_highest_priority_goal() -> None:
     high_goal = build_goal(
         goal_id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("4000.00"),
     )
     critical_goal = build_goal(
         goal_id=2,
         name="Debt Payoff",
-        target_amount=8000,
-        current_amount=2000,
+        target_amount=Decimal("8000.00"),
+        current_amount=Decimal("2000.00"),
     )
 
     requests = {
@@ -192,14 +191,14 @@ def test_build_goal_dashboard_rejects_duplicate_goal_ids() -> None:
         build_goal(
             goal_id=1,
             name="Goal One",
-            target_amount=1000,
-            current_amount=100,
+            target_amount=Decimal("1000.00"),
+            current_amount=Decimal("100.00"),
         ),
         build_goal(
             goal_id=1,
             name="Goal Two",
-            target_amount=2000,
-            current_amount=200,
+            target_amount=Decimal("2000.00"),
+            current_amount=Decimal("200.00"),
         ),
     ]
 
@@ -217,8 +216,8 @@ def test_build_goal_dashboard_rejects_mismatched_request_key() -> None:
     goal = build_goal(
         goal_id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("4000.00"),
     )
     request = build_request(
         goal,
