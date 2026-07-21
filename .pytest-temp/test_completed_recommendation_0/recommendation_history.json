@@ -1,0 +1,9 @@
+[
+    {
+        "recommendation_key": "debt:high_interest_debt",
+        "status": "COMPLETED",
+        "created_at": "2026-07-21T20:03:44.292919+00:00",
+        "updated_at": "2026-07-21T20:03:44.294175+00:00",
+        "note": "Debt paid off."
+    }
+]

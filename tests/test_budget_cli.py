@@ -78,9 +78,7 @@ def test_create_or_update_budgets(
     monkeypatch.setattr(
         budget_cli,
         "display_budget_summary",
-        lambda summary: captured.update(
-            {"summary": summary}
-        ),
+        lambda summary: captured.update({"summary": summary}),
     )
 
     budget_cli.create_or_update_budgets()
@@ -286,10 +284,7 @@ def test_create_or_update_budgets_rejects_non_positive_limit(
 
     output = capsys.readouterr().out
 
-    assert (
-        "Budget limit must be greater than zero."
-        in output
-    )
+    assert "Budget limit must be greater than zero." in output
 
 
 def test_create_or_update_budgets_can_cancel_category(

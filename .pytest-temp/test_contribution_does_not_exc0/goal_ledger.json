@@ -1,0 +1,29 @@
+{
+    "schema_version": 1,
+    "entries": [
+        {
+            "entry_id": "a24c051a-0b81-469d-b6c9-cb7141fe762e",
+            "goal_id": 1,
+            "entry_type": "OPENING_BALANCE",
+            "amount": "9500.00",
+            "effective_date": "2026-07-21",
+            "created_at": "2026-07-21T20:03:44.053893+00:00",
+            "source": "MIGRATION",
+            "note": "Migrated existing goal balance.",
+            "correlation_id": "goal-opening-balance:1",
+            "reverses_entry_id": null
+        },
+        {
+            "entry_id": "de8b4d8f-9e55-4f55-819f-119808c82881",
+            "goal_id": 1,
+            "entry_type": "CONTRIBUTION",
+            "amount": "500.00",
+            "effective_date": "2026-07-21",
+            "created_at": "2026-07-21T20:03:44.055048+00:00",
+            "source": "MANUAL",
+            "note": "",
+            "correlation_id": null,
+            "reverses_entry_id": null
+        }
+    ]
+}

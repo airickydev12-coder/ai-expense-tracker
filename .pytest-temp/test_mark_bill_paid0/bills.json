@@ -1,0 +1,9 @@
+[
+    {
+        "id": 1,
+        "name": "Electric",
+        "amount": 125,
+        "due_day": 15,
+        "is_paid": true
+    }
+]

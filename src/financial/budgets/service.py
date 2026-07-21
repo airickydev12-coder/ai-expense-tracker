@@ -40,6 +40,22 @@ def add_budget(category: ExpenseCategory, limit: float) -> Budget:
     return budget
 
 
+def update_budget(
+    category: ExpenseCategory,
+    limit: float,
+) -> Budget:
+    """
+    Update the budget for a category.
+
+    If the category does not already have a budget,
+    one will be created.
+    """
+    return add_budget(
+        category=category,
+        limit=limit,
+    )
+
+
 def get_budget_by_category(
     category: ExpenseCategory,
 ) -> Budget | None:

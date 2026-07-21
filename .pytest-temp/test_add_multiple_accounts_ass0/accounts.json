@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "name": "Checking",
+        "account_type": "Bank",
+        "balance": 1500
+    },
+    {
+        "id": 2,
+        "name": "Savings",
+        "account_type": "Bank",
+        "balance": 5000
+    }
+]

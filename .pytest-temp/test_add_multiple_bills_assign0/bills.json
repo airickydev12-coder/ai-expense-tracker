@@ -1,0 +1,16 @@
+[
+    {
+        "id": 1,
+        "name": "Electric",
+        "amount": 125,
+        "due_day": 15,
+        "is_paid": false
+    },
+    {
+        "id": 2,
+        "name": "Internet",
+        "amount": 80,
+        "due_day": 20,
+        "is_paid": false
+    }
+]

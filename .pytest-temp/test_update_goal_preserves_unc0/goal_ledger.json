@@ -1,0 +1,17 @@
+{
+    "schema_version": 1,
+    "entries": [
+        {
+            "entry_id": "0eb98e43-69c5-4370-a487-2ba262f3da0a",
+            "goal_id": 1,
+            "entry_type": "OPENING_BALANCE",
+            "amount": "2500.00",
+            "effective_date": "2026-07-21",
+            "created_at": "2026-07-21T20:03:44.035266+00:00",
+            "source": "MIGRATION",
+            "note": "Migrated existing goal balance.",
+            "correlation_id": "goal-opening-balance:1",
+            "reverses_entry_id": null
+        }
+    ]
+}

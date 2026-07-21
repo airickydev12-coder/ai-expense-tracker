@@ -284,9 +284,9 @@ def test_update_expense_flow(
 
         return Expense(
             id=expense_id,
-            name=name,
-            category=category,
-            amount=amount,
+            name=name or "Morning Coffee",
+            category=category or ExpenseCategory.FOOD,
+            amount=amount if amount is not None else 7.25,
         )
 
     monkeypatch.setattr(

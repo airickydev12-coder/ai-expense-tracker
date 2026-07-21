@@ -1,0 +1,53 @@
+[
+    {
+        "scenario_type": "INCOME_INCREASE",
+        "name": "Income Increase",
+        "description": "Model a ten percent raise.",
+        "assumptions": [
+            {
+                "name": "Increase Percentage",
+                "value": 10,
+                "description": "Projected raise."
+            }
+        ],
+        "original_snapshot": {
+            "total_income": 5000,
+            "total_expenses": 3000,
+            "net_cash_flow": 2000,
+            "total_account_balance": 8000,
+            "total_goal_progress": 2500,
+            "total_debt": 10000,
+            "net_worth": 500,
+            "health_score": 70,
+            "health_status": "Good"
+        },
+        "projected_snapshot": {
+            "total_income": 5000,
+            "total_expenses": 3000,
+            "net_cash_flow": 2500,
+            "total_account_balance": 8000,
+            "total_goal_progress": 2500,
+            "total_debt": 10000,
+            "net_worth": 6500,
+            "health_score": 70,
+            "health_status": "Good"
+        },
+        "impacts": [
+            {
+                "metric": "Net Worth",
+                "original_value": 500.0,
+                "projected_value": 6500.0,
+                "change": 6000.0
+            }
+        ],
+        "benefits": [
+            "Increase available income."
+        ],
+        "risks": [
+            "The increase may not be guaranteed."
+        ],
+        "recommendations": [
+            "Save part of the additional income."
+        ]
+    }
+]

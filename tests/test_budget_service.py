@@ -1,5 +1,6 @@
 from src.financial.budgets.service import (
     add_budget,
+    update_budget,
     budgets,
     get_budget_by_category,
     get_budgets,
@@ -47,6 +48,7 @@ def test_get_budget_by_category():
     assert budget is not None
     assert budget.limit == 500
 
+
 def test_delete_budget():
     budgets.clear()
 
@@ -57,3 +59,34 @@ def test_delete_budget():
     assert deleted_budget is not None
     assert deleted_budget.category == ExpenseCategory.FOOD
     assert len(get_budgets()) == 0
+
+
+def test_update_budget_updates_existing_budget():
+    budgets.clear()
+
+    add_budget(
+        ExpenseCategory.FOOD,
+        500,
+    )
+
+    updated_budget = update_budget(
+        ExpenseCategory.FOOD,
+        750,
+    )
+
+    assert updated_budget.category == ExpenseCategory.FOOD
+    assert updated_budget.limit == 750
+    assert len(get_budgets()) == 1
+
+
+def test_update_budget_creates_budget_when_missing():
+    budgets.clear()
+
+    updated_budget = update_budget(
+        ExpenseCategory.FOOD,
+        600,
+    )
+
+    assert updated_budget.category == ExpenseCategory.FOOD
+    assert updated_budget.limit == 600
+    assert len(get_budgets()) == 1

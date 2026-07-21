@@ -1,1 +1,6 @@
-[]
+[
+    {
+        "category": "Food",
+        "limit": 600
+    }
+]

@@ -1,0 +1,8 @@
+[
+    {
+        "id": 1,
+        "name": "Primary Checking",
+        "account_type": "Bank",
+        "balance": 2000
+    }
+]

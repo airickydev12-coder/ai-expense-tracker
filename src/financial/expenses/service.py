@@ -8,6 +8,8 @@ from src.financial.events.event_types import FinancialEvent
 
 expenses: list[Expense] = []
 
+from src.financial.shared.categories import ExpenseCategory
+
 
 def load_expenses() -> None:
     """Load expenses from the repository."""
@@ -28,7 +30,11 @@ def get_next_expense_id() -> int:
     return max(expense.id for expense in expenses) + 1
 
 
-def add_expense(name: str, category: str, amount: float) -> Expense:
+def add_expense(
+    name: str,
+    category: ExpenseCategory,
+    amount: float,
+) -> Expense:
     """Create and add a new expense."""
     expense = Expense(
         id=get_next_expense_id(),
@@ -48,6 +54,18 @@ def add_expense(name: str, category: str, amount: float) -> Expense:
 def get_expenses() -> list[Expense]:
     """Return a copy of all recorded expenses."""
     return expenses.copy()
+
+
+def get_expense_by_id(
+    expense_id: int,
+) -> Expense | None:
+    """Return an expense by its ID."""
+
+    for expense in expenses:
+        if expense.id == expense_id:
+            return expense
+
+    return None
 
 
 def delete_expense(expense_id: int) -> Expense | None:
@@ -72,7 +90,7 @@ def delete_expense(expense_id: int) -> Expense | None:
 def update_expense(
     expense_id: int,
     name: str | None = None,
-    category: str | None = None,
+    category: ExpenseCategory | None = None,
     amount: float | None = None,
 ) -> Expense | None:
     """Update an existing expense by ID."""
@@ -91,6 +109,11 @@ def update_expense(
             return expense
 
     return None
+
+
+def get_total() -> float:
+    """Return the total amount of all recorded expenses."""
+    return sum(expense.amount for expense in expenses)
 
 
 def calculate_total() -> None:
