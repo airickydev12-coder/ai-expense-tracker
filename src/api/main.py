@@ -11,6 +11,9 @@ from src.api.routers.budgets import router as budgets_router
 from src.api.routers.expenses import router as expenses_router
 from src.api.routers.health import router as health_router
 from src.api.routers import dashboard
+from src.api.routers.recommendations import (
+    router as recommendations_router,
+)
 
 app = FastAPI(
     title="AI Expense Tracker API",
@@ -22,3 +25,4 @@ app.include_router(health_router)
 app.include_router(expenses_router)
 app.include_router(budgets_router)
 app.include_router(dashboard.router)
+app.include_router(recommendations_router)
