@@ -4,12 +4,20 @@ from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.recommendations import (
     RecommendationCategoryFilter,
+    RecommendationCategoryResponse,
     RecommendationPriorityFilter,
+    RecommendationPriorityResponse,
     RecommendationResponse,
 )
 from src.financial.application.recommendation_application_service import (
     build_recommendations,
     get_recommendation_by_key,
+)
+from src.financial.recommendations.category import (
+    RecommendationCategory,
+)
+from src.financial.recommendations.priority import (
+    RecommendationPriority,
 )
 
 
@@ -49,6 +57,39 @@ def get_recommendations(
     return [
         RecommendationResponse.model_validate(recommendation.to_dict())
         for recommendation in recommendations
+    ]
+
+
+@router.get(
+    "/categories",
+    response_model=list[RecommendationCategoryResponse],
+)
+def get_recommendation_categories() -> list[RecommendationCategoryResponse]:
+    """Return supported recommendation categories."""
+
+    return [
+        RecommendationCategoryResponse(
+            name=category.name,
+            value=category.value,
+        )
+        for category in RecommendationCategory
+    ]
+
+
+@router.get(
+    "/priorities",
+    response_model=list[RecommendationPriorityResponse],
+)
+def get_recommendation_priorities() -> list[RecommendationPriorityResponse]:
+    """Return supported recommendation priorities."""
+
+    return [
+        RecommendationPriorityResponse(
+            name=priority.name,
+            value=priority.value,
+            score=priority.value * 100,
+        )
+        for priority in RecommendationPriority
     ]
 
 

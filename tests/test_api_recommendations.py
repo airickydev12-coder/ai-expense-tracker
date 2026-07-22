@@ -204,3 +204,106 @@ def test_get_recommendation_by_key_not_found(
     assert response.json() == {
         "detail": "Recommendation not found.",
     }
+
+
+def test_get_recommendation_categories() -> None:
+    """Return all supported recommendation categories."""
+
+    response = client.get("/recommendations/categories")
+
+    assert response.status_code == 200
+
+    assert response.json() == [
+        {
+            "name": "CASH_FLOW",
+            "value": "Cash Flow",
+        },
+        {
+            "name": "BUDGET",
+            "value": "Budget",
+        },
+        {
+            "name": "DEBT",
+            "value": "Debt",
+        },
+        {
+            "name": "SAVINGS",
+            "value": "Savings",
+        },
+        {
+            "name": "GOALS",
+            "value": "Goals",
+        },
+        {
+            "name": "HEALTH",
+            "value": "Health",
+        },
+        {
+            "name": "BILLS",
+            "value": "Bills",
+        },
+        {
+            "name": "WEALTH",
+            "value": "Wealth",
+        },
+        {
+            "name": "INCOME",
+            "value": "Income",
+        },
+        {
+            "name": "EXPENSES",
+            "value": "Expenses",
+        },
+    ]
+
+
+def test_get_recommendation_priorities() -> None:
+    """Return all supported recommendation priorities."""
+
+    response = client.get("/recommendations/priorities")
+
+    assert response.status_code == 200
+
+    assert response.json() == [
+        {
+            "name": "LOW",
+            "value": 1,
+            "score": 100,
+        },
+        {
+            "name": "MEDIUM",
+            "value": 2,
+            "score": 200,
+        },
+        {
+            "name": "HIGH",
+            "value": 3,
+            "score": 300,
+        },
+        {
+            "name": "CRITICAL",
+            "value": 4,
+            "score": 400,
+        },
+    ]
+
+
+def test_recommendation_metadata_routes_are_not_treated_as_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep static metadata routes ahead of the dynamic key route."""
+
+    def fail_if_called(key: str) -> Recommendation | None:
+        raise AssertionError(f"Dynamic recommendation route received key: {key}")
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "get_recommendation_by_key",
+        fail_if_called,
+    )
+
+    categories_response = client.get("/recommendations/categories")
+    priorities_response = client.get("/recommendations/priorities")
+
+    assert categories_response.status_code == 200
+    assert priorities_response.status_code == 200

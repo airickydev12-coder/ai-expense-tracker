@@ -29,6 +29,21 @@ class RecommendationCategoryFilter(str, Enum):
     EXPENSES = "Expenses"
 
 
+class RecommendationPriorityResponse(BaseModel):
+    """Priority metadata returned by the recommendation API."""
+
+    name: str
+    value: int
+    score: int
+
+
+class RecommendationCategoryResponse(BaseModel):
+    """Category metadata returned by the recommendation API."""
+
+    name: str
+    value: str
+
+
 class RecommendationResponse(BaseModel):
     """Serialized representation of a financial recommendation."""
 
