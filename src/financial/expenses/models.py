@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 from src.financial.shared.categories import ExpenseCategory
 
@@ -10,7 +11,7 @@ class Expense:
     id: int
     name: str
     category: ExpenseCategory
-    amount: float
+    amount: Decimal
 
     def __post_init__(self) -> None:
         """Validate the expense after initialization."""
@@ -20,7 +21,10 @@ class Expense:
         if not self.name.strip():
             raise ValueError("Expense name cannot be empty.")
 
-        if self.amount < 0:
+        if not isinstance(self.amount, Decimal):
+            self.amount = Decimal(str(self.amount))
+
+        if self.amount < Decimal("0"):
             raise ValueError("Expense amount cannot be negative.")
 
         if not isinstance(self.category, ExpenseCategory):
@@ -32,7 +36,7 @@ class Expense:
             "id": self.id,
             "name": self.name,
             "category": self.category.value,
-            "amount": self.amount,
+            "amount": str(self.amount),
         }
 
     @classmethod
@@ -42,5 +46,5 @@ class Expense:
             id=int(data["id"]),
             name=data["name"],
             category=ExpenseCategory(data["category"]),
-            amount=float(data["amount"]),
+            amount=Decimal(str(data["amount"])),
         )

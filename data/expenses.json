@@ -3,6 +3,6 @@
         "id": 1,
         "name": "Electric",
         "category": "Utilities",
-        "amount": 125
+        "amount": "125"
     }
 ]

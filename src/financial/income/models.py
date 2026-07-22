@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass
@@ -7,7 +8,7 @@ class Income:
 
     id: int
     source: str
-    amount: float
+    amount: Decimal
 
     def __post_init__(self) -> None:
         """Validate the income after initialization."""
@@ -17,7 +18,10 @@ class Income:
         if not self.source.strip():
             raise ValueError("Income source cannot be empty.")
 
-        if self.amount < 0:
+        if not isinstance(self.amount, Decimal):
+            self.amount = Decimal(str(self.amount))
+
+        if self.amount < Decimal("0"):
             raise ValueError("Income amount cannot be negative.")
 
     def to_dict(self) -> dict:
@@ -25,7 +29,7 @@ class Income:
         return {
             "id": self.id,
             "source": self.source,
-            "amount": self.amount,
+            "amount": str(self.amount),
         }
 
     @classmethod
@@ -34,5 +38,5 @@ class Income:
         return cls(
             id=int(data["id"]),
             source=data["source"],
-            amount=float(data["amount"]),
+            amount=Decimal(str(data["amount"])),
         )

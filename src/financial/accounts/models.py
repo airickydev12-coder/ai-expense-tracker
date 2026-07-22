@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass
@@ -8,10 +9,13 @@ class Account:
     id: int
     name: str
     account_type: str
-    balance: float
+    balance: Decimal
 
     def __post_init__(self) -> None:
         """Validate the account after initialization."""
+        if not isinstance(self.balance, Decimal):
+            self.balance = Decimal(str(self.balance))
+
         if self.id <= 0:
             raise ValueError("Account ID must be greater than zero.")
 
@@ -27,7 +31,7 @@ class Account:
             "id": self.id,
             "name": self.name,
             "account_type": self.account_type,
-            "balance": self.balance,
+            "balance": str(self.balance),
         }
 
     @classmethod
@@ -37,5 +41,5 @@ class Account:
             id=int(data["id"]),
             name=data["name"],
             account_type=data["account_type"],
-            balance=float(data["balance"]),
+            balance=Decimal(str(data["balance"])),
         )

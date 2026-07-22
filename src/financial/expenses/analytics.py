@@ -1,12 +1,14 @@
+from decimal import Decimal
+
 from src.financial.expenses.models import Expense
 
 
-def get_total(expenses: list[Expense]) -> float:
+def get_total(expenses: list[Expense]) -> Decimal:
     """Calculate the total amount of all expenses."""
-    return sum(expense.amount for expense in expenses)
+    return sum((expense.amount for expense in expenses), Decimal("0"))
 
 
-def get_average(expenses: list[Expense]) -> float:
+def get_average(expenses: list[Expense]) -> Decimal:
     """
     Calculate the average expense amount.
 
@@ -14,23 +16,17 @@ def get_average(expenses: list[Expense]) -> float:
         expenses: List of expenses.
 
     Returns:
-        float: Average expense amount.
+        Decimal: Average expense amount.
     """
     if not expenses:
-        return 0.0
+        return Decimal("0")
 
-    return get_total(expenses) / len(expenses)
+    return get_total(expenses) / Decimal(len(expenses))
 
 
 def get_highest_expense(expenses: list[Expense]) -> Expense | None:
     """
     Find the expense with the highest amount.
-
-    Args:
-        expenses: List of expenses.
-
-    Returns:
-        Expense | None: The highest expense, or None if the list is empty.
     """
     if not expenses:
         return None
@@ -41,12 +37,6 @@ def get_highest_expense(expenses: list[Expense]) -> Expense | None:
 def get_lowest_expense(expenses: list[Expense]) -> Expense | None:
     """
     Find the expense with the lowest amount.
-
-    Args:
-        expenses: List of expenses.
-
-    Returns:
-        Expense | None: The lowest expense, or None if the list is empty.
     """
     if not expenses:
         return None
@@ -54,7 +44,7 @@ def get_lowest_expense(expenses: list[Expense]) -> Expense | None:
     return min(expenses, key=lambda expense: expense.amount)
 
 
-def get_category_totals(expenses: list[Expense]) -> dict[str, float]:
+def get_category_totals(expenses: list[Expense]) -> dict[str, Decimal]:
     """
     Calculate total spending by category.
 
@@ -62,15 +52,15 @@ def get_category_totals(expenses: list[Expense]) -> dict[str, float]:
         expenses: List of expenses.
 
     Returns:
-        dict[str, float]: Category names mapped to total spending.
+        dict[str, Decimal]: Category names mapped to total spending.
     """
-    totals: dict[str, float] = {}
+    totals: dict[str, Decimal] = {}
 
     for expense in expenses:
         category_name = expense.category.value
 
         if category_name not in totals:
-            totals[category_name] = 0.0
+            totals[category_name] = Decimal("0")
 
         totals[category_name] += expense.amount
 

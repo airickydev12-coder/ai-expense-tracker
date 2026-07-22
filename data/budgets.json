@@ -1,6 +1,6 @@
 [
     {
         "category": "Food",
-        "limit": 600
+        "limit": "600"
     }
 ]

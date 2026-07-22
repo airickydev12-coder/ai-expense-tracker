@@ -12,9 +12,19 @@ class DashboardResponse(BaseModel):
 
     total_expenses: float
     average_expense: float
+
     highest_expense: ExpenseResponse | None
     lowest_expense: ExpenseResponse | None
+
     category_totals: dict[str, float]
+
     budget_count: int
+
+    monthly_budget: float
+    remaining_budget: float
+    budget_used_percent: float
+
+    recommendation_count: int
+
     health_score: int
     health_status: str

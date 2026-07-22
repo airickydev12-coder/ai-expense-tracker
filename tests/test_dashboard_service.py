@@ -76,5 +76,11 @@ def test_build_dashboard(
 
     assert dashboard.budget_count == 2
 
+    assert dashboard.monthly_budget == 750.00
+    assert dashboard.remaining_budget == 600.00
+    assert dashboard.budget_used_percent == 20.0
+
+    assert dashboard.recommendation_count == 0
+
     assert dashboard.health_score == 65
     assert dashboard.health_status == "Fair"

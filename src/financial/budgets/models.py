@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 from src.financial.shared.categories import ExpenseCategory
 
@@ -8,11 +9,14 @@ class Budget:
     """Represents a spending budget for a category."""
 
     category: ExpenseCategory
-    limit: float
+    limit: Decimal
 
     def __post_init__(self) -> None:
         """Validate the budget after initialization."""
-        if self.limit < 0:
+        if not isinstance(self.limit, Decimal):
+            self.limit = Decimal(str(self.limit))
+
+        if self.limit < Decimal("0"):
             raise ValueError("Budget limit cannot be negative.")
 
         if not isinstance(self.category, ExpenseCategory):
@@ -22,7 +26,7 @@ class Budget:
         """Convert the budget to a dictionary for JSON storage."""
         return {
             "category": self.category.value,
-            "limit": self.limit,
+            "limit": str(self.limit),
         }
 
     @classmethod
@@ -30,5 +34,5 @@ class Budget:
         """Create a Budget from a dictionary."""
         return cls(
             category=ExpenseCategory(data["category"]),
-            limit=float(data["limit"]),
+            limit=Decimal(str(data["limit"])),
         )
