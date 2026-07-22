@@ -1,0 +1,325 @@
+# ADR-001: Clean Architecture
+
+## Status
+
+Accepted
+
+## Date
+
+2026-07-21
+
+---
+
+# Context
+
+The AI Expense Tracker is intended to grow beyond a simple expense tracking application into a comprehensive financial platform that includes:
+
+- Expense management
+- Budget management
+- Financial analytics
+- Financial health scoring
+- Recommendation engine
+- AI coaching
+- Future integrations with banking services and AI providers
+
+As the application grows, business logic must remain independent from web frameworks, persistence mechanisms, and external services.
+
+Without clear architectural boundaries, the codebase would become tightly coupled to FastAPI and other implementation details, making testing, maintenance, and future enhancements increasingly difficult.
+
+A layered architecture provides a consistent structure that separates responsibilities and promotes long-term maintainability.
+
+---
+
+# Decision
+
+The project adopts a Clean Architecture approach consisting of four primary layers.
+
+```
+                +----------------------+
+                |      API Layer       |
+                |  FastAPI Endpoints   |
+                +----------+-----------+
+                           |
+                           ▼
+                +----------------------+
+                | Application Layer    |
+                | Use Cases / Services |
+                +----------+-----------+
+                           |
+                           ▼
+                +----------------------+
+                |    Domain Layer      |
+                | Business Rules       |
+                +----------+-----------+
+                           |
+                           ▼
+                +----------------------+
+                | Infrastructure Layer |
+                | Files / DB / APIs    |
+                +----------------------+
+```
+
+Each layer has clearly defined responsibilities.
+
+---
+
+# Layer Responsibilities
+
+## API Layer
+
+The API layer is responsible for:
+
+- HTTP routing
+- Request validation
+- Response serialization
+- HTTP status codes
+- Dependency injection
+
+The API layer must **not** contain business logic.
+
+Examples include:
+
+- FastAPI routers
+- Pydantic API schemas
+
+Typical location:
+
+```
+src/api/
+```
+
+---
+
+## Application Layer
+
+The application layer coordinates business operations.
+
+Responsibilities include:
+
+- Executing use cases
+- Orchestrating domain services
+- Combining multiple domain operations
+- Preparing data for API consumption
+
+Application services may call multiple domain services but should avoid containing core business rules.
+
+Typical location:
+
+```
+src/financial/application/
+```
+
+Examples include:
+
+- Dashboard builder
+- Financial snapshot builder
+- Recommendation application service
+
+---
+
+## Domain Layer
+
+The domain layer contains the business rules of the application.
+
+Responsibilities include:
+
+- Domain models
+- Business policies
+- Financial calculations
+- Recommendation rules
+- Analytics logic
+- Budget logic
+
+The domain layer should not depend on FastAPI or other web frameworks.
+
+This layer represents the core of the application.
+
+Typical location:
+
+```
+src/financial/
+```
+
+---
+
+## Infrastructure Layer
+
+The infrastructure layer interacts with external systems.
+
+Examples include:
+
+- File storage
+- Databases
+- External APIs
+- Authentication providers
+- Banking integrations
+- AI providers
+
+Infrastructure components should implement interfaces required by the application rather than driving business logic.
+
+---
+
+# Dependency Rule
+
+Dependencies always point inward.
+
+```
+API
+    ↓
+Application
+    ↓
+Domain
+```
+
+Infrastructure supports these layers but should not dictate business behavior.
+
+The Domain layer must not depend on:
+
+- FastAPI
+- Pydantic
+- Database libraries
+- HTTP clients
+- User interface frameworks
+
+---
+
+# Benefits
+
+This architecture provides several advantages.
+
+## Separation of Concerns
+
+Each layer has a clearly defined responsibility.
+
+---
+
+## Testability
+
+Business logic can be tested independently of FastAPI or infrastructure.
+
+Most unit tests execute entirely within the domain layer.
+
+---
+
+## Maintainability
+
+Changes to the API should have minimal impact on business logic.
+
+Likewise, changes to persistence or infrastructure should not require rewriting domain rules.
+
+---
+
+## Extensibility
+
+New interfaces can be added without modifying core business logic.
+
+Examples include:
+
+- REST API
+- CLI
+- Scheduled jobs
+- AI agents
+- Mobile applications
+
+All can reuse the same application and domain services.
+
+---
+
+## Reusability
+
+Application services encapsulate business workflows that can be reused across multiple interfaces.
+
+---
+
+# Consequences
+
+## Positive
+
+- Clear project organization
+- Easier testing
+- Reduced coupling
+- Improved scalability
+- Easier onboarding for new contributors
+- Better long-term maintainability
+
+## Trade-offs
+
+- More files than a simple CRUD application
+- Additional abstraction layers
+- Slightly higher learning curve
+- Requires discipline to preserve layer boundaries
+
+The benefits outweigh these costs for a project intended to evolve into a production-quality financial platform.
+
+---
+
+# Alternatives Considered
+
+## Traditional MVC
+
+Rejected because business logic tends to migrate into controllers, increasing coupling between the web framework and domain logic.
+
+---
+
+## Fat Models
+
+Rejected because domain models become responsible for persistence, validation, and business rules simultaneously, reducing maintainability.
+
+---
+
+## Feature-Based Organization Without Layers
+
+Rejected because feature grouping alone does not enforce separation of concerns or dependency direction.
+
+---
+
+# Related Files
+
+Examples of the current implementation include:
+
+```
+src/api/
+src/financial/application/
+src/financial/recommendations/
+src/financial/dashboard/
+src/financial/analytics/
+```
+
+Representative application services include:
+
+- Dashboard Application Service
+- Recommendation Application Service
+- Financial Snapshot Builder
+
+Representative domain components include:
+
+- Recommendation Engine
+- Analytics
+- Budgets
+- Financial Health
+- Expense Management
+
+---
+
+# Future Considerations
+
+This architecture establishes the foundation for future enhancements, including:
+
+- Authentication and authorization
+- Banking integrations
+- AI coaching
+- Cloud persistence
+- Mobile clients
+- Event-driven processing
+- Background jobs
+- Additional API versions
+
+These capabilities should integrate by extending the existing layers rather than bypassing them.
+
+---
+
+# Summary
+
+The AI Expense Tracker adopts a Clean Architecture approach to separate business logic from framework and infrastructure concerns.
+
+This decision promotes maintainability, scalability, testability, and long-term flexibility while providing a consistent architectural foundation for future development.

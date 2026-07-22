@@ -91,3 +91,47 @@ def test_get_recommendations_rejects_invalid_limit() -> None:
     response = client.get("/recommendations?limit=0")
 
     assert response.status_code == 422
+
+
+def test_get_recommendation_by_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return a recommendation matching the requested key."""
+
+    recommendation = Recommendation(
+        priority="HIGH",
+        category="budget",
+        title="Reduce dining expenses",
+        message="Dining expenses are above your target.",
+        action="Set a weekly dining limit.",
+        rationale="Dining represents a large share of spending.",
+        source_rule="DiningSpendingRule",
+    )
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "get_recommendation_by_key",
+        lambda key: recommendation,
+    )
+
+    response = client.get("/recommendations/budget:reduce_dining_expenses")
+
+    assert response.status_code == 200
+    assert response.json()["key"] == "budget:reduce_dining_expenses"
+
+
+def test_get_recommendation_by_key_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return 404 when the recommendation does not exist."""
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "get_recommendation_by_key",
+        lambda key: None,
+    )
+
+    response = client.get("/recommendations/unknown")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Recommendation not found."}

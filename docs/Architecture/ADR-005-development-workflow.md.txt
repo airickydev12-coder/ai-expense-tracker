@@ -1,0 +1,337 @@
+# ADR-005: Development Workflow
+
+## Status
+
+Accepted
+
+## Date
+
+2026-07-21
+
+---
+
+# Context
+
+As the AI Expense Tracker has grown, the complexity of implementing new features has increased.
+
+Features now commonly involve multiple architectural layers, including:
+
+- Domain models
+- Application services
+- Adapters
+- API routes
+- API schemas
+- Tests
+- Documentation
+
+Without a consistent development workflow, new features risk introducing:
+
+- Duplicate logic
+- Architectural inconsistencies
+- Missing tests
+- Incomplete documentation
+- Technical debt
+
+To maintain a clean and scalable codebase, the project adopts a standard workflow for implementing new functionality.
+
+---
+
+# Decision
+
+All new features should follow a consistent implementation process.
+
+Rather than immediately writing code, development begins with understanding the existing architecture and identifying reusable components.
+
+The workflow emphasizes incremental, well-tested vertical slices that integrate cleanly into the existing system.
+
+---
+
+# Standard Development Workflow
+
+## Step 1 – Understand the Requirement
+
+Clearly define the feature before writing code.
+
+Questions include:
+
+- What problem does it solve?
+- Which architectural layers are affected?
+- Is this a new feature or an extension of an existing one?
+
+---
+
+## Step 2 – Inspect the Existing Architecture
+
+Before implementing anything:
+
+- Review the current project structure.
+- Inspect existing services.
+- Examine related models.
+- Identify reusable components.
+- Understand existing conventions.
+
+The goal is to extend the architecture rather than duplicate it.
+
+---
+
+## Step 3 – Reuse Before Creating
+
+Before creating:
+
+- New services
+- New models
+- New APIs
+- New utilities
+
+Determine whether an existing component can be extended instead.
+
+Duplicated functionality should be avoided whenever practical.
+
+---
+
+## Step 4 – Design the Smallest Change
+
+Implement only the code necessary to support the feature.
+
+Avoid introducing unnecessary abstractions or speculative functionality.
+
+Each feature should represent the smallest complete vertical slice.
+
+---
+
+## Step 5 – Implement
+
+Implementation should respect the existing architectural boundaries.
+
+Examples:
+
+- Business rules belong in the Domain layer.
+- Coordination belongs in the Application layer.
+- HTTP concerns belong in the API layer.
+
+No layer should assume responsibilities assigned to another.
+
+---
+
+## Step 6 – Test
+
+Every completed feature should include appropriate tests.
+
+Examples include:
+
+- Unit tests
+- Application service tests
+- API endpoint tests
+
+Tests should validate both expected behavior and error conditions.
+
+---
+
+## Step 7 – Verify
+
+Before committing code:
+
+Run the complete test suite.
+
+```
+python -m pytest
+```
+
+All tests should pass.
+
+The application should also run successfully after the changes.
+
+---
+
+## Step 8 – Document
+
+If the implementation introduces an architectural decision, create or update the appropriate ADR.
+
+If public behavior changes, update project documentation.
+
+Documentation is considered part of the feature.
+
+---
+
+## Step 9 – Commit
+
+Commit only completed vertical slices.
+
+A typical feature should include:
+
+- Implementation
+- Tests
+- Documentation
+
+Commit messages should clearly describe the completed work.
+
+Examples:
+
+```
+Add recommendation API
+
+Implement dashboard analytics
+
+Add financial snapshot service
+```
+
+---
+
+# Guiding Principles
+
+The workflow is guided by the following principles.
+
+## Architecture Before Implementation
+
+Understand the existing design before modifying it.
+
+---
+
+## Consistency Over Creativity
+
+Follow established project conventions whenever practical.
+
+Consistency improves readability and maintainability.
+
+---
+
+## Small Vertical Slices
+
+Features should be implemented in complete, testable increments.
+
+---
+
+## Test Early
+
+Testing is part of implementation—not a separate activity performed later.
+
+---
+
+## Documentation Is Code
+
+Architecture documentation evolves with the application.
+
+Major architectural decisions should always be recorded.
+
+---
+
+# Benefits
+
+Following this workflow provides several advantages.
+
+## Reduced Duplication
+
+Existing components are reused whenever possible.
+
+---
+
+## Better Architecture
+
+Features naturally align with existing project patterns.
+
+---
+
+## Higher Quality
+
+Testing and documentation become standard parts of development.
+
+---
+
+## Easier Maintenance
+
+Future developers can understand not only the code but also the reasoning behind it.
+
+---
+
+## Predictable Development
+
+Every feature follows the same implementation process.
+
+---
+
+# Consequences
+
+## Positive
+
+- Consistent implementation quality
+- Reduced technical debt
+- Improved maintainability
+- Better onboarding
+- More reliable testing
+- Stronger architectural consistency
+
+## Trade-offs
+
+- Initial implementation may take slightly longer due to architecture review.
+- Additional documentation requires discipline.
+
+These trade-offs are acceptable because they improve long-term project quality.
+
+---
+
+# Alternatives Considered
+
+## Code First
+
+Rejected.
+
+Writing code before understanding the existing architecture often results in duplicate implementations and inconsistent designs.
+
+---
+
+## Documentation After Completion
+
+Rejected.
+
+Important architectural reasoning is frequently forgotten if documentation is postponed.
+
+---
+
+## Testing at the End
+
+Rejected.
+
+Delaying testing increases debugging effort and allows defects to spread across multiple layers.
+
+---
+
+# Related Files
+
+Representative examples include:
+
+```
+docs/architecture/
+
+tests/
+
+src/api/
+
+src/financial/application/
+
+src/financial/
+```
+
+This workflow applies to all future development within the project.
+
+---
+
+# Future Considerations
+
+As the project grows, the workflow may expand to include:
+
+- Automated code quality checks
+- Static analysis
+- Continuous integration
+- Performance testing
+- Security reviews
+- Automated architecture validation
+
+These enhancements should build upon the workflow established by this ADR.
+
+---
+
+# Summary
+
+The AI Expense Tracker follows a structured development workflow that emphasizes understanding the existing architecture, implementing small vertical slices, testing thoroughly, documenting significant decisions, and committing complete features.
+
+This workflow promotes consistency, maintainability, and long-term project quality while reducing technical debt and architectural drift.

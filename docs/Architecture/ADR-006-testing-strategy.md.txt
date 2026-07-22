@@ -1,0 +1,375 @@
+# ADR-006: Testing Strategy
+
+## Status
+
+Accepted
+
+## Date
+
+2026-07-21
+
+---
+
+# Context
+
+The AI Expense Tracker is designed as a layered application consisting of:
+
+- API Layer
+- Application Layer
+- Domain Layer
+- Infrastructure Layer
+
+As the application grows, confidence in new features depends on a comprehensive and maintainable testing strategy.
+
+The project therefore adopts a layered testing approach that validates business logic, application workflows, and public APIs independently.
+
+---
+
+# Decision
+
+Every production feature must include automated tests appropriate to the layer in which the feature is implemented.
+
+Testing is considered part of the implementation rather than an activity performed after development.
+
+Features are not considered complete until the relevant tests pass.
+
+---
+
+# Testing Philosophy
+
+The project follows several core principles.
+
+## Test Behavior
+
+Tests should verify observable behavior rather than implementation details.
+
+Tests should answer:
+
+- What should happen?
+- What should never happen?
+
+Rather than:
+
+- Which internal function was called?
+- How many loops executed?
+
+---
+
+## Test the Smallest Unit Possible
+
+Whenever practical:
+
+- Domain logic should be tested in isolation.
+- Application services should be tested independently.
+- API routes should be tested separately.
+
+Smaller tests are easier to understand, execute faster, and are more resilient to refactoring.
+
+---
+
+## Keep Layers Independent
+
+Each layer should primarily test its own responsibilities.
+
+### Domain Layer
+
+Tests should verify:
+
+- Financial calculations
+- Recommendation rules
+- Validation
+- Business invariants
+- Domain models
+
+Domain tests should not require FastAPI or HTTP.
+
+---
+
+### Application Layer
+
+Tests should verify:
+
+- Use cases
+- Service orchestration
+- Snapshot builders
+- Adapters
+- Workflow coordination
+
+Application tests should avoid HTTP whenever possible.
+
+---
+
+### API Layer
+
+API tests verify:
+
+- Routing
+- Request validation
+- Response serialization
+- Status codes
+- Query parameters
+- Error responses
+
+Business rules should already be validated by lower-layer tests.
+
+---
+
+# Test Pyramid
+
+The project follows a testing pyramid.
+
+```
+                API Tests
+                   ▲
+          Application Tests
+                   ▲
+            Domain Unit Tests
+```
+
+Most tests should exist in the domain layer.
+
+Application tests should validate orchestration.
+
+API tests should validate public behavior.
+
+---
+
+# Mocking Strategy
+
+Mocks should isolate external dependencies.
+
+Examples include:
+
+- File storage
+- Databases
+- External APIs
+- Banking providers
+- AI providers
+
+Business rules should generally not be mocked.
+
+Instead, real domain objects should be exercised whenever practical.
+
+---
+
+# API Testing
+
+API endpoints should be tested using FastAPI's TestClient.
+
+Typical API tests verify:
+
+- Successful responses
+- Validation errors
+- Empty responses
+- Invalid parameters
+- HTTP status codes
+
+Application services may be mocked to isolate API behavior.
+
+---
+
+# Domain Testing
+
+Domain tests should verify business behavior directly.
+
+Examples include:
+
+- Recommendation scoring
+- Budget calculations
+- Analytics
+- Financial health calculations
+- Validation
+
+These tests should be deterministic and fast.
+
+---
+
+# Application Service Testing
+
+Application services should be tested independently from HTTP.
+
+Typical responsibilities include:
+
+- Coordinating services
+- Building snapshots
+- Calling recommendation engines
+- Adapters
+- Returning domain objects
+
+Dependencies may be mocked when appropriate.
+
+---
+
+# Regression Testing
+
+Whenever a defect is fixed:
+
+1. Add a test that reproduces the defect.
+2. Verify the test fails.
+3. Fix the implementation.
+4. Verify the test passes.
+
+Every bug should increase the project's automated test coverage.
+
+---
+
+# Test Organization
+
+Tests should mirror the source structure whenever practical.
+
+Example:
+
+```
+src/
+    api/
+    financial/
+        application/
+        recommendations/
+        analytics/
+
+tests/
+    test_api_dashboard.py
+    test_api_recommendations.py
+    test_recommendation_engine.py
+    test_financial_snapshot.py
+```
+
+Keeping test organization aligned with the source code improves discoverability.
+
+---
+
+# Continuous Verification
+
+Before committing code:
+
+Run the full test suite.
+
+```
+python -m pytest
+```
+
+All tests should pass.
+
+Features should not be committed with failing tests.
+
+---
+
+# Benefits
+
+## Confidence
+
+Developers can refactor safely.
+
+---
+
+## Faster Development
+
+Defects are identified early.
+
+---
+
+## Documentation
+
+Tests demonstrate expected behavior.
+
+---
+
+## Maintainability
+
+Changes that break behavior are detected immediately.
+
+---
+
+## Quality
+
+The project maintains a consistently high level of reliability.
+
+---
+
+# Consequences
+
+## Positive
+
+- Better software quality
+- Easier refactoring
+- Reduced regressions
+- Faster debugging
+- Improved maintainability
+
+## Trade-offs
+
+- Additional development time
+- Larger codebase
+- Ongoing test maintenance
+
+These costs are justified by the increased reliability of the application.
+
+---
+
+# Alternatives Considered
+
+## Manual Testing
+
+Rejected.
+
+Manual testing is difficult to repeat consistently and becomes impractical as the application grows.
+
+---
+
+## API-Only Testing
+
+Rejected.
+
+API tests alone cannot effectively isolate business logic defects.
+
+---
+
+## Domain-Only Testing
+
+Rejected.
+
+Public APIs also require verification of request validation, routing, and serialization.
+
+---
+
+# Related Files
+
+Representative examples include:
+
+```
+tests/
+
+tests/test_api_dashboard.py
+
+tests/test_api_recommendations.py
+
+tests/test_dashboard_application_service.py
+
+tests/test_recommendation_engine.py
+```
+
+Future tests should follow the same layered approach.
+
+---
+
+# Future Considerations
+
+As the project grows, testing may expand to include:
+
+- Integration tests
+- Performance tests
+- Load tests
+- Security tests
+- End-to-end UI tests
+- Continuous Integration (CI)
+- Automated coverage reporting
+
+These additions should complement—not replace—the layered testing strategy defined by this ADR.
+
+---
+
+# Summary
+
+The AI Expense Tracker adopts a layered testing strategy that validates domain logic, application services, and API endpoints independently.
+
+Testing is considered an essential part of every feature and is required before code is committed, ensuring the application remains reliable, maintainable, and scalable as it evolves.

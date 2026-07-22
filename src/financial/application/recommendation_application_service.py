@@ -27,3 +27,24 @@ def build_recommendations(
         rule_snapshot,
         limit=limit,
     )
+
+
+def get_recommendation_by_key(
+    key: str,
+) -> Recommendation | None:
+    """
+    Return a recommendation matching the supplied key.
+
+    Returns None if no recommendation exists.
+    """
+
+    recommendations = build_recommendations()
+
+    return next(
+        (
+            recommendation
+            for recommendation in recommendations
+            if recommendation.key == key
+        ),
+        None,
+    )

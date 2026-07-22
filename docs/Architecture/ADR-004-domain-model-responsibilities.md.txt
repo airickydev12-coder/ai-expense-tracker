@@ -1,0 +1,297 @@
+# ADR-004: Domain Model Responsibilities
+
+## Status
+
+Accepted
+
+## Date
+
+2026-07-21
+
+---
+
+# Context
+
+The Domain Layer represents the core business logic of the AI Expense Tracker.
+
+As the application grows, domain models will become increasingly important. They represent the business concepts of the system rather than database tables or API payloads.
+
+Examples include:
+
+- Expense
+- Budget
+- Financial Snapshot
+- Recommendation
+- Financial Health
+- Analytics
+
+Without clearly defining the responsibilities of domain models, business logic can gradually migrate into API routes, application services, or infrastructure code.
+
+This results in duplicated logic, inconsistent behavior, and more difficult testing.
+
+The project therefore requires clear guidelines describing what belongs inside a domain model.
+
+---
+
+# Decision
+
+Domain models are responsible for representing business concepts and the behavior directly associated with those concepts.
+
+A domain model should own its own business behavior whenever that behavior naturally belongs to the model.
+
+Examples include:
+
+- Derived values
+- Validation
+- Business calculations
+- Business state
+- Business invariants
+
+Domain models should remain independent from frameworks, databases, and HTTP concerns.
+
+---
+
+# Responsibilities
+
+Domain models may contain:
+
+- Business properties
+- Computed properties
+- Business calculations
+- Domain validation
+- Helper methods directly related to the model
+- Serialization when the serialized form represents the canonical business representation
+
+Examples:
+
+```
+Recommendation.key
+
+Recommendation.score()
+
+Recommendation.is_actionable
+
+Recommendation.to_dict()
+```
+
+These behaviors are intrinsic to the Recommendation model and therefore belong within the model itself.
+
+---
+
+# What Does NOT Belong
+
+Domain models should not contain:
+
+- HTTP logic
+- FastAPI imports
+- Pydantic API schemas
+- Database queries
+- File access
+- Logging
+- Dependency injection
+- User interface code
+- API request handling
+
+Those responsibilities belong to other architectural layers.
+
+---
+
+# Business Behavior
+
+Whenever possible, business behavior should live beside the data it operates on.
+
+For example:
+
+Instead of:
+
+```
+API
+    │
+    ├── calculate_score()
+    ├── build_key()
+    └── determine_actionable()
+```
+
+Prefer:
+
+```
+Recommendation
+    ├── score()
+    ├── key
+    └── is_actionable
+```
+
+Keeping behavior with the model improves readability and reduces duplication.
+
+---
+
+# Serialization
+
+Some domain models expose serialization methods.
+
+Example:
+
+```
+Recommendation.to_dict()
+```
+
+Serialization is acceptable when:
+
+- it represents the canonical business representation,
+- multiple consumers require the same representation, and
+- it avoids duplicated mapping logic.
+
+Serialization should not introduce framework dependencies.
+
+For example, domain models should not return FastAPI or Pydantic response objects.
+
+---
+
+# Computed Properties
+
+Computed values belong inside the domain model whenever they describe the model itself.
+
+Examples include:
+
+- Recommendation score
+- Recommendation key
+- Recommendation priority ordering
+- Financial health grade
+- Budget utilization percentage
+
+Consumers should not need to recalculate these values.
+
+---
+
+# Validation
+
+Domain models may enforce business rules.
+
+Examples include:
+
+- Negative amounts are not allowed.
+- Recommendation priority must be valid.
+- Categories must exist.
+- Required business fields cannot be empty.
+
+Business validation belongs inside the domain layer rather than the API.
+
+---
+
+# Benefits
+
+## Encapsulation
+
+Business behavior remains with the business object.
+
+---
+
+## Reusability
+
+Every consumer receives identical behavior.
+
+---
+
+## Maintainability
+
+Business logic changes occur in one location.
+
+---
+
+## Testability
+
+Domain models can be tested independently from the API and infrastructure.
+
+---
+
+## Consistency
+
+Different interfaces cannot accidentally implement business rules differently.
+
+---
+
+# Consequences
+
+## Positive
+
+- Clear ownership of business behavior
+- Less duplicated logic
+- Easier unit testing
+- Cleaner application services
+- Smaller API routes
+
+## Trade-offs
+
+- Domain models become richer than simple data containers.
+- Developers must carefully distinguish business behavior from infrastructure behavior.
+
+These trade-offs support the long-term maintainability of the project.
+
+---
+
+# Alternatives Considered
+
+## Anemic Domain Models
+
+Rejected.
+
+Models containing only data force business logic into services, controllers, or utility modules, leading to duplication and weaker encapsulation.
+
+---
+
+## Fat Controllers
+
+Rejected.
+
+Business behavior should not be implemented inside API routes.
+
+---
+
+## Utility Classes
+
+Rejected.
+
+Shared business calculations often lose their natural ownership and become difficult to discover and maintain.
+
+---
+
+# Related Files
+
+Representative examples include:
+
+```
+src/financial/recommendations/models.py
+
+src/financial/analytics/
+
+src/financial/budgets/
+
+src/financial/health/
+```
+
+Future domain models should follow the same design principles.
+
+---
+
+# Future Considerations
+
+As additional financial domains are introduced, domain models may include:
+
+- Net Worth
+- Investment Portfolio
+- Debt Management
+- Savings Goals
+- Retirement Planning
+- AI Coaching Context
+
+Each should own the business behavior naturally associated with the concept while remaining independent of frameworks and infrastructure.
+
+---
+
+# Summary
+
+Domain models represent the core business concepts of the AI Expense Tracker.
+
+They own the business behavior directly associated with those concepts, including computed values, validation, and business calculations, while remaining independent of framework and infrastructure concerns.
+
+This decision strengthens encapsulation, improves testability, and helps maintain a clean separation of responsibilities throughout the application.

@@ -1,0 +1,259 @@
+# ADR-003: Application Adapters
+
+## Status
+
+Accepted
+
+## Date
+
+2026-07-21
+
+---
+
+# Context
+
+As the AI Expense Tracker has evolved, new application services have required data in formats that differ from the existing domain models.
+
+A notable example is the Recommendation Engine.
+
+The Recommendation Engine expects a `RecommendationSnapshot` containing only the information required to evaluate recommendation rules.
+
+However, the application layer produces a richer `FinancialSnapshot` that aggregates data from multiple financial domains.
+
+Rather than modifying the Recommendation Engine to understand every application model, or expanding the Recommendation Snapshot to include unrelated information, an intermediate translation layer became necessary.
+
+---
+
+# Decision
+
+The project adopts **Application Adapters** to translate between application models and domain models.
+
+Application Adapters exist within the application layer and are responsible for converting one model into another without introducing business logic.
+
+```
+Application Service
+        │
+        ▼
+Financial Snapshot
+        │
+        ▼
+Application Adapter
+        │
+        ▼
+Recommendation Snapshot
+        │
+        ▼
+Recommendation Engine
+```
+
+Adapters isolate model translation while preserving the independence of each layer.
+
+---
+
+# Responsibilities
+
+Application Adapters are responsible for:
+
+- Translating between models
+- Mapping fields
+- Providing default values when appropriate
+- Preserving compatibility between layers
+- Shielding domain services from application-specific models
+
+Adapters are **not** responsible for:
+
+- Business rules
+- Financial calculations
+- HTTP handling
+- Persistence
+- User interface concerns
+
+---
+
+# Why Adapters Were Chosen
+
+Several options were considered.
+
+### Option 1: Expand RecommendationSnapshot
+
+Rejected.
+
+The Recommendation Engine would become dependent on unrelated financial information and violate the principle of keeping domain models focused.
+
+---
+
+### Option 2: Modify Recommendation Engine
+
+Rejected.
+
+The Recommendation Engine should evaluate recommendations—not understand every application model produced by the system.
+
+Changing it for each new feature would increase coupling and reduce maintainability.
+
+---
+
+### Option 3: Duplicate Mapping Logic
+
+Rejected.
+
+Allowing each application service to manually construct recommendation snapshots would duplicate code and increase the likelihood of inconsistencies.
+
+---
+
+### Selected Approach
+
+A dedicated adapter performs model translation in one location.
+
+This keeps responsibilities clear while avoiding duplicated mapping logic.
+
+---
+
+# Adapter Design Principles
+
+Application Adapters should:
+
+- Perform one translation
+- Be deterministic
+- Be stateless
+- Avoid side effects
+- Avoid business decisions
+- Be independently testable
+
+Adapters should remain simple enough that they can be understood by reading the source code without additional documentation.
+
+---
+
+# Dependency Direction
+
+Adapters belong to the application layer.
+
+```
+API
+    │
+    ▼
+Application
+    │
+    ├── Services
+    ├── Builders
+    └── Adapters
+            │
+            ▼
+Domain
+```
+
+The domain layer should never depend on adapters.
+
+Instead, application services prepare domain objects before invoking domain logic.
+
+---
+
+# Benefits
+
+## Decoupling
+
+Application models and domain models evolve independently.
+
+---
+
+## Maintainability
+
+Changes to one model require modifications in only one location.
+
+---
+
+## Reusability
+
+Multiple application services can reuse the same adapter.
+
+---
+
+## Testability
+
+Adapters can be tested independently from both the application service and the domain service.
+
+---
+
+## Stability
+
+Domain services remain stable even as application workflows evolve.
+
+---
+
+# Consequences
+
+## Positive
+
+- Reduced coupling
+- Centralized mapping logic
+- Improved readability
+- Easier testing
+- Clear separation of responsibilities
+
+## Trade-offs
+
+- Additional source files
+- One extra layer of indirection
+- Slight increase in project structure complexity
+
+These trade-offs are acceptable because they improve long-term maintainability.
+
+---
+
+# Current Example
+
+The Recommendation feature currently follows this flow.
+
+```
+FinancialSnapshot
+        │
+        ▼
+RecommendationSnapshotAdapter
+        │
+        ▼
+RecommendationSnapshot
+        │
+        ▼
+Recommendation Engine
+```
+
+The adapter shields the Recommendation Engine from changes made to the Financial Snapshot model.
+
+---
+
+# Related Files
+
+Representative implementation files include:
+
+```
+src/financial/application/recommendation_snapshot_adapter.py
+
+src/financial/application/recommendation_application_service.py
+
+src/financial/application/financial_snapshot_application_service.py
+```
+
+Future adapters should follow the same design principles.
+
+---
+
+# Future Considerations
+
+Additional adapters may be introduced for:
+
+- Banking integrations
+- AI prompt generation
+- Notification services
+- Reporting
+- Data export
+- External APIs
+- Mobile application DTOs
+
+Each adapter should remain focused on model translation rather than business behavior.
+
+---
+
+# Summary
+
+The AI Expense Tracker uses Application Adapters to translate between application models and domain models while preserving clean architectural boundaries.
+
+Adapters isolate model translation, reduce coupling, eliminate duplicated mapping logic, and allow both the application layer and domain layer to evolve independently.
