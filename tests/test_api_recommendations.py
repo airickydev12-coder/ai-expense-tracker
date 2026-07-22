@@ -6,9 +6,25 @@ from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.routers import recommendations as recommendations_router
 from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 
 
 client = TestClient(app)
+
+
+def make_test_recommendation() -> Recommendation:
+    """Create a recommendation used by API tests."""
+
+    return Recommendation(
+        priority=RecommendationPriority.HIGH,
+        category=RecommendationCategory.BUDGET,
+        title="Reduce dining expenses",
+        message="Dining expenses are above your target.",
+        action="Set a weekly dining limit.",
+        rationale="Dining represents a large share of spending.",
+        source_rule="DiningSpendingRule",
+    )
 
 
 def test_get_recommendations(
@@ -17,21 +33,13 @@ def test_get_recommendations(
     """Return serialized financial recommendations."""
 
     test_recommendations = [
-        Recommendation(
-            priority="HIGH",
-            category="budget",
-            title="Reduce dining expenses",
-            message="Dining expenses are above your target.",
-            action="Set a weekly dining limit.",
-            rationale=("Dining represents a large share of spending."),
-            source_rule="DiningSpendingRule",
-        ),
+        make_test_recommendation(),
     ]
 
     monkeypatch.setattr(
         recommendations_router,
         "build_recommendations",
-        lambda limit=None: test_recommendations,
+        lambda priority=None, category=None, limit=None: (test_recommendations),
     )
 
     response = client.get("/recommendations")
@@ -50,25 +58,27 @@ def test_get_recommendations(
         "title": "Reduce dining expenses",
         "message": "Dining expenses are above your target.",
         "action": "Set a weekly dining limit.",
-        "rationale": ("Dining represents a large share of spending."),
+        "rationale": "Dining represents a large share of spending.",
         "source_rule": "DiningSpendingRule",
         "is_actionable": True,
     }
 
 
-def test_get_recommendations_passes_limit(
+def test_get_recommendations_passes_filters_and_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Pass the requested recommendation limit to the service."""
+    """Pass filters and limit to the application service."""
 
-    captured_limit: int | None = None
+    captured_arguments: dict[str, object] = {}
 
     def fake_build_recommendations(
+        priority: str | None = None,
+        category: str | None = None,
         limit: int | None = None,
     ) -> list[Recommendation]:
-        nonlocal captured_limit
-
-        captured_limit = limit
+        captured_arguments["priority"] = priority
+        captured_arguments["category"] = category
+        captured_arguments["limit"] = limit
 
         return []
 
@@ -78,11 +88,48 @@ def test_get_recommendations_passes_limit(
         fake_build_recommendations,
     )
 
-    response = client.get("/recommendations?limit=3")
+    response = client.get(
+        "/recommendations" "?priority=HIGH" "&category=Budget" "&limit=3"
+    )
 
     assert response.status_code == 200
     assert response.json() == []
-    assert captured_limit == 3
+
+    assert captured_arguments == {
+        "priority": "HIGH",
+        "category": "Budget",
+        "limit": 3,
+    }
+
+
+def test_get_recommendations_accepts_cash_flow_category(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Accept category values containing spaces."""
+
+    captured_category: str | None = None
+
+    def fake_build_recommendations(
+        priority: str | None = None,
+        category: str | None = None,
+        limit: int | None = None,
+    ) -> list[Recommendation]:
+        nonlocal captured_category
+
+        captured_category = category
+        return []
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "build_recommendations",
+        fake_build_recommendations,
+    )
+
+    response = client.get("/recommendations?category=Cash%20Flow")
+
+    assert response.status_code == 200
+    assert response.json() == []
+    assert captured_category == "Cash Flow"
 
 
 def test_get_recommendations_rejects_invalid_limit() -> None:
@@ -93,20 +140,28 @@ def test_get_recommendations_rejects_invalid_limit() -> None:
     assert response.status_code == 422
 
 
+def test_get_recommendations_rejects_invalid_priority() -> None:
+    """Reject unsupported recommendation priorities."""
+
+    response = client.get("/recommendations?priority=URGENT")
+
+    assert response.status_code == 422
+
+
+def test_get_recommendations_rejects_invalid_category() -> None:
+    """Reject unsupported recommendation categories."""
+
+    response = client.get("/recommendations?category=Shopping")
+
+    assert response.status_code == 422
+
+
 def test_get_recommendation_by_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Return a recommendation matching the requested key."""
 
-    recommendation = Recommendation(
-        priority="HIGH",
-        category="budget",
-        title="Reduce dining expenses",
-        message="Dining expenses are above your target.",
-        action="Set a weekly dining limit.",
-        rationale="Dining represents a large share of spending.",
-        source_rule="DiningSpendingRule",
-    )
+    recommendation = make_test_recommendation()
 
     monkeypatch.setattr(
         recommendations_router,
@@ -117,7 +172,19 @@ def test_get_recommendation_by_key(
     response = client.get("/recommendations/budget:reduce_dining_expenses")
 
     assert response.status_code == 200
-    assert response.json()["key"] == "budget:reduce_dining_expenses"
+
+    assert response.json() == {
+        "key": "budget:reduce_dining_expenses",
+        "priority": "HIGH",
+        "category": "Budget",
+        "score": 300,
+        "title": "Reduce dining expenses",
+        "message": "Dining expenses are above your target.",
+        "action": "Set a weekly dining limit.",
+        "rationale": "Dining represents a large share of spending.",
+        "source_rule": "DiningSpendingRule",
+        "is_actionable": True,
+    }
 
 
 def test_get_recommendation_by_key_not_found(
@@ -134,4 +201,6 @@ def test_get_recommendation_by_key_not_found(
     response = client.get("/recommendations/unknown")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Recommendation not found."}
+    assert response.json() == {
+        "detail": "Recommendation not found.",
+    }

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import cast
 
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority
@@ -8,8 +9,8 @@ from src.financial.recommendations.priority import RecommendationPriority
 class Recommendation:
     """Represents an actionable financial recommendation."""
 
-    priority: RecommendationPriority | str
-    category: RecommendationCategory | str
+    priority: RecommendationPriority
+    category: RecommendationCategory
     title: str
     message: str
     action: str
@@ -20,14 +21,8 @@ class Recommendation:
         """Normalize recommendation fields."""
 
         if isinstance(self.priority, str):
-            normalized = (
-                self.priority.upper()
-                .strip()
-                .replace(" ", "_")
-            )
-            self.priority = RecommendationPriority[
-                normalized
-            ]
+            normalized = self.priority.upper().strip().replace(" ", "_")
+            self.priority = RecommendationPriority[normalized]
 
         if isinstance(self.category, str):
             normalized = self.category.lower().strip()
@@ -51,8 +46,7 @@ class Recommendation:
         """Stable identifier."""
 
         return (
-            f"{self.category.name.lower()}:"
-            f"{self.title.lower().replace(' ', '_')}"
+            f"{self.category.name.lower()}:" f"{self.title.lower().replace(' ', '_')}"
         )
 
     @property

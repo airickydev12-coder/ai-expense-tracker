@@ -13,20 +13,47 @@ from src.financial.recommendations.service import (
 
 
 def build_recommendations(
+    priority: str | None = None,
+    category: str | None = None,
     limit: int | None = None,
 ) -> list[Recommendation]:
     """
-    Build financial recommendations from the current financial state.
+    Build, filter, and limit recommendations from the current financial state.
+
+    Filtering is applied before the result limit.
     """
 
     financial_snapshot = build_financial_snapshot()
 
     rule_snapshot = build_rule_snapshot(financial_snapshot)
 
-    return generate_recommendations(
-        rule_snapshot,
-        limit=limit,
-    )
+    recommendations = generate_recommendations(rule_snapshot)
+
+    if priority is not None:
+        normalized_priority = priority.strip().upper()
+
+        recommendations = [
+            recommendation
+            for recommendation in recommendations
+            if recommendation.priority.name == normalized_priority
+        ]
+
+    if category is not None:
+        normalized_category = category.strip().casefold()
+
+        recommendations = [
+            recommendation
+            for recommendation in recommendations
+            if (recommendation.category.value.casefold() == normalized_category)
+        ]
+
+    if limit is not None:
+        if limit <= 0:
+            return []
+
+        recommendations = recommendations[:limit]
+
+    return recommendations
 
 
 def get_recommendation_by_key(
