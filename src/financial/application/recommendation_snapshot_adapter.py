@@ -3,6 +3,9 @@
 from src.financial.application.financial_snapshot_service import (
     FinancialSnapshot,
 )
+from src.financial.application.financial_snapshot_service import (
+    FinancialSnapshot,
+)
 
 
 def build_rule_snapshot(
@@ -26,21 +29,21 @@ def build_rule_snapshot(
         # Naming expected by existing rules
         "largest_expense": snapshot.highest_expense,
         # Goals
-        "goals": [],
-        "total_goal_progress": 0.0,
+        "goals": snapshot.goals,
+        "total_goal_progress": snapshot.total_goal_progress,
         # Budgets
-        "budget_report": {},
+        "budget_report": snapshot.budget_report,
         # Bills
-        "bills": [],
+        "bills": snapshot.bills,
         # Debt
-        "debts": [],
-        "total_debt": 0.0,
+        "debts": snapshot.debts,
+        "total_debt": snapshot.total_debt,
         # Income / Cash Flow
-        "total_income": 0.0,
-        "net_cash_flow": 0.0,
+        "total_income": snapshot.total_income,
+        "net_cash_flow": snapshot.net_cash_flow,
         # Accounts / Net Worth
-        "total_account_balance": 0.0,
-        "net_worth": 0.0,
+        "total_account_balance": snapshot.total_account_balance,
+        "net_worth": snapshot.net_worth,
         # Miscellaneous
-        "current_day": None,
+        "current_day": snapshot.current_day,
     }
