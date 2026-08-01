@@ -1,7 +1,8 @@
-import json
+import sqlite3
 from pathlib import Path
 
-from src.core.config import RECOMMENDATION_HISTORY_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.recommendations.history import RecommendationRecord
@@ -10,34 +11,26 @@ logger = get_logger(__name__)
 
 
 def load_recommendation_history_from_file(
-    file_path: Path = RECOMMENDATION_HISTORY_FILE,
+    db_path: Path = DB_PATH,
 ) -> list[RecommendationRecord]:
-    """Load recommendation lifecycle records from JSON."""
-    if not file_path.exists():
-        return []
-
+    """Load recommendation lifecycle records from the database."""
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse recommendation history file %s: %s",
-            file_path,
-            error,
-        )
+        with get_connection(db_path) as connection:
+            rows = connection.execute("""
+                SELECT recommendation_key, status, created_at, updated_at, note
+                FROM recommendation_history ORDER BY recommendation_key
+                """).fetchall()
+    except sqlite3.Error as error:
         raise PersistenceError(
-            "Recommendation history file contains invalid JSON: " f"{file_path}"
+            f"Failed to load recommendation history from {db_path}"
         ) from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Recommendation history must be stored as a JSON list.")
-
-    records = [RecommendationRecord.from_dict(record_data) for record_data in raw_data]
+    records = [RecommendationRecord.from_dict(dict(row)) for row in rows]
 
     logger.debug(
         "Loaded %d recommendation history record(s) from %s",
         len(records),
-        file_path,
+        db_path,
     )
 
     return records
@@ -45,25 +38,28 @@ def load_recommendation_history_from_file(
 
 def save_recommendation_history_to_file(
     records: list[RecommendationRecord],
-    file_path: Path = RECOMMENDATION_HISTORY_FILE,
+    db_path: Path = DB_PATH,
 ) -> None:
-    """Save recommendation lifecycle records to JSON."""
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    record_data = [record.to_dict() for record in records]
-
-    with file_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            record_data,
-            file,
-            indent=4,
-        )
+    """Save recommendation lifecycle records, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM recommendation_history")
+            connection.executemany(
+                """
+                INSERT INTO recommendation_history (
+                    recommendation_key, status, created_at, updated_at, note
+                )
+                VALUES (:recommendation_key, :status, :created_at, :updated_at, :note)
+                """,
+                [record.to_dict() for record in records],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to save recommendation history to {db_path}"
+        ) from error
 
     logger.debug(
         "Saved %d recommendation history record(s) to %s",
         len(records),
-        file_path,
+        db_path,
     )

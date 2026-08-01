@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.financial.scenarios.models import (
     ScenarioResult,
 )
@@ -8,17 +9,16 @@ from src.financial.scenarios.workspace import (
     scenario_workspace,
 )
 from src.financial.scenarios.workspace_repository import (
-    SCENARIO_WORKSPACE_FILE,
     clear_workspace_file,
     load_workspace_from_file,
     save_workspace_to_file,
 )
 
-_loaded_workspace_file: Path = SCENARIO_WORKSPACE_FILE
+_loaded_workspace_file: Path = DB_PATH
 
 
 def load_scenario_workspace(
-    file_path: Path = SCENARIO_WORKSPACE_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load the persisted scenario workspace into memory."""
     global _loaded_workspace_file

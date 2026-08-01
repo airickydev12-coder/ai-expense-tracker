@@ -75,6 +75,39 @@ CREATE TABLE IF NOT EXISTS financial_history (
     health_score INTEGER NOT NULL,
     health_status TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS recommendation_history (
+    recommendation_key TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    note TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS goal_planning_requests (
+    goal_id INTEGER PRIMARY KEY,
+    target_date TEXT NOT NULL,
+    planned_monthly_contribution TEXT NOT NULL,
+    priority TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scenario_workspace (
+    name TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS goal_ledger_entries (
+    entry_id TEXT PRIMARY KEY,
+    goal_id INTEGER NOT NULL,
+    entry_type TEXT NOT NULL,
+    amount TEXT NOT NULL,
+    effective_date TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    source TEXT NOT NULL,
+    note TEXT NOT NULL,
+    correlation_id TEXT,
+    reverses_entry_id TEXT
+);
 """
 
 

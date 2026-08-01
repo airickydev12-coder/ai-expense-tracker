@@ -1,12 +1,13 @@
-"""JSON persistence for financial-goal planning requests."""
+"""SQLite persistence for financial-goal planning requests."""
 
-import json
+import sqlite3
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from src.core.config import GOAL_PLANNING_REQUESTS_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError, ValidationError
 from src.core.logging import get_logger
 from src.core.money import CURRENCY_PRECISION
@@ -23,45 +24,31 @@ logger = get_logger(__name__)
 
 def load_goal_planning_requests_from_file(
     goals: Sequence[Goal],
-    file_path: Path = GOAL_PLANNING_REQUESTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> dict[int, GoalPlanningRequest]:
     """Load requests and bind them to the current Goal objects."""
-    if not file_path.exists():
-        return {}
-
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
+        with get_connection(file_path) as connection:
+            rows = connection.execute("""
+                SELECT goal_id, target_date, planned_monthly_contribution, priority
+                FROM goal_planning_requests
+                """).fetchall()
+    except sqlite3.Error as error:
         raise PersistenceError(
-            f"Goal-planning request file contains invalid JSON: {file_path}"
+            f"Failed to load goal planning requests from {file_path}"
         ) from error
-    except OSError as error:
-        raise PersistenceError(
-            f"Unable to read goal-planning request file: {file_path}"
-        ) from error
-
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Goal-planning requests must be stored as a JSON list.")
 
     goals_by_id = {goal.id: goal for goal in goals}
     requests: dict[int, GoalPlanningRequest] = {}
 
-    for index, record in enumerate(raw_data, start=1):
+    for row in rows:
         request = _request_from_record(
-            record,
+            dict(row),
             goals_by_id=goals_by_id,
-            record_number=index,
         )
 
         if request is None:
             continue
-
-        if request.goal.id in requests:
-            raise PersistenceError(
-                "Goal-planning request file contains duplicate goal ID "
-                f"{request.goal.id}."
-            )
 
         requests[request.goal.id] = request
 
@@ -76,35 +63,31 @@ def load_goal_planning_requests_from_file(
 
 def save_goal_planning_requests_to_file(
     requests: Mapping[int, GoalPlanningRequest],
-    file_path: Path = GOAL_PLANNING_REQUESTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
-    """Save goal-planning requests as JSON using an atomic replacement."""
+    """Save goal-planning requests, replacing all existing rows."""
     _validate_request_mapping(requests)
-    file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    records = [
-        _request_to_record(request)
-        for _, request in sorted(
-            requests.items(),
-            key=lambda item: item[0],
-        )
-    ]
-
-    temporary_path = file_path.with_suffix(file_path.suffix + ".tmp")
+    records = [_request_to_record(request) for request in requests.values()]
 
     try:
-        with temporary_path.open("w", encoding="utf-8") as file:
-            json.dump(
+        with get_connection(file_path) as connection:
+            connection.execute("DELETE FROM goal_planning_requests")
+            connection.executemany(
+                """
+                INSERT INTO goal_planning_requests (
+                    goal_id, target_date, planned_monthly_contribution, priority
+                )
+                VALUES (
+                    :goal_id, :target_date, :planned_monthly_contribution, :priority
+                )
+                """,
                 records,
-                file,
-                indent=4,
             )
-            file.write("\n")
-
-        temporary_path.replace(file_path)
-    except OSError:
-        temporary_path.unlink(missing_ok=True)
-        raise
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to save goal planning requests to {file_path}"
+        ) from error
 
     logger.debug(
         "Saved %d goal planning request(s) to %s",
@@ -115,79 +98,39 @@ def save_goal_planning_requests_to_file(
 
 def remove_goal_planning_request_from_file(
     goal_id: int,
-    file_path: Path = GOAL_PLANNING_REQUESTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> bool:
     """Remove one persisted request by goal ID."""
     if goal_id <= 0:
         raise ValidationError("Goal ID must be greater than zero.")
 
-    if not file_path.exists():
-        return False
-
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
+        with get_connection(file_path) as connection:
+            cursor = connection.execute(
+                "DELETE FROM goal_planning_requests WHERE goal_id = ?",
+                (goal_id,),
+            )
+    except sqlite3.Error as error:
         raise PersistenceError(
-            f"Goal-planning request file contains invalid JSON: {file_path}"
-        ) from error
-    except OSError as error:
-        raise PersistenceError(
-            f"Unable to read goal-planning request file: {file_path}"
+            f"Failed to remove goal planning request from {file_path}"
         ) from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Goal-planning requests must be stored as a JSON list.")
+    removed = cursor.rowcount > 0
 
-    retained_records: list[dict[str, Any]] = []
-    removed = False
+    if removed:
+        logger.debug(
+            "Removed goal planning request for goal %d from %s",
+            goal_id,
+            file_path,
+        )
 
-    for record in raw_data:
-        if not isinstance(record, dict):
-            raise PersistenceError(
-                "Every goal-planning request record must be a JSON object."
-            )
-
-        record_goal_id = _parse_goal_id(record)
-
-        if record_goal_id == goal_id:
-            removed = True
-            continue
-
-        retained_records.append(record)
-
-    if not removed:
-        return False
-
-    temporary_path = file_path.with_suffix(file_path.suffix + ".tmp")
-
-    try:
-        with temporary_path.open("w", encoding="utf-8") as file:
-            json.dump(
-                retained_records,
-                file,
-                indent=4,
-            )
-            file.write("\n")
-
-        temporary_path.replace(file_path)
-    except OSError:
-        temporary_path.unlink(missing_ok=True)
-        raise
-
-    logger.debug(
-        "Removed goal planning request for goal %d from %s",
-        goal_id,
-        file_path,
-    )
-
-    return True
+    return removed
 
 
 def _request_to_record(
     request: GoalPlanningRequest,
 ) -> dict[str, Any]:
-    """Convert one planning request into a JSON-safe record."""
+    """Convert one planning request into a row-ready record."""
     return {
         "goal_id": request.goal.id,
         "target_date": request.target_date.isoformat(),
@@ -199,30 +142,23 @@ def _request_to_record(
 
 
 def _request_from_record(
-    record: object,
+    record: Mapping[str, Any],
     *,
     goals_by_id: Mapping[int, Goal],
-    record_number: int,
 ) -> GoalPlanningRequest | None:
-    """Convert one persisted record into a planning request."""
-    if not isinstance(record, dict):
-        raise PersistenceError(
-            f"Goal-planning request record {record_number} " "must be a JSON object."
-        )
-
+    """Convert one persisted row into a planning request."""
     try:
         goal_id = _parse_goal_id(record)
-        target_date = date.fromisoformat(str(record["target_date"]))
+        target_date_value = date.fromisoformat(str(record["target_date"]))
         contribution = _money_from_json(record["planned_monthly_contribution"])
         priority = GoalPriority[str(record["priority"])]
     except KeyError as error:
         raise PersistenceError(
-            f"Goal-planning request record {record_number} "
-            f"is missing field {error.args[0]!r}."
+            f"Goal-planning request record is missing field {error.args[0]!r}."
         ) from error
     except (TypeError, ValueError, InvalidOperation) as error:
         raise PersistenceError(
-            f"Goal-planning request record {record_number} " "contains invalid values."
+            "Goal-planning request record contains invalid values."
         ) from error
 
     goal = goals_by_id.get(goal_id)
@@ -232,14 +168,14 @@ def _request_from_record(
 
     return GoalPlanningRequest(
         goal=goal,
-        target_date=target_date,
+        target_date=target_date_value,
         planned_monthly_contribution=contribution,
         priority=priority,
     )
 
 
 def _money_to_json(value: MoneyInput) -> str:
-    """Convert a monetary value to a fixed-precision JSON string."""
+    """Convert a monetary value to a fixed-precision string."""
     amount = to_money(value)
 
     if not amount.is_finite():
@@ -296,8 +232,7 @@ def _validate_request_mapping(
 
         if not isinstance(request, GoalPlanningRequest):
             raise TypeError(
-                "Every saved planning request must be a "
-                "GoalPlanningRequest instance."
+                "Every saved planning request must be a GoalPlanningRequest instance."
             )
 
         if request.goal.id != goal_id:

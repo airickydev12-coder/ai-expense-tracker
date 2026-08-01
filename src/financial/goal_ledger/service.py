@@ -7,10 +7,7 @@ from pathlib import Path
 from typing import TypeAlias
 from uuid import uuid4
 
-from src.core.config import (
-    DB_PATH,
-    GOAL_LEDGER_FILE,
-)
+from src.core.config import DB_PATH
 from src.core.exceptions import NotFoundError, ValidationError
 from src.core.logging import get_logger
 from src.core.money import (
@@ -70,7 +67,7 @@ def create_ledger_entry(
 def migrate_existing_goal_balances(
     goals: Sequence[Goal],
     *,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
 ) -> list[GoalLedgerEntry]:
     """
     Convert existing cached balances to opening entries.
@@ -122,7 +119,7 @@ def record_contribution(
     source: str = "MANUAL",
     note: str = "",
     correlation_id: str | None = None,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
     goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry | None:
     """
@@ -196,7 +193,7 @@ def record_withdrawal(
     source: str = "MANUAL",
     note: str = "",
     correlation_id: str | None = None,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
     goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Record a withdrawal and rebuild the cached balance."""
@@ -254,7 +251,7 @@ def record_adjustment(
     source: str = "MANUAL",
     note: str = "",
     correlation_id: str | None = None,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
     goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Record a signed balance correction."""
@@ -317,7 +314,7 @@ def reverse_entry(
     source: str = "MANUAL",
     note: str = "",
     correlation_id: str | None = None,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
     goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Reverse a ledger entry without modifying history."""
@@ -373,7 +370,7 @@ def reverse_entry(
 def reconcile_goal_balance(
     goal: Goal,
     *,
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
 ) -> tuple[bool, Decimal]:
     """Compare cached and ledger-derived balances."""
     entries = load_goal_ledger_from_file(ledger_file_path)
@@ -392,7 +389,7 @@ def rebuild_goal_balance_cache(
     goal: Goal,
     *,
     goals: list[Goal],
-    ledger_file_path: Path = GOAL_LEDGER_FILE,
+    ledger_file_path: Path = DB_PATH,
     goals_file_path: Path = DB_PATH,
 ) -> Goal:
     """Rebuild one cached balance from the ledger."""

@@ -1,9 +1,11 @@
 import json
+import sqlite3
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from src.core.config import SCENARIO_WORKSPACE_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.scenarios.models import (
@@ -188,34 +190,26 @@ def _result_from_dict(
 
 
 def load_workspace_from_file(
-    file_path: Path = SCENARIO_WORKSPACE_FILE,
+    file_path: Path = DB_PATH,
 ) -> list[ScenarioResult]:
-    """Load saved scenario results from JSON."""
-    if not file_path.exists():
-        return []
+    """Load saved scenario results from the database."""
+    try:
+        with get_connection(file_path) as connection:
+            rows = connection.execute(
+                "SELECT data FROM scenario_workspace ORDER BY name"
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to load scenario workspace from {file_path}"
+        ) from error
 
     try:
-        with file_path.open(
-            "r",
-            encoding="utf-8",
-        ) as file:
-            data = json.load(
-                file,
-                object_hook=_decimal_object_hook,
-            )
-
+        results = [
+            _result_from_dict(json.loads(row["data"], object_hook=_decimal_object_hook))
+            for row in rows
+        ]
     except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse scenario workspace file %s: %s",
-            file_path,
-            error,
-        )
         raise PersistenceError("Scenario workspace contains invalid JSON.") from error
-
-    if not isinstance(data, list):
-        raise PersistenceError("Scenario workspace must be a JSON list.")
-
-    results = [_result_from_dict(item) for item in data]
 
     logger.debug(
         "Loaded %d scenario result(s) from %s",
@@ -228,24 +222,28 @@ def load_workspace_from_file(
 
 def save_workspace_to_file(
     results: list[ScenarioResult],
-    file_path: Path = SCENARIO_WORKSPACE_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
-    """Save scenario results to JSON."""
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    """Save scenario results to the database, replacing all existing rows."""
+    records = [
+        {
+            "name": result.name,
+            "data": json.dumps(result.to_dict(), cls=_DecimalEncoder),
+        }
+        for result in results
+    ]
 
-    with file_path.open(
-        "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            [result.to_dict() for result in results],
-            file,
-            indent=4,
-            cls=_DecimalEncoder,
-        )
+    try:
+        with get_connection(file_path) as connection:
+            connection.execute("DELETE FROM scenario_workspace")
+            connection.executemany(
+                "INSERT INTO scenario_workspace (name, data) VALUES (:name, :data)",
+                records,
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to save scenario workspace to {file_path}"
+        ) from error
 
     logger.debug(
         "Saved %d scenario result(s) to %s",
@@ -255,8 +253,13 @@ def save_workspace_to_file(
 
 
 def clear_workspace_file(
-    file_path: Path = SCENARIO_WORKSPACE_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
-    """Remove the saved workspace file if it exists."""
-    if file_path.exists():
-        file_path.unlink()
+    """Remove all persisted scenario workspace results."""
+    try:
+        with get_connection(file_path) as connection:
+            connection.execute("DELETE FROM scenario_workspace")
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to clear scenario workspace at {file_path}"
+        ) from error

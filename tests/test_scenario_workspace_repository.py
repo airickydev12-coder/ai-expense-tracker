@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 
+from src.core.db import get_connection
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -74,33 +75,29 @@ def build_result() -> ScenarioResult:
 
 
 def test_save_and_load_workspace(
-    tmp_path,
+    db_path,
 ):
-    file_path = tmp_path / "scenario_workspace.json"
-
     original_results = [build_result()]
 
     save_workspace_to_file(
         original_results,
-        file_path,
+        db_path,
     )
 
-    loaded_results = load_workspace_from_file(file_path)
+    loaded_results = load_workspace_from_file(db_path)
 
     assert loaded_results == original_results
 
 
 def test_save_and_load_workspace_with_decimal_snapshot(
-    tmp_path,
+    db_path,
 ):
     """Snapshots built from live domain models contain Decimal values.
 
-    json.dump cannot serialize Decimal natively, so this guards against
+    json.dumps cannot serialize Decimal natively, so this guards against
     a regression where saving a real (non-test-literal) scenario result
     raised TypeError: Object of type Decimal is not JSON serializable.
     """
-    file_path = tmp_path / "scenario_workspace.json"
-
     snapshot = {
         "total_income": Decimal("5000.00"),
         "total_expenses": Decimal("3000.00"),
@@ -138,10 +135,10 @@ def test_save_and_load_workspace_with_decimal_snapshot(
 
     save_workspace_to_file(
         [result],
-        file_path,
+        db_path,
     )
 
-    loaded_results = load_workspace_from_file(file_path)
+    loaded_results = load_workspace_from_file(db_path)
 
     loaded_snapshot = loaded_results[0].original_snapshot
 
@@ -157,107 +154,86 @@ def test_save_and_load_workspace_with_decimal_snapshot(
     )
 
 
-def test_load_workspace_returns_empty_when_missing(
+def test_load_workspace_returns_empty_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_workspace.json"
+    db_path = tmp_path / "missing_workspace.db"
 
-    assert load_workspace_from_file(file_path) == []
+    assert load_workspace_from_file(db_path) == []
 
 
 def test_save_workspace_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "scenario_workspace.json"
+    db_path = tmp_path / "nested" / "data" / "scenario_workspace.db"
 
     save_workspace_to_file(
         [build_result()],
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_workspace_rejects_invalid_json(
+def test_load_workspace_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "scenario_workspace.json"
+    db_path = tmp_path / "scenario_workspace.db"
 
-    file_path.write_text(
-        "not valid json",
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load scenario workspace",
     ):
-        load_workspace_from_file(file_path)
-
-
-def test_load_workspace_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "scenario_workspace.json"
-
-    file_path.write_text(
-        json.dumps(
-            {
-                "name": "Income Increase",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_workspace_from_file(file_path)
+        load_workspace_from_file(db_path)
 
 
 def test_load_workspace_rejects_unknown_scenario_type(
-    tmp_path,
+    db_path,
 ):
-    file_path = tmp_path / "scenario_workspace.json"
-
     data = build_result().to_dict()
     data["scenario_type"] = "UNKNOWN_SCENARIO"
 
-    file_path.write_text(
-        json.dumps([data]),
-        encoding="utf-8",
-    )
+    with get_connection(db_path) as connection:
+        connection.execute(
+            "INSERT INTO scenario_workspace (name, data) VALUES (:name, :data)",
+            {
+                "name": data["name"],
+                "data": json.dumps(data),
+            },
+        )
 
     with pytest.raises(
         ValueError,
         match="Unknown scenario type",
     ):
-        load_workspace_from_file(file_path)
+        load_workspace_from_file(db_path)
 
 
 def test_clear_workspace_file(
-    tmp_path,
+    db_path,
 ):
-    file_path = tmp_path / "scenario_workspace.json"
-
     save_workspace_to_file(
         [build_result()],
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert load_workspace_from_file(db_path) != []
 
-    clear_workspace_file(file_path)
+    clear_workspace_file(db_path)
 
-    assert not file_path.exists()
+    assert load_workspace_from_file(db_path) == []
 
 
-def test_clear_missing_workspace_file_is_safe(
+def test_clear_workspace_with_no_rows_is_safe(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_workspace.json"
+    db_path = tmp_path / "missing_workspace.db"
 
-    clear_workspace_file(file_path)
+    clear_workspace_file(db_path)
 
-    assert not file_path.exists()
+    assert load_workspace_from_file(db_path) == []

@@ -5,11 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TypeAlias
 
-from src.core.config import (
-    DB_PATH,
-    GOAL_LEDGER_FILE,
-    GOALS_FILE,
-)
+from src.core.config import DB_PATH
 from src.core.exceptions import ValidationError
 from src.core.logging import get_logger
 from src.core.money import (
@@ -240,11 +236,9 @@ def delete_goal(
         deleted_goal = goals.pop(index)
         save_goals(file_path)
 
-        planning_file_path = file_path.parent / "goal_planning_requests.json"
-
         remove_goal_planning_request_from_file(
             goal_id,
-            file_path=planning_file_path,
+            file_path=file_path,
         )
 
         logger.info(
@@ -265,14 +259,11 @@ def _resolve_ledger_file_path(
     """
     Resolve the ledger associated with a goals repository.
 
-    Production goals use the configured production ledger.
-    Temporary or alternate goal repositories receive a ledger
-    in the same directory, preserving repository isolation.
+    The ledger and goals now share the same SQLite database, so an
+    alternate goals path (e.g. an isolated test database) implies the
+    same alternate ledger path unless explicitly overridden.
     """
     if ledger_file_path is not None:
         return ledger_file_path
 
-    if goals_file_path == GOALS_FILE:
-        return GOAL_LEDGER_FILE
-
-    return goals_file_path.parent / GOAL_LEDGER_FILE.name
+    return goals_file_path

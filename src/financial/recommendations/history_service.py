@@ -1,9 +1,9 @@
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.core.logging import get_logger
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.recommendations.history_repository import (
-    RECOMMENDATION_HISTORY_FILE,
     load_recommendation_history_from_file,
     save_recommendation_history_to_file,
 )
@@ -20,7 +20,7 @@ _loaded_file_path: Path | None = None
 
 
 def load_recommendation_history(
-    file_path: Path = RECOMMENDATION_HISTORY_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load persisted lifecycle records into memory."""
     global _loaded_file_path
@@ -38,7 +38,7 @@ def save_recommendation_history(
     target_path = file_path if file_path is not None else _loaded_file_path
 
     if target_path is None:
-        target_path = RECOMMENDATION_HISTORY_FILE
+        target_path = DB_PATH
 
     save_recommendation_history_to_file(
         lifecycle_manager.get_records(),

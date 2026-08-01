@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from src.core.config import GOAL_PLANNING_REQUESTS_FILE
+from src.core.config import DB_PATH
 from src.core.exceptions import ValidationError
 from src.core.money import CURRENCY_PRECISION
 from src.financial.application.goal_dashboard_service import (
@@ -55,7 +55,7 @@ def run_goal_planning_menu(
     input_fn: InputFunction = input,
     output_fn: OutputFunction = print,
     today: date | None = None,
-    planning_file_path: Path = GOAL_PLANNING_REQUESTS_FILE,
+    planning_file_path: Path = DB_PATH,
 ) -> None:
     """
     Run the interactive Financial Goal Planner menu.

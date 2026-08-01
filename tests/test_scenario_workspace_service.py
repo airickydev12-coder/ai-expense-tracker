@@ -5,6 +5,9 @@ from src.financial.scenarios.models import (
 from src.financial.scenarios.workspace import (
     scenario_workspace,
 )
+from src.financial.scenarios.workspace_repository import (
+    load_workspace_from_file,
+)
 from src.financial.scenarios.workspace_service import (
     clear_persisted_scenario_workspace,
     get_scenario_workspace,
@@ -176,7 +179,7 @@ def test_save_scenario_workspace(
 def test_clear_persisted_workspace(
     tmp_path,
 ):
-    file_path = tmp_path / "scenario_workspace.json"
+    file_path = tmp_path / "scenario_workspace.db"
 
     save_result_to_workspace(
         build_result(),
@@ -186,7 +189,7 @@ def test_clear_persisted_workspace(
     clear_persisted_scenario_workspace(file_path)
 
     assert scenario_workspace.is_empty()
-    assert not file_path.exists()
+    assert load_workspace_from_file(file_path) == []
 
 
 def test_get_scenario_workspace():
