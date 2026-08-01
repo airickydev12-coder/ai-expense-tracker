@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
+from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -13,7 +15,7 @@ from src.financial.scenarios.service import (
 
 
 MAX_PAYOFF_MONTHS = 1200
-BALANCE_TOLERANCE = 0.005
+BALANCE_TOLERANCE = Decimal("0.005")
 
 
 @dataclass(frozen=True)
@@ -21,13 +23,13 @@ class DebtPayoffProjection:
     """Represents the result of a debt payoff calculation."""
 
     payoff_months: int
-    total_interest: float
-    remaining_balance_at_horizon: float
-    interest_paid_at_horizon: float
+    total_interest: Decimal
+    remaining_balance_at_horizon: Decimal
+    interest_paid_at_horizon: Decimal
 
 
 def _validate_extra_payment(
-    extra_monthly_payment: float,
+    extra_monthly_payment: Decimal,
 ) -> None:
     """Validate the additional monthly debt payment."""
     if extra_monthly_payment <= 0:
@@ -62,9 +64,9 @@ def _get_debt(
 
 
 def _validate_debt_values(
-    balance: float,
-    interest_rate: float,
-    minimum_payment: float,
+    balance: Decimal,
+    interest_rate: Decimal,
+    minimum_payment: Decimal,
 ) -> None:
     """Validate values required for debt amortization."""
     if balance <= 0:
@@ -86,12 +88,16 @@ def _validate_debt_values(
 
 def calculate_debt_payoff(
     *,
-    balance: float,
-    annual_interest_rate: float,
-    monthly_payment: float,
+    balance: Decimal | float | int,
+    annual_interest_rate: Decimal | float | int,
+    monthly_payment: Decimal | float | int,
     horizon_months: int,
 ) -> DebtPayoffProjection:
     """Calculate debt payoff and horizon statistics."""
+    balance = to_money(balance)
+    annual_interest_rate = Decimal(str(annual_interest_rate))
+    monthly_payment = to_money(monthly_payment)
+
     if balance <= 0:
         raise ValueError("Debt balance must be greater than zero.")
 
@@ -110,9 +116,9 @@ def calculate_debt_payoff(
     if monthly_payment <= first_month_interest:
         raise ValueError("Monthly payment is not sufficient " "to amortize the debt.")
 
-    remaining_balance = float(balance)
-    total_interest = 0.0
-    interest_paid_at_horizon = 0.0
+    remaining_balance = to_money(balance)
+    total_interest = ZERO
+    interest_paid_at_horizon = ZERO
     remaining_balance_at_horizon = remaining_balance
     payoff_months = 0
 
@@ -128,7 +134,7 @@ def calculate_debt_payoff(
 
         remaining_balance = max(
             remaining_balance - principal_payment,
-            0.0,
+            ZERO,
         )
 
         total_interest += monthly_interest
@@ -144,7 +150,7 @@ def calculate_debt_payoff(
         )
 
     if payoff_months < horizon_months:
-        remaining_balance_at_horizon = 0.0
+        remaining_balance_at_horizon = ZERO
 
     return DebtPayoffProjection(
         payoff_months=payoff_months,
@@ -167,7 +173,7 @@ def run_extra_debt_payment_scenario(
         raise ValueError("Debt ID must be a whole number.") from error
 
     try:
-        extra_monthly_payment = float(parameters["extra_monthly_payment"])
+        extra_monthly_payment = to_money(parameters["extra_monthly_payment"])
     except KeyError as error:
         raise ValueError("Extra monthly debt payment is required.") from error
     except (TypeError, ValueError) as error:
@@ -198,9 +204,9 @@ def run_extra_debt_payment_scenario(
         )
     ).strip()
 
-    balance = float(debt["balance"])
-    interest_rate = float(debt["interest_rate"])
-    minimum_payment = float(debt["minimum_payment"])
+    balance = to_money(debt["balance"])
+    interest_rate = Decimal(str(debt["interest_rate"]))
+    minimum_payment = to_money(debt["minimum_payment"])
 
     _validate_debt_values(
         balance,
@@ -231,30 +237,30 @@ def run_extra_debt_payment_scenario(
 
     total_interest_saved = max(
         baseline_projection.total_interest - accelerated_projection.total_interest,
-        0.0,
+        ZERO,
     )
 
     horizon_interest_saved = max(
         baseline_projection.interest_paid_at_horizon
         - accelerated_projection.interest_paid_at_horizon,
-        0.0,
+        ZERO,
     )
 
     additional_debt_reduction = max(
         baseline_projection.remaining_balance_at_horizon
         - accelerated_projection.remaining_balance_at_horizon,
-        0.0,
+        ZERO,
     )
 
-    original_total_debt = float(snapshot["total_debt"])
-    original_net_cash_flow = float(snapshot["net_cash_flow"])
-    original_net_worth = float(snapshot["net_worth"])
+    original_total_debt = to_money(snapshot["total_debt"])
+    original_net_cash_flow = to_money(snapshot["net_cash_flow"])
+    original_net_worth = to_money(snapshot["net_worth"])
 
     projected_total_debt = max(
         original_total_debt
         - balance
         + accelerated_projection.remaining_balance_at_horizon,
-        0.0,
+        ZERO,
     )
 
     projected_net_cash_flow = original_net_cash_flow - extra_monthly_payment

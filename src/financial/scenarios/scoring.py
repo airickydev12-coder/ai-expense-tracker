@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 
+from src.core.money import ZERO, to_money
 from src.financial.scenarios.comparison import (
     ComparisonDirection,
     MetricComparison,
@@ -194,7 +196,7 @@ class ScenarioScore:
 
 
 def clamp_score(
-    score: float,
+    score: Decimal | float,
 ) -> float:
     """Clamp a score to the supported range."""
     return max(
@@ -228,7 +230,7 @@ def classify_risk_level(
     *,
     risk_count: int,
     conflict_count: int = 0,
-    projected_cash_flow: float | None = None,
+    projected_cash_flow: Decimal | None = None,
 ) -> RiskLevel:
     """Classify risk from risks, conflicts, and projected cash flow."""
     if conflict_count >= 2 or (
@@ -247,8 +249,8 @@ def classify_risk_level(
 
 def classify_sustainability(
     *,
-    projected_cash_flow: float,
-    original_cash_flow: float,
+    projected_cash_flow: Decimal,
+    original_cash_flow: Decimal,
     conflict_count: int,
 ) -> SustainabilityLevel:
     """Classify whether a scenario is financially sustainable."""
@@ -261,7 +263,7 @@ def classify_sustainability(
     if projected_cash_flow >= original_cash_flow:
         return SustainabilityLevel.EXCELLENT
 
-    if projected_cash_flow >= (original_cash_flow * 0.75):
+    if projected_cash_flow >= (original_cash_flow * Decimal("0.75")):
         return SustainabilityLevel.GOOD
 
     return SustainabilityLevel.FAIR
@@ -276,8 +278,8 @@ def _get_comparison(
 
 
 def _score_positive_change(
-    change: float,
-    reference_value: float,
+    change: Decimal,
+    reference_value: Decimal,
 ) -> float:
     """Score a change where larger positive values are beneficial."""
     if reference_value == 0:
@@ -295,8 +297,8 @@ def _score_positive_change(
 
 
 def _score_debt_change(
-    change: float,
-    original_debt: float,
+    change: Decimal,
+    original_debt: Decimal,
 ) -> float:
     """Score total-debt change where a reduction is beneficial."""
     if original_debt <= 0:
@@ -304,7 +306,7 @@ def _score_debt_change(
 
     debt_reduction = max(
         -change,
-        0.0,
+        Decimal("0"),
     )
 
     reduction_percentage = debt_reduction / original_debt * 100
@@ -449,7 +451,7 @@ def score_risk(
     *,
     risk_count: int,
     conflict_count: int,
-    projected_cash_flow: float,
+    projected_cash_flow: Decimal,
 ) -> float:
     """Score risk, where higher scores represent lower risk."""
     score = 100.0
@@ -557,16 +559,16 @@ def _calculate_score(
     conflicts: list[str],
 ) -> ScenarioScore:
     """Calculate the complete score for a scenario or plan."""
-    original_cash_flow = float(
+    original_cash_flow = to_money(
         original_snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
-    projected_cash_flow = float(
+    projected_cash_flow = to_money(
         projected_snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 

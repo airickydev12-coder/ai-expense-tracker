@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 from src.financial.scenarios.comparison import (
     ComparisonDirection,
@@ -175,12 +176,12 @@ class ScenarioPlanResult:
     def get_metric_change(
         self,
         metric: str,
-    ) -> float:
+    ) -> Decimal:
         """Return a cumulative metric change."""
         comparison = self.cumulative_report.get_comparison(metric)
 
         if comparison is None:
-            return 0.0
+            return Decimal("0")
 
         return comparison.change
 

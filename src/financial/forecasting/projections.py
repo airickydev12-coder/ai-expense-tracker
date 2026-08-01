@@ -1,10 +1,12 @@
 from collections.abc import Callable
+from decimal import Decimal
 
+from src.core.money import ZERO
 from src.financial.forecasting.models import MetricProjection
 from src.financial.history.models import FinancialSnapshotRecord
 
 
-MetricGetter = Callable[[FinancialSnapshotRecord], float]
+MetricGetter = Callable[[FinancialSnapshotRecord], Decimal]
 
 
 def validate_forecast_horizon(
@@ -43,10 +45,10 @@ def calculate_elapsed_days(
 def calculate_daily_change(
     history: list[FinancialSnapshotRecord],
     value_getter: MetricGetter,
-) -> float:
+) -> Decimal:
     """Calculate average daily change for one metric."""
     if len(history) < 2:
-        return 0.0
+        return ZERO
 
     ordered_history = sort_history(history)
     first_record = ordered_history[0]
@@ -58,14 +60,14 @@ def calculate_daily_change(
     )
 
     if elapsed_days <= 0:
-        return 0.0
+        return ZERO
 
     first_value = value_getter(first_record)
     last_value = value_getter(last_record)
 
     return (
         last_value - first_value
-    ) / elapsed_days
+    ) / Decimal(str(elapsed_days))
 
 
 def project_metric(
@@ -74,8 +76,8 @@ def project_metric(
     history: list[FinancialSnapshotRecord],
     value_getter: MetricGetter,
     horizon_days: int,
-    minimum_value: float | None = None,
-    maximum_value: float | None = None,
+    minimum_value: Decimal | None = None,
+    maximum_value: Decimal | None = None,
 ) -> MetricProjection:
     """Project one financial metric using its historical daily change."""
     validate_forecast_horizon(horizon_days)
@@ -164,7 +166,7 @@ def project_account_balance(
             lambda record: record.total_account_balance
         ),
         horizon_days=horizon_days,
-        minimum_value=0.0,
+        minimum_value=ZERO,
     )
 
 
@@ -180,7 +182,7 @@ def project_goal_progress(
             lambda record: record.total_goal_progress
         ),
         horizon_days=horizon_days,
-        minimum_value=0.0,
+        minimum_value=ZERO,
     )
 
 
@@ -194,7 +196,7 @@ def project_total_debt(
         history=history,
         value_getter=lambda record: record.total_debt,
         horizon_days=horizon_days,
-        minimum_value=0.0,
+        minimum_value=ZERO,
     )
 
 
@@ -207,9 +209,9 @@ def project_health_score(
         metric="Health Score",
         history=history,
         value_getter=(
-            lambda record: float(record.health_score)
+            lambda record: Decimal(record.health_score)
         ),
         horizon_days=horizon_days,
-        minimum_value=0.0,
-        maximum_value=100.0,
+        minimum_value=ZERO,
+        maximum_value=Decimal("100"),
     )

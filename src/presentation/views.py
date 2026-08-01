@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.forecasting.models import (
     FinancialForecast,
     MetricProjection,
@@ -47,7 +49,7 @@ from src.financial.scenarios.scoring import (
 )
 
 
-def _format_signed_currency(value: float) -> str:
+def _format_signed_currency(value: Decimal) -> str:
     """Format a currency change with an explicit sign."""
     if value > 0:
         return f"+${value:,.2f}"

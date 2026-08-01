@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from decimal import (
     Decimal,
+    InvalidOperation,
     ROUND_HALF_UP,
 )
 
@@ -58,7 +59,10 @@ def to_money(value: object) -> Decimal:
         amount = Decimal(str(value))
 
     elif isinstance(value, str):
-        amount = Decimal(value.strip())
+        try:
+            amount = Decimal(value.strip())
+        except InvalidOperation as error:
+            raise ValueError(f"Invalid monetary value: {value!r}") from error
 
     else:
         raise TypeError(f"Unsupported monetary value: {type(value)}")

@@ -95,7 +95,7 @@ def get_metric_change(
     if comparison is None:
         return 0.0
 
-    return comparison.change
+    return float(comparison.change)
 
 
 def get_debt_reduction(

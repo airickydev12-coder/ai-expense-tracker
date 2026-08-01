@@ -1,5 +1,7 @@
 from copy import deepcopy
+from decimal import Decimal
 
+from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioRequest,
 )
@@ -39,7 +41,7 @@ def _extend_unique(
 def _get_assumption_value(
     step: ScenarioPlanStep,
     assumption_name: str,
-) -> float:
+) -> Decimal:
     """Return a numeric assumption value from a plan step."""
     normalized_name = assumption_name.strip().lower()
 
@@ -48,11 +50,11 @@ def _get_assumption_value(
             continue
 
         try:
-            return float(assumption.value)
+            return to_money(assumption.value)
         except (TypeError, ValueError):
-            return 0.0
+            return ZERO
 
-    return 0.0
+    return ZERO
 
 
 def detect_plan_conflicts(
@@ -63,34 +65,40 @@ def detect_plan_conflicts(
     """Detect conflicts created by combined scenario commitments."""
     conflicts: list[str] = []
 
-    original_cash_flow = float(
+    original_cash_flow = to_money(
         original_snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
-    projected_cash_flow = float(
+    projected_cash_flow = to_money(
         projected_snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
     additional_savings = sum(
-        _get_assumption_value(
-            step,
-            "Additional Monthly Savings",
-        )
-        for step in steps
+        (
+            _get_assumption_value(
+                step,
+                "Additional Monthly Savings",
+            )
+            for step in steps
+        ),
+        ZERO,
     )
 
     extra_debt_payments = sum(
-        _get_assumption_value(
-            step,
-            "Extra Monthly Payment",
-        )
-        for step in steps
+        (
+            _get_assumption_value(
+                step,
+                "Extra Monthly Payment",
+            )
+            for step in steps
+        ),
+        ZERO,
     )
 
     total_new_commitments = additional_savings + extra_debt_payments

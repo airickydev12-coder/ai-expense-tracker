@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.scenarios.comparison import (
     MetricComparison,
 )
@@ -7,7 +9,7 @@ from src.financial.scenarios.report import (
 
 
 def format_signed_currency(
-    value: float,
+    value: Decimal,
 ) -> str:
     """Format a signed currency value."""
     if value > 0:

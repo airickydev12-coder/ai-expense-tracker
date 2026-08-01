@@ -81,8 +81,8 @@ def test_run_income_increase_scenario():
     assert annual_income_impact.projected_value == Decimal("6000.00")
 
     assert savings_rate_impact is not None
-    assert savings_rate_impact.original_value == pytest.approx(40)
-    assert savings_rate_impact.projected_value == pytest.approx(45.454545)
+    assert float(savings_rate_impact.original_value) == pytest.approx(40)
+    assert float(savings_rate_impact.projected_value) == pytest.approx(45.454545)
 
 
 def test_projected_snapshot_is_updated():

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.history.analytics import (
     get_cash_flow_change,
     get_expense_change,
@@ -16,13 +18,13 @@ from src.financial.history.trend_summary import (
 )
 
 
-CURRENCY_TREND_THRESHOLD = 25.0
+CURRENCY_TREND_THRESHOLD = Decimal("25.00")
 HEALTH_SCORE_TREND_THRESHOLD = 2
 
 
 def classify_financial_change(
-    change: float,
-    threshold: float = CURRENCY_TREND_THRESHOLD,
+    change: Decimal,
+    threshold: Decimal = CURRENCY_TREND_THRESHOLD,
 ) -> TrendDirection:
     """
     Classify a financial change where an increase is beneficial.
@@ -40,8 +42,8 @@ def classify_financial_change(
 
 
 def classify_expense_change(
-    change: float,
-    threshold: float = CURRENCY_TREND_THRESHOLD,
+    change: Decimal,
+    threshold: Decimal = CURRENCY_TREND_THRESHOLD,
 ) -> TrendDirection:
     """
     Classify an expense change.
@@ -101,7 +103,7 @@ def build_insufficient_data_summary() -> FinancialTrendSummary:
     """Return a trend summary when fewer than two snapshots exist."""
     unavailable_trend = MetricTrend(
         direction=TrendDirection.INSUFFICIENT_DATA,
-        change=0.0,
+        change=Decimal("0"),
     )
 
     return FinancialTrendSummary(
@@ -161,7 +163,7 @@ def analyze_financial_trends(
         direction=classify_health_score_change(
             health_score_change
         ),
-        change=float(health_score_change),
+        change=Decimal(health_score_change),
     )
 
     overall_momentum = calculate_overall_momentum(

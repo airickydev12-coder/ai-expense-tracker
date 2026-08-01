@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.coach.models import (
     AdviceExplanation,
     CoachingAdvice,
@@ -12,7 +14,7 @@ from src.financial.scenarios.report import (
 
 def _format_change(
     metric: str,
-    change: float,
+    change: Decimal,
 ) -> str:
     """Format one projected financial change."""
     if metric == "Health Score":

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
 
 @dataclass(frozen=True)
@@ -7,10 +8,10 @@ class MetricProjection:
     """Represents a projected financial metric."""
 
     metric: str
-    current_value: float
-    projected_value: float
-    projected_change: float
-    daily_change: float
+    current_value: Decimal
+    projected_value: Decimal
+    projected_change: Decimal
+    daily_change: Decimal
     horizon_days: int
 
     def to_dict(self) -> dict:

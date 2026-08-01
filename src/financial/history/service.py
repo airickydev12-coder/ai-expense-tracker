@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.core.money import to_money
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.history.repository import (
     HISTORY_FILE,
@@ -71,17 +72,17 @@ def record_snapshot(
             if timestamp is not None
             else datetime.now(timezone.utc)
         ),
-        total_income=float(snapshot["total_income"]),
-        total_expenses=float(snapshot["total_expenses"]),
-        net_cash_flow=float(snapshot["net_cash_flow"]),
-        total_account_balance=float(
+        total_income=to_money(snapshot["total_income"]),
+        total_expenses=to_money(snapshot["total_expenses"]),
+        net_cash_flow=to_money(snapshot["net_cash_flow"]),
+        total_account_balance=to_money(
             snapshot["total_account_balance"]
         ),
-        total_goal_progress=float(
+        total_goal_progress=to_money(
             snapshot["total_goal_progress"]
         ),
-        total_debt=float(snapshot["total_debt"]),
-        net_worth=float(snapshot["net_worth"]),
+        total_debt=to_money(snapshot["total_debt"]),
+        net_worth=to_money(snapshot["net_worth"]),
         health_score=int(snapshot["health_score"]),
         health_status=str(snapshot["health_status"]),
     )

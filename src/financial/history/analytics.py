@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from src.core.money import ZERO
 from src.financial.history.models import FinancialSnapshotRecord
 
 
@@ -13,10 +16,10 @@ def _sort_history(
 
 def get_net_worth_change(
     history: list[FinancialSnapshotRecord],
-) -> float:
+) -> Decimal:
     """Return net-worth change from oldest to newest snapshot."""
     if len(history) < 2:
-        return 0.0
+        return ZERO
 
     ordered_history = _sort_history(history)
 
@@ -28,10 +31,10 @@ def get_net_worth_change(
 
 def get_cash_flow_change(
     history: list[FinancialSnapshotRecord],
-) -> float:
+) -> Decimal:
     """Return cash-flow change from oldest to newest snapshot."""
     if len(history) < 2:
-        return 0.0
+        return ZERO
 
     ordered_history = _sort_history(history)
 
@@ -58,10 +61,10 @@ def get_health_score_change(
 
 def get_income_change(
     history: list[FinancialSnapshotRecord],
-) -> float:
+) -> Decimal:
     """Return income change from oldest to newest snapshot."""
     if len(history) < 2:
-        return 0.0
+        return ZERO
 
     ordered_history = _sort_history(history)
 
@@ -73,10 +76,10 @@ def get_income_change(
 
 def get_expense_change(
     history: list[FinancialSnapshotRecord],
-) -> float:
+) -> Decimal:
     """Return expense change from oldest to newest snapshot."""
     if len(history) < 2:
-        return 0.0
+        return ZERO
 
     ordered_history = _sort_history(history)
 

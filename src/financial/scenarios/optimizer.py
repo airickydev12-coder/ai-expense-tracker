@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from src.core.money import ZERO, to_money
 from src.financial.scenarios.factory import (
     register_default_scenario_handlers,
 )
@@ -259,14 +260,14 @@ def _build_expense_candidates(
     sorted_categories = sorted(
         category_totals.items(),
         key=lambda item: (
-            -float(item[1]),
+            -to_money(item[1]),
             str(item[0]).lower(),
         ),
     )
 
     for category, total in sorted_categories:
         category_name = str(category).strip()
-        category_total = float(total)
+        category_total = to_money(total)
 
         if not category_name or category_total <= 0:
             continue
@@ -304,10 +305,10 @@ def _build_income_candidates(
     horizon_months: int,
 ) -> list[OptimizationCandidate]:
     """Generate income-increase candidates."""
-    total_income = float(
+    total_income = to_money(
         snapshot.get(
             "total_income",
-            0.0,
+            ZERO,
         )
     )
 
@@ -347,10 +348,10 @@ def _build_savings_candidates(
     horizon_months: int,
 ) -> list[OptimizationCandidate]:
     """Generate additional-savings candidates."""
-    net_cash_flow = float(
+    net_cash_flow = to_money(
         snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
@@ -401,10 +402,10 @@ def _build_debt_candidates(
     if not isinstance(debts, list):
         return []
 
-    net_cash_flow = float(
+    net_cash_flow = to_money(
         snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
@@ -419,10 +420,10 @@ def _build_debt_candidates(
                     0.0,
                 )
             ),
-            -float(
+            -to_money(
                 debt.get(
                     "balance",
-                    0.0,
+                    ZERO,
                 )
             ),
         ),
@@ -432,7 +433,7 @@ def _build_debt_candidates(
         try:
             debt_id = int(debt["id"])
             debt_name = str(debt["name"]).strip()
-            balance = float(debt["balance"])
+            balance = to_money(debt["balance"])
             interest_rate = float(debt["interest_rate"])
         except (
             KeyError,

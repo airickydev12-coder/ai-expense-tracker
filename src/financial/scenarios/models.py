@@ -1,6 +1,24 @@
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import Enum
 from typing import Any
+
+
+def _to_decimal(value: Decimal | float | int | str) -> Decimal:
+    """
+    Convert a numeric impact value to Decimal without currency rounding.
+
+    ScenarioImpact represents a mix of currency amounts and non-currency
+    metrics (percentages, month counts), so it preserves full precision
+    rather than quantizing to two decimal places like core.money.to_money.
+    """
+    if isinstance(value, Decimal):
+        return value
+
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+
+    return Decimal(value.strip())
 
 
 class ScenarioType(Enum):
@@ -17,7 +35,7 @@ class ScenarioAssumption:
     """Represents one assumption used by a scenario."""
 
     name: str
-    value: float | int | str
+    value: Decimal | float | int | str
     description: str = ""
 
     def __post_init__(self) -> None:
@@ -53,9 +71,9 @@ class ScenarioImpact:
     """Represents one measured scenario impact."""
 
     metric: str
-    original_value: float
-    projected_value: float
-    change: float
+    original_value: Decimal
+    projected_value: Decimal
+    change: Decimal
 
     def __post_init__(self) -> None:
         """Validate and normalize the impact."""
@@ -74,24 +92,27 @@ class ScenarioImpact:
     def create(
         cls,
         metric: str,
-        original_value: float,
-        projected_value: float,
+        original_value: Decimal | float | int | str,
+        projected_value: Decimal | float | int | str,
     ) -> "ScenarioImpact":
         """Create an impact and calculate its change."""
+        normalized_original = _to_decimal(original_value)
+        normalized_projected = _to_decimal(projected_value)
+
         return cls(
             metric=metric,
-            original_value=float(original_value),
-            projected_value=float(projected_value),
-            change=(float(projected_value) - float(original_value)),
+            original_value=normalized_original,
+            projected_value=normalized_projected,
+            change=(normalized_projected - normalized_original),
         )
 
     def to_dict(self) -> dict:
         """Convert the impact to a dictionary."""
         return {
             "metric": self.metric,
-            "original_value": self.original_value,
-            "projected_value": self.projected_value,
-            "change": self.change,
+            "original_value": str(self.original_value),
+            "projected_value": str(self.projected_value),
+            "change": str(self.change),
         }
 
 

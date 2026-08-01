@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from src.core.config import DATA_DIR
@@ -56,9 +57,9 @@ def _impact_from_dict(
 
     return ScenarioImpact(
         metric=str(data["metric"]),
-        original_value=float(data["original_value"]),
-        projected_value=float(data["projected_value"]),
-        change=float(data["change"]),
+        original_value=Decimal(str(data["original_value"])),
+        projected_value=Decimal(str(data["projected_value"])),
+        change=Decimal(str(data["change"])),
     )
 
 

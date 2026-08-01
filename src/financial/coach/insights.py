@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
+
+from src.core.money import ZERO, to_money
 
 
 class InsightSeverity(Enum):
@@ -94,6 +97,20 @@ class FinancialCoachInsight:
         }
 
 
+def _to_money(
+    value: object,
+    default: Decimal = ZERO,
+) -> Decimal:
+    """Convert a supported value to Decimal safely."""
+    if value is None:
+        return default
+
+    try:
+        return to_money(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _to_float(
     value: int | float | str | None,
     default: float = 0.0,
@@ -112,24 +129,24 @@ def calculate_savings_rate(
     snapshot: dict,
 ) -> float | None:
     """Calculate net cash flow as a percentage of income."""
-    total_income = _to_float(
+    total_income = _to_money(
         snapshot.get(
             "total_income",
-            0.0,
+            ZERO,
         )
     )
 
     if total_income <= 0:
         return None
 
-    net_cash_flow = _to_float(
+    net_cash_flow = _to_money(
         snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
-    return net_cash_flow / total_income * 100
+    return float(net_cash_flow / total_income * 100)
 
 
 def calculate_debt_to_income_ratio(
@@ -140,55 +157,55 @@ def calculate_debt_to_income_ratio(
 
     Monthly income is multiplied by 12 before comparison.
     """
-    monthly_income = _to_float(
+    monthly_income = _to_money(
         snapshot.get(
             "total_income",
-            0.0,
+            ZERO,
         )
     )
 
     if monthly_income <= 0:
         return None
 
-    total_debt = _to_float(
+    total_debt = _to_money(
         snapshot.get(
             "total_debt",
-            0.0,
+            ZERO,
         )
     )
 
     annual_income = monthly_income * 12
 
-    return total_debt / annual_income * 100
+    return float(total_debt / annual_income * 100)
 
 
 def calculate_emergency_fund_months(
     snapshot: dict,
 ) -> float | None:
     """Estimate how many months of expenses account balances cover."""
-    monthly_expenses = _to_float(
+    monthly_expenses = _to_money(
         snapshot.get(
             "total_expenses",
-            0.0,
+            ZERO,
         )
     )
 
     if monthly_expenses <= 0:
         return None
 
-    account_balance = _to_float(
+    account_balance = _to_money(
         snapshot.get(
             "total_account_balance",
-            0.0,
+            ZERO,
         )
     )
 
-    return account_balance / monthly_expenses
+    return float(account_balance / monthly_expenses)
 
 
 def find_top_spending_category(
     snapshot: dict,
-) -> tuple[str, float] | None:
+) -> tuple[str, Decimal] | None:
     """Return the category with the highest spending total."""
     category_totals = snapshot.get(
         "category_totals",
@@ -201,11 +218,11 @@ def find_top_spending_category(
     ):
         return None
 
-    valid_totals: list[tuple[str, float]] = []
+    valid_totals: list[tuple[str, Decimal]] = []
 
     for category, value in category_totals.items():
         category_name = str(category).strip()
-        amount = _to_float(value)
+        amount = _to_money(value)
 
         if not category_name or amount <= 0:
             continue
@@ -233,10 +250,10 @@ def build_cash_flow_insights(
     snapshot: dict,
 ) -> list[FinancialCoachInsight]:
     """Build insights related to monthly cash flow."""
-    net_cash_flow = _to_float(
+    net_cash_flow = _to_money(
         snapshot.get(
             "net_cash_flow",
-            0.0,
+            ZERO,
         )
     )
 
@@ -249,7 +266,7 @@ def build_cash_flow_insights(
                 category=InsightCategory.CASH_FLOW,
                 severity=InsightSeverity.CRITICAL,
                 metric="Net Cash Flow",
-                current_value=net_cash_flow,
+                current_value=float(net_cash_flow),
                 benchmark_value=0.0,
                 action=(
                     "Reduce expenses or increase income "
@@ -270,7 +287,7 @@ def build_cash_flow_insights(
                 category=InsightCategory.CASH_FLOW,
                 severity=InsightSeverity.WARNING,
                 metric="Net Cash Flow",
-                current_value=net_cash_flow,
+                current_value=float(net_cash_flow),
                 benchmark_value=1.0,
                 action=(
                     "Create a small monthly surplus before "
@@ -287,7 +304,7 @@ def build_cash_flow_insights(
             category=InsightCategory.CASH_FLOW,
             severity=InsightSeverity.POSITIVE,
             metric="Net Cash Flow",
-            current_value=net_cash_flow,
+            current_value=float(net_cash_flow),
             benchmark_value=0.0,
             action=(
                 "Assign the surplus deliberately across "
@@ -416,10 +433,10 @@ def build_debt_insights(
     snapshot: dict,
 ) -> list[FinancialCoachInsight]:
     """Build insights related to debt burden."""
-    total_debt = _to_float(
+    total_debt = _to_money(
         snapshot.get(
             "total_debt",
-            0.0,
+            ZERO,
         )
     )
 
@@ -454,7 +471,7 @@ def build_debt_insights(
             category=InsightCategory.DEBT,
             severity=InsightSeverity.INFORMATIONAL,
             metric="Total Debt",
-            current_value=total_debt,
+            current_value=float(total_debt),
             benchmark_value=0.0,
             action=(
                 "Prioritize high-interest balances while "
@@ -518,14 +535,16 @@ def build_spending_insights(
 
     category, amount = top_category
 
-    total_expenses = _to_float(
+    total_expenses = _to_money(
         snapshot.get(
             "total_expenses",
-            0.0,
+            ZERO,
         )
     )
 
-    concentration = amount / total_expenses * 100 if total_expenses > 0 else 0.0
+    concentration = (
+        float(amount / total_expenses * 100) if total_expenses > 0 else 0.0
+    )
 
     severity = (
         InsightSeverity.WARNING
@@ -559,10 +578,10 @@ def build_net_worth_insights(
     snapshot: dict,
 ) -> list[FinancialCoachInsight]:
     """Build insights related to current net worth."""
-    net_worth = _to_float(
+    net_worth = _to_money(
         snapshot.get(
             "net_worth",
-            0.0,
+            ZERO,
         )
     )
 
@@ -577,7 +596,7 @@ def build_net_worth_insights(
                 category=InsightCategory.NET_WORTH,
                 severity=InsightSeverity.WARNING,
                 metric="Net Worth",
-                current_value=net_worth,
+                current_value=float(net_worth),
                 benchmark_value=0.0,
                 action=(
                     "Prioritize debt reduction and consistent " "asset accumulation."
@@ -593,7 +612,7 @@ def build_net_worth_insights(
             category=InsightCategory.NET_WORTH,
             severity=InsightSeverity.POSITIVE,
             metric="Net Worth",
-            current_value=net_worth,
+            current_value=float(net_worth),
             benchmark_value=0.0,
             action=(
                 "Continue increasing assets while reducing " "high-cost liabilities."

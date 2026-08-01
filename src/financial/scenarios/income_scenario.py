@@ -1,5 +1,7 @@
+from decimal import Decimal
 from typing import Any
 
+from src.core.money import to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -12,7 +14,7 @@ from src.financial.scenarios.service import (
 
 
 def _validate_percentage(
-    increase_percentage: float,
+    increase_percentage: Decimal,
 ) -> None:
     """Validate an income-increase percentage."""
     if increase_percentage <= 0:
@@ -36,10 +38,10 @@ def run_income_increase_scenario(
 ) -> ScenarioResult:
     """Model an increase in monthly income."""
     try:
-        increase_percentage = float(parameters["increase_percentage"])
+        increase_percentage = Decimal(str(parameters["increase_percentage"]))
     except KeyError as error:
         raise ValueError("Income increase percentage is required.") from error
-    except (TypeError, ValueError) as error:
+    except (TypeError, ValueError, ArithmeticError) as error:
         raise ValueError("Income increase percentage must be a number.") from error
 
     try:
@@ -55,11 +57,11 @@ def run_income_increase_scenario(
     _validate_percentage(increase_percentage)
     _validate_horizon_months(horizon_months)
 
-    original_total_income = float(snapshot["total_income"])
-    original_total_expenses = float(snapshot["total_expenses"])
-    original_net_cash_flow = float(snapshot["net_cash_flow"])
-    original_account_balance = float(snapshot["total_account_balance"])
-    original_net_worth = float(snapshot["net_worth"])
+    original_total_income = to_money(snapshot["total_income"])
+    original_total_expenses = to_money(snapshot["total_expenses"])
+    original_net_cash_flow = to_money(snapshot["net_cash_flow"])
+    original_account_balance = to_money(snapshot["total_account_balance"])
+    original_net_worth = to_money(snapshot["net_worth"])
 
     monthly_income_increase = original_total_income * increase_percentage / 100
 
@@ -78,13 +80,13 @@ def run_income_increase_scenario(
     original_savings_rate = (
         original_net_cash_flow / original_total_income * 100
         if original_total_income > 0
-        else 0.0
+        else Decimal("0")
     )
 
     projected_savings_rate = (
         projected_net_cash_flow / projected_total_income * 100
         if projected_total_income > 0
-        else 0.0
+        else Decimal("0")
     )
 
     projected_snapshot = {

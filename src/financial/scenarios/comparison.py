@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
+
+from src.core.money import to_money
 
 
 class ComparisonDirection(Enum):
@@ -15,9 +18,9 @@ class MetricComparison:
     """Represents the comparison of one financial metric."""
 
     metric: str
-    original_value: float
-    projected_value: float
-    change: float
+    original_value: Decimal
+    projected_value: Decimal
+    change: Decimal
     percentage_change: float | None
     direction: ComparisonDirection
     higher_is_better: bool
@@ -85,21 +88,23 @@ DEFAULT_METRIC_CONFIGURATION = {
 
 
 def calculate_percentage_change(
-    original_value: float,
-    projected_value: float,
+    original_value: Decimal,
+    projected_value: Decimal,
 ) -> float | None:
     """Calculate percentage change from original to projected value."""
     if original_value == 0:
         return None
 
-    return (projected_value - original_value) / abs(original_value) * 100
+    return float(
+        (projected_value - original_value) / abs(original_value) * 100
+    )
 
 
 def classify_comparison_direction(
     *,
-    change: float,
+    change: Decimal,
     higher_is_better: bool,
-    tolerance: float = 0.005,
+    tolerance: Decimal = Decimal("0.005"),
 ) -> ComparisonDirection:
     """Classify whether a metric change improves the user's position."""
     if abs(change) <= tolerance:
@@ -120,13 +125,13 @@ def classify_comparison_direction(
 def compare_metric(
     *,
     metric: str,
-    original_value: float,
-    projected_value: float,
+    original_value: Decimal | float | int | str,
+    projected_value: Decimal | float | int | str,
     higher_is_better: bool,
 ) -> MetricComparison:
     """Compare one original and projected financial metric."""
-    normalized_original = float(original_value)
-    normalized_projected = float(projected_value)
+    normalized_original = to_money(original_value)
+    normalized_projected = to_money(projected_value)
 
     change = normalized_projected - normalized_original
 
@@ -171,8 +176,8 @@ def compare_snapshots(
         comparisons.append(
             compare_metric(
                 metric=str(settings["label"]),
-                original_value=float(original_snapshot[field_name]),
-                projected_value=float(projected_snapshot[field_name]),
+                original_value=original_snapshot[field_name],
+                projected_value=projected_snapshot[field_name],
                 higher_is_better=bool(settings["higher_is_better"]),
             )
         )

@@ -1,5 +1,7 @@
+from decimal import Decimal
 from typing import Any
 
+from src.core.money import to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -12,7 +14,7 @@ from src.financial.scenarios.service import (
 
 
 def _validate_monthly_savings(
-    additional_monthly_savings: float,
+    additional_monthly_savings: Decimal,
 ) -> None:
     """Validate the additional monthly savings amount."""
     if additional_monthly_savings <= 0:
@@ -33,7 +35,7 @@ def run_additional_savings_scenario(
 ) -> ScenarioResult:
     """Model saving an additional amount each month."""
     try:
-        additional_monthly_savings = float(parameters["additional_monthly_savings"])
+        additional_monthly_savings = to_money(parameters["additional_monthly_savings"])
     except KeyError as error:
         raise ValueError("Additional monthly savings is required.") from error
     except (TypeError, ValueError) as error:
@@ -52,12 +54,12 @@ def run_additional_savings_scenario(
     _validate_monthly_savings(additional_monthly_savings)
     _validate_horizon_months(horizon_months)
 
-    original_total_income = float(snapshot["total_income"])
-    original_total_expenses = float(snapshot["total_expenses"])
-    original_net_cash_flow = float(snapshot["net_cash_flow"])
-    original_account_balance = float(snapshot["total_account_balance"])
-    original_goal_progress = float(snapshot["total_goal_progress"])
-    original_net_worth = float(snapshot["net_worth"])
+    original_total_income = to_money(snapshot["total_income"])
+    original_total_expenses = to_money(snapshot["total_expenses"])
+    original_net_cash_flow = to_money(snapshot["net_cash_flow"])
+    original_account_balance = to_money(snapshot["total_account_balance"])
+    original_goal_progress = to_money(snapshot["total_goal_progress"])
+    original_net_worth = to_money(snapshot["net_worth"])
 
     annual_additional_savings = additional_monthly_savings * 12
 
@@ -74,7 +76,7 @@ def run_additional_savings_scenario(
     original_savings_rate = (
         original_net_cash_flow / original_total_income * 100
         if original_total_income > 0
-        else 0.0
+        else Decimal("0")
     )
 
     projected_savings_rate = (
@@ -82,7 +84,7 @@ def run_additional_savings_scenario(
         / original_total_income
         * 100
         if original_total_income > 0
-        else 0.0
+        else Decimal("0")
     )
 
     projected_snapshot = {

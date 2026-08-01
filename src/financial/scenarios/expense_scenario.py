@@ -1,5 +1,7 @@
+from decimal import Decimal
 from typing import Any
 
+from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -12,7 +14,7 @@ from src.financial.scenarios.service import (
 
 
 def _validate_percentage(
-    reduction_percentage: float,
+    reduction_percentage: Decimal,
 ) -> None:
     """Validate an expense-reduction percentage."""
     if reduction_percentage <= 0:
@@ -33,7 +35,7 @@ def _validate_horizon_months(
 def _get_category_spending(
     snapshot: dict,
     category: str,
-) -> float:
+) -> Decimal:
     """Return spending for one category from the snapshot."""
     category_totals = snapshot.get(
         "category_totals",
@@ -44,7 +46,7 @@ def _get_category_spending(
 
     for category_name, total in category_totals.items():
         if str(category_name).strip().lower() == normalized_category:
-            return float(total)
+            return to_money(total)
 
     raise ValueError(f"No spending was found for category: {category}")
 
@@ -65,10 +67,10 @@ def run_expense_reduction_scenario(
         raise ValueError("Expense category is required.")
 
     try:
-        reduction_percentage = float(parameters["reduction_percentage"])
+        reduction_percentage = Decimal(str(parameters["reduction_percentage"]))
     except KeyError as error:
         raise ValueError("Reduction percentage is required.") from error
-    except (TypeError, ValueError) as error:
+    except (TypeError, ValueError, ArithmeticError) as error:
         raise ValueError("Reduction percentage must be a number.") from error
 
     try:
@@ -94,14 +96,14 @@ def run_expense_reduction_scenario(
     annual_savings = monthly_savings * 12
     horizon_savings = monthly_savings * horizon_months
 
-    original_total_expenses = float(snapshot["total_expenses"])
-    original_net_cash_flow = float(snapshot["net_cash_flow"])
-    original_account_balance = float(snapshot["total_account_balance"])
-    original_net_worth = float(snapshot["net_worth"])
+    original_total_expenses = to_money(snapshot["total_expenses"])
+    original_net_cash_flow = to_money(snapshot["net_cash_flow"])
+    original_account_balance = to_money(snapshot["total_account_balance"])
+    original_net_worth = to_money(snapshot["net_worth"])
 
     projected_total_expenses = max(
         original_total_expenses - monthly_savings,
-        0.0,
+        ZERO,
     )
 
     projected_net_cash_flow = original_net_cash_flow + monthly_savings
@@ -127,7 +129,7 @@ def run_expense_reduction_scenario(
     if matching_category_key is not None:
         projected_category_totals[matching_category_key] = max(
             category_spending - monthly_savings,
-            0.0,
+            ZERO,
         )
 
     projected_snapshot = {
