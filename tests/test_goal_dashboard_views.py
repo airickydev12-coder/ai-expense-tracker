@@ -1,6 +1,7 @@
 """Tests for financial-goal dashboard rendering."""
 
 from datetime import date
+from decimal import Decimal
 
 from src.financial.application.goal_dashboard_service import (
     build_goal_dashboard,
@@ -23,8 +24,8 @@ def test_render_goal_dashboard_item() -> None:
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000"),
+        current_amount=Decimal("4000"),
     )
     request = GoalPlanningRequest(
         goal=goal,
@@ -56,8 +57,8 @@ def test_render_goal_dashboard() -> None:
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000"),
+        current_amount=Decimal("4000"),
     )
 
     dashboard = build_goal_dashboard(

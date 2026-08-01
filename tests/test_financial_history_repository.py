@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -21,13 +22,13 @@ def build_record() -> FinancialSnapshotRecord:
             0,
             tzinfo=timezone.utc,
         ),
-        total_income=5000,
-        total_expenses=1500,
-        net_cash_flow=3500,
-        total_account_balance=2000,
-        total_goal_progress=2500,
-        total_debt=1000,
-        net_worth=3500,
+        total_income=Decimal("5000"),
+        total_expenses=Decimal("1500"),
+        net_cash_flow=Decimal("3500"),
+        total_account_balance=Decimal("2000"),
+        total_goal_progress=Decimal("2500"),
+        total_debt=Decimal("1000"),
+        net_worth=Decimal("3500"),
         health_score=85,
         health_status="Excellent",
     )

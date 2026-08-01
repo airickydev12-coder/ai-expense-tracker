@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.scenarios.comparison import (
     ComparisonDirection,
     MetricComparison,
@@ -17,9 +19,9 @@ def build_comparison() -> MetricComparison:
     """Create a metric comparison for formatting tests."""
     return MetricComparison(
         metric="Net Worth",
-        original_value=1000,
-        projected_value=1500,
-        change=500,
+        original_value=Decimal("1000"),
+        projected_value=Decimal("1500"),
+        change=Decimal("500"),
         percentage_change=50,
         direction=ComparisonDirection.IMPROVEMENT,
         higher_is_better=True,
@@ -42,9 +44,9 @@ def build_report() -> ScenarioComparisonReport:
 
 
 def test_format_signed_currency():
-    assert format_signed_currency(500) == "+$500.00"
-    assert format_signed_currency(-500) == "-$500.00"
-    assert format_signed_currency(0) == "$0.00"
+    assert format_signed_currency(Decimal("500")) == "+$500.00"
+    assert format_signed_currency(Decimal("-500")) == "-$500.00"
+    assert format_signed_currency(Decimal("0")) == "$0.00"
 
 
 def test_format_percentage():

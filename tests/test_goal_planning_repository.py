@@ -2,6 +2,7 @@
 
 import json
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -19,8 +20,8 @@ def build_goal(goal_id: int = 1) -> Goal:
     return Goal(
         id=goal_id,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=4000,
+        target_amount=Decimal("10000"),
+        current_amount=Decimal("4000"),
     )
 
 
@@ -78,8 +79,8 @@ def test_remove_goal_planning_request(tmp_path) -> None:
     second_goal = Goal(
         id=2,
         name="Vacation",
-        target_amount=3000,
-        current_amount=500,
+        target_amount=Decimal("3000"),
+        current_amount=Decimal("500"),
     )
     file_path = tmp_path / "planning.json"
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.history.trend_direction import (
@@ -17,10 +18,10 @@ from src.financial.history.trend_summary import MetricTrend
 
 def build_history(
     *,
-    newer_income: float = 5000,
-    newer_expenses: float = 1800,
-    newer_cash_flow: float = 3200,
-    newer_net_worth: float = 3000,
+    newer_income: Decimal = Decimal("5000"),
+    newer_expenses: Decimal = Decimal("1800"),
+    newer_cash_flow: Decimal = Decimal("3200"),
+    newer_net_worth: Decimal = Decimal("3000"),
     newer_health_score: int = 80,
 ) -> list[FinancialSnapshotRecord]:
     """Create historical snapshots for trend tests."""
@@ -28,13 +29,13 @@ def build_history(
 
     older = FinancialSnapshotRecord(
         timestamp=now - timedelta(days=30),
-        total_income=4000,
-        total_expenses=2000,
-        net_cash_flow=2000,
-        total_account_balance=1500,
-        total_goal_progress=1000,
-        total_debt=2000,
-        net_worth=500,
+        total_income=Decimal("4000"),
+        total_expenses=Decimal("2000"),
+        net_cash_flow=Decimal("2000"),
+        total_account_balance=Decimal("1500"),
+        total_goal_progress=Decimal("1000"),
+        total_debt=Decimal("2000"),
+        net_worth=Decimal("500"),
         health_score=60,
         health_status="Fair",
     )
@@ -44,9 +45,9 @@ def build_history(
         total_income=newer_income,
         total_expenses=newer_expenses,
         net_cash_flow=newer_cash_flow,
-        total_account_balance=2500,
-        total_goal_progress=2000,
-        total_debt=1500,
+        total_account_balance=Decimal("2500"),
+        total_goal_progress=Decimal("2000"),
+        total_debt=Decimal("1500"),
         net_worth=newer_net_worth,
         health_score=newer_health_score,
         health_status="Good",
@@ -57,54 +58,54 @@ def build_history(
 
 def test_classify_positive_financial_change():
     assert (
-        classify_financial_change(100)
+        classify_financial_change(Decimal("100"))
         == TrendDirection.IMPROVING
     )
 
 
 def test_classify_negative_financial_change():
     assert (
-        classify_financial_change(-100)
+        classify_financial_change(Decimal("-100"))
         == TrendDirection.DECLINING
     )
 
 
 def test_classify_small_financial_change_as_stable():
     assert (
-        classify_financial_change(24.99)
+        classify_financial_change(Decimal("24.99"))
         == TrendDirection.STABLE
     )
 
 
 def test_classify_exact_currency_threshold():
     assert (
-        classify_financial_change(25)
+        classify_financial_change(Decimal("25"))
         == TrendDirection.IMPROVING
     )
 
     assert (
-        classify_financial_change(-25)
+        classify_financial_change(Decimal("-25"))
         == TrendDirection.DECLINING
     )
 
 
 def test_classify_expense_decrease_as_improving():
     assert (
-        classify_expense_change(-100)
+        classify_expense_change(Decimal("-100"))
         == TrendDirection.IMPROVING
     )
 
 
 def test_classify_expense_increase_as_declining():
     assert (
-        classify_expense_change(100)
+        classify_expense_change(Decimal("100"))
         == TrendDirection.DECLINING
     )
 
 
 def test_classify_small_expense_change_as_stable():
     assert (
-        classify_expense_change(10)
+        classify_expense_change(Decimal("10"))
         == TrendDirection.STABLE
     )
 
@@ -130,15 +131,15 @@ def test_calculate_positive_momentum():
     trends = [
         MetricTrend(
             TrendDirection.IMPROVING,
-            100,
+            Decimal("100"),
         ),
         MetricTrend(
             TrendDirection.IMPROVING,
-            200,
+            Decimal("200"),
         ),
         MetricTrend(
             TrendDirection.DECLINING,
-            -50,
+            Decimal("-50"),
         ),
     ]
 
@@ -152,15 +153,15 @@ def test_calculate_negative_momentum():
     trends = [
         MetricTrend(
             TrendDirection.DECLINING,
-            -100,
+            Decimal("-100"),
         ),
         MetricTrend(
             TrendDirection.DECLINING,
-            -200,
+            Decimal("-200"),
         ),
         MetricTrend(
             TrendDirection.IMPROVING,
-            50,
+            Decimal("50"),
         ),
     ]
 
@@ -174,15 +175,15 @@ def test_calculate_stable_momentum_when_tied():
     trends = [
         MetricTrend(
             TrendDirection.IMPROVING,
-            100,
+            Decimal("100"),
         ),
         MetricTrend(
             TrendDirection.DECLINING,
-            -100,
+            Decimal("-100"),
         ),
         MetricTrend(
             TrendDirection.STABLE,
-            0,
+            Decimal("0"),
         ),
     ]
 
@@ -226,10 +227,10 @@ def test_analyze_financial_trends():
 def test_analyze_declining_financial_trends():
     summary = analyze_financial_trends(
         build_history(
-            newer_income=3500,
-            newer_expenses=2500,
-            newer_cash_flow=1000,
-            newer_net_worth=100,
+            newer_income=Decimal("3500"),
+            newer_expenses=Decimal("2500"),
+            newer_cash_flow=Decimal("1000"),
+            newer_net_worth=Decimal("100"),
             newer_health_score=50,
         )
     )

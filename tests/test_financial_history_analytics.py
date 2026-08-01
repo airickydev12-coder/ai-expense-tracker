@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from src.financial.history.analytics import (
     get_cash_flow_change,
@@ -16,26 +17,26 @@ def build_history() -> list[FinancialSnapshotRecord]:
 
     older = FinancialSnapshotRecord(
         timestamp=now - timedelta(days=30),
-        total_income=4000,
-        total_expenses=2000,
-        net_cash_flow=2000,
-        total_account_balance=1500,
-        total_goal_progress=1000,
-        total_debt=2000,
-        net_worth=500,
+        total_income=Decimal("4000"),
+        total_expenses=Decimal("2000"),
+        net_cash_flow=Decimal("2000"),
+        total_account_balance=Decimal("1500"),
+        total_goal_progress=Decimal("1000"),
+        total_debt=Decimal("2000"),
+        net_worth=Decimal("500"),
         health_score=60,
         health_status="Fair",
     )
 
     newer = FinancialSnapshotRecord(
         timestamp=now,
-        total_income=5000,
-        total_expenses=1800,
-        net_cash_flow=3200,
-        total_account_balance=2500,
-        total_goal_progress=2000,
-        total_debt=1500,
-        net_worth=3000,
+        total_income=Decimal("5000"),
+        total_expenses=Decimal("1800"),
+        net_cash_flow=Decimal("3200"),
+        total_account_balance=Decimal("2500"),
+        total_goal_progress=Decimal("2000"),
+        total_debt=Decimal("1500"),
+        net_worth=Decimal("3000"),
         health_score=80,
         health_status="Good",
     )

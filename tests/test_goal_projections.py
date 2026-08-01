@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -14,13 +15,13 @@ from src.financial.goals.projections import (
 
 def build_goal(
     *,
-    current_amount: float = 4000,
+    current_amount: Decimal = Decimal("4000"),
 ) -> Goal:
     """Create a financial goal for projection tests."""
     return Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000"),
         current_amount=current_amount,
     )
 
@@ -186,7 +187,7 @@ def test_build_goal_projection():
 def test_build_completed_goal_projection():
     projection = build_goal_projection(
         build_goal(
-            current_amount=10000,
+            current_amount=Decimal("10000"),
         ),
         target_date=date(2027, 7, 16),
         planned_monthly_contribution=0,

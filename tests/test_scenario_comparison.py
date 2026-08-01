@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.scenarios.comparison import (
@@ -11,23 +13,23 @@ from src.financial.scenarios.comparison import (
 
 def test_calculate_percentage_change():
     assert calculate_percentage_change(
-        100,
-        125,
+        Decimal("100"),
+        Decimal("125"),
     ) == pytest.approx(25)
 
 
 def test_percentage_change_uses_absolute_original():
     assert calculate_percentage_change(
-        -100,
-        -50,
+        Decimal("-100"),
+        Decimal("-50"),
     ) == pytest.approx(50)
 
 
 def test_percentage_change_returns_none_for_zero_original():
     assert (
         calculate_percentage_change(
-            0,
-            100,
+            Decimal("0"),
+            Decimal("100"),
         )
         is None
     )
@@ -36,7 +38,7 @@ def test_percentage_change_returns_none_for_zero_original():
 def test_classify_higher_is_better_improvement():
     assert (
         classify_comparison_direction(
-            change=100,
+            change=Decimal("100"),
             higher_is_better=True,
         )
         == ComparisonDirection.IMPROVEMENT
@@ -46,7 +48,7 @@ def test_classify_higher_is_better_improvement():
 def test_classify_higher_is_better_decline():
     assert (
         classify_comparison_direction(
-            change=-100,
+            change=Decimal("-100"),
             higher_is_better=True,
         )
         == ComparisonDirection.DECLINE
@@ -56,7 +58,7 @@ def test_classify_higher_is_better_decline():
 def test_classify_lower_is_better_improvement():
     assert (
         classify_comparison_direction(
-            change=-100,
+            change=Decimal("-100"),
             higher_is_better=False,
         )
         == ComparisonDirection.IMPROVEMENT
@@ -66,7 +68,7 @@ def test_classify_lower_is_better_improvement():
 def test_classify_lower_is_better_decline():
     assert (
         classify_comparison_direction(
-            change=100,
+            change=Decimal("100"),
             higher_is_better=False,
         )
         == ComparisonDirection.DECLINE
@@ -76,7 +78,7 @@ def test_classify_lower_is_better_decline():
 def test_classify_unchanged_within_tolerance():
     assert (
         classify_comparison_direction(
-            change=0.001,
+            change=Decimal("0.001"),
             higher_is_better=True,
         )
         == ComparisonDirection.UNCHANGED

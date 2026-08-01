@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from src.financial.goals.feasibility import (
     assess_goal_feasibility,
@@ -14,7 +15,7 @@ from src.financial.goals.projections import (
 
 def build_assessment(
     *,
-    current_amount: float = 4000,
+    current_amount: Decimal = Decimal("4000"),
     target_date: date = date(
         2027,
         7,
@@ -26,7 +27,7 @@ def build_assessment(
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000"),
         current_amount=current_amount,
     )
 
@@ -46,7 +47,7 @@ def build_assessment(
 
 def test_completed_goal_is_feasible():
     assessment = build_assessment(
-        current_amount=10000,
+        current_amount=Decimal("10000"),
         planned_monthly_contribution=0,
     )
 

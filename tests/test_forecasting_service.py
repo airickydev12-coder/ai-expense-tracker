@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -22,25 +23,25 @@ def build_history() -> list[FinancialSnapshotRecord]:
     return [
         FinancialSnapshotRecord(
             timestamp=now - timedelta(days=30),
-            total_income=4000,
-            total_expenses=2500,
-            net_cash_flow=1500,
-            total_account_balance=3000,
-            total_goal_progress=1000,
-            total_debt=10000,
-            net_worth=-6000,
+            total_income=Decimal("4000"),
+            total_expenses=Decimal("2500"),
+            net_cash_flow=Decimal("1500"),
+            total_account_balance=Decimal("3000"),
+            total_goal_progress=Decimal("1000"),
+            total_debt=Decimal("10000"),
+            net_worth=Decimal("-6000"),
             health_score=50,
             health_status="Fair",
         ),
         FinancialSnapshotRecord(
             timestamp=now,
-            total_income=5000,
-            total_expenses=2500,
-            net_cash_flow=2500,
-            total_account_balance=4500,
-            total_goal_progress=1600,
-            total_debt=8500,
-            net_worth=-2400,
+            total_income=Decimal("5000"),
+            total_expenses=Decimal("2500"),
+            net_cash_flow=Decimal("2500"),
+            total_account_balance=Decimal("4500"),
+            total_goal_progress=Decimal("1600"),
+            total_debt=Decimal("8500"),
+            net_worth=Decimal("-2400"),
             health_score=65,
             health_status="Good",
         ),

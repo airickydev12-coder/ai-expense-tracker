@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -13,10 +14,10 @@ def build_forecast() -> FinancialForecast:
     """Create a forecast for CLI tests."""
     projection = MetricProjection(
         metric="Net Worth",
-        current_value=1000,
-        projected_value=1500,
-        projected_change=500,
-        daily_change=16.67,
+        current_value=Decimal("1000"),
+        projected_value=Decimal("1500"),
+        projected_change=Decimal("500"),
+        daily_change=Decimal("16.67"),
         horizon_days=30,
     )
 

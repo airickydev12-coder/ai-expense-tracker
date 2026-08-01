@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.goals.models import Goal
@@ -7,8 +9,8 @@ def test_goal_creation():
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000"),
+        current_amount=Decimal("2500"),
     )
 
     assert goal.id == 1
@@ -19,19 +21,39 @@ def test_goal_creation():
 
 def test_goal_invalid_id():
     with pytest.raises(ValueError):
-        Goal(id=0, name="Emergency Fund", target_amount=10000, current_amount=2500)
+        Goal(
+            id=0,
+            name="Emergency Fund",
+            target_amount=Decimal("10000"),
+            current_amount=Decimal("2500"),
+        )
 
 
 def test_goal_empty_name():
     with pytest.raises(ValueError):
-        Goal(id=1, name="", target_amount=10000, current_amount=2500)
+        Goal(
+            id=1,
+            name="",
+            target_amount=Decimal("10000"),
+            current_amount=Decimal("2500"),
+        )
 
 
 def test_goal_invalid_target_amount():
     with pytest.raises(ValueError):
-        Goal(id=1, name="Emergency Fund", target_amount=0, current_amount=2500)
+        Goal(
+            id=1,
+            name="Emergency Fund",
+            target_amount=Decimal("0"),
+            current_amount=Decimal("2500"),
+        )
 
 
 def test_goal_negative_current_amount():
     with pytest.raises(ValueError):
-        Goal(id=1, name="Emergency Fund", target_amount=10000, current_amount=-1)
+        Goal(
+            id=1,
+            name="Emergency Fund",
+            target_amount=Decimal("10000"),
+            current_amount=Decimal("-1"),
+        )

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -57,20 +58,20 @@ def build_goals() -> list[Goal]:
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=4000,
+            target_amount=Decimal("10000"),
+            current_amount=Decimal("4000"),
         ),
         Goal(
             id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=600,
+            target_amount=Decimal("3000"),
+            current_amount=Decimal("600"),
         ),
         Goal(
             id=3,
             name="Car Fund",
-            target_amount=12000,
-            current_amount=4800,
+            target_amount=Decimal("12000"),
+            current_amount=Decimal("4800"),
         ),
     ]
 

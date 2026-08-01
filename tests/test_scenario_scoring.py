@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.scenarios.models import (
@@ -142,7 +144,7 @@ def test_classify_risk_level():
         classify_risk_level(
             risk_count=0,
             conflict_count=0,
-            projected_cash_flow=1000,
+            projected_cash_flow=Decimal("1000"),
         )
         == RiskLevel.LOW
     )
@@ -151,7 +153,7 @@ def test_classify_risk_level():
         classify_risk_level(
             risk_count=2,
             conflict_count=0,
-            projected_cash_flow=1000,
+            projected_cash_flow=Decimal("1000"),
         )
         == RiskLevel.MODERATE
     )
@@ -160,7 +162,7 @@ def test_classify_risk_level():
         classify_risk_level(
             risk_count=0,
             conflict_count=1,
-            projected_cash_flow=1000,
+            projected_cash_flow=Decimal("1000"),
         )
         == RiskLevel.HIGH
     )
@@ -169,7 +171,7 @@ def test_classify_risk_level():
         classify_risk_level(
             risk_count=0,
             conflict_count=0,
-            projected_cash_flow=-1,
+            projected_cash_flow=Decimal("-1"),
         )
         == RiskLevel.CRITICAL
     )
@@ -178,8 +180,8 @@ def test_classify_risk_level():
 def test_classify_sustainability():
     assert (
         classify_sustainability(
-            projected_cash_flow=2500,
-            original_cash_flow=2000,
+            projected_cash_flow=Decimal("2500"),
+            original_cash_flow=Decimal("2000"),
             conflict_count=0,
         )
         == SustainabilityLevel.EXCELLENT
@@ -187,8 +189,8 @@ def test_classify_sustainability():
 
     assert (
         classify_sustainability(
-            projected_cash_flow=1600,
-            original_cash_flow=2000,
+            projected_cash_flow=Decimal("1600"),
+            original_cash_flow=Decimal("2000"),
             conflict_count=0,
         )
         == SustainabilityLevel.GOOD
@@ -196,8 +198,8 @@ def test_classify_sustainability():
 
     assert (
         classify_sustainability(
-            projected_cash_flow=-100,
-            original_cash_flow=2000,
+            projected_cash_flow=Decimal("-100"),
+            original_cash_flow=Decimal("2000"),
             conflict_count=0,
         )
         == SustainabilityLevel.POOR
@@ -260,7 +262,7 @@ def test_score_risk():
         score_risk(
             risk_count=0,
             conflict_count=0,
-            projected_cash_flow=2000,
+            projected_cash_flow=Decimal("2000"),
         )
         == 100
     )
@@ -269,7 +271,7 @@ def test_score_risk():
         score_risk(
             risk_count=2,
             conflict_count=1,
-            projected_cash_flow=1000,
+            projected_cash_flow=Decimal("1000"),
         )
         == 55
     )
