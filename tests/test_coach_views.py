@@ -5,7 +5,6 @@ from src.financial.coach.coaching import (
 )
 from src.financial.coach.insights import (
     FinancialCoachInsight,
-    InsightCategory,
     InsightSeverity,
 )
 from src.financial.coach.models import (
@@ -51,7 +50,7 @@ def build_session() -> CoachingSession:
             key="cash_flow:positive",
             title="Positive Monthly Cash Flow",
             message=("The current monthly surplus is " "$2,000.00."),
-            category=InsightCategory.CASH_FLOW,
+            category=CoachingCategory.CASH_FLOW,
             severity=InsightSeverity.POSITIVE,
             action=("Assign the surplus deliberately."),
         ),
@@ -59,7 +58,7 @@ def build_session() -> CoachingSession:
             key="savings:emergency_fund",
             title="Emergency Fund Below Target",
             message=("Available balances cover two months " "of expenses."),
-            category=InsightCategory.SAVINGS,
+            category=CoachingCategory.SAVINGS,
             severity=InsightSeverity.WARNING,
             action=("Build reserves toward three months."),
         ),

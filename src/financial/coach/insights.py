@@ -5,6 +5,7 @@ from enum import Enum
 from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
+from src.financial.coach.models import CoachingCategory
 from src.financial.scenarios.comparison import (
     METRIC_NET_CASH_FLOW,
     METRIC_NET_WORTH,
@@ -37,19 +38,6 @@ class InsightSeverity(Enum):
     CRITICAL = "Critical"
 
 
-class InsightCategory(Enum):
-    """Financial category associated with an insight."""
-
-    CASH_FLOW = "Cash Flow"
-    DEBT = "Debt"
-    SAVINGS = "Savings"
-    SPENDING = "Spending"
-    INCOME = "Income"
-    NET_WORTH = "Net Worth"
-    FINANCIAL_HEALTH = "Financial Health"
-    GENERAL = "General"
-
-
 @dataclass(frozen=True)
 class FinancialCoachInsight:
     """Represents one deterministic financial coaching insight."""
@@ -57,7 +45,7 @@ class FinancialCoachInsight:
     key: str
     title: str
     message: str
-    category: InsightCategory
+    category: CoachingCategory
     severity: InsightSeverity
     metric: str = ""
     current_value: float | None = None
@@ -286,7 +274,7 @@ def build_cash_flow_insights(
                 key="cash_flow:negative",
                 title="Negative Monthly Cash Flow",
                 message=("Monthly expenses currently exceed " "monthly income."),
-                category=InsightCategory.CASH_FLOW,
+                category=CoachingCategory.CASH_FLOW,
                 severity=InsightSeverity.CRITICAL,
                 metric=METRIC_NET_CASH_FLOW,
                 current_value=float(net_cash_flow),
@@ -307,7 +295,7 @@ def build_cash_flow_insights(
                     "Income currently covers expenses, but "
                     "there is no remaining monthly margin."
                 ),
-                category=InsightCategory.CASH_FLOW,
+                category=CoachingCategory.CASH_FLOW,
                 severity=InsightSeverity.WARNING,
                 metric=METRIC_NET_CASH_FLOW,
                 current_value=float(net_cash_flow),
@@ -324,7 +312,7 @@ def build_cash_flow_insights(
             key="cash_flow:positive",
             title="Positive Monthly Cash Flow",
             message=(f"The current monthly surplus is " f"${net_cash_flow:,.2f}."),
-            category=InsightCategory.CASH_FLOW,
+            category=CoachingCategory.CASH_FLOW,
             severity=InsightSeverity.POSITIVE,
             metric=METRIC_NET_CASH_FLOW,
             current_value=float(net_cash_flow),
@@ -387,7 +375,7 @@ def build_savings_rate_insights(
             key="savings:rate",
             title=title,
             message=message,
-            category=InsightCategory.SAVINGS,
+            category=CoachingCategory.SAVINGS,
             severity=severity,
             metric="Savings Rate",
             current_value=savings_rate,
@@ -442,7 +430,7 @@ def build_emergency_fund_insights(
                 f"approximately {coverage_months:.1f} "
                 "months of current expenses."
             ),
-            category=InsightCategory.SAVINGS,
+            category=CoachingCategory.SAVINGS,
             severity=severity,
             metric="Emergency Fund Months",
             current_value=coverage_months,
@@ -472,7 +460,7 @@ def build_debt_insights(
                     "No outstanding debt is included in the "
                     "current financial snapshot."
                 ),
-                category=InsightCategory.DEBT,
+                category=CoachingCategory.DEBT,
                 severity=InsightSeverity.POSITIVE,
                 metric=METRIC_TOTAL_DEBT,
                 current_value=0.0,
@@ -491,7 +479,7 @@ def build_debt_insights(
             key="debt:balance",
             title="Outstanding Debt Requires a Plan",
             message=(f"Total recorded debt is " f"${total_debt:,.2f}."),
-            category=InsightCategory.DEBT,
+            category=CoachingCategory.DEBT,
             severity=InsightSeverity.INFORMATIONAL,
             metric=METRIC_TOTAL_DEBT,
             current_value=float(total_debt),
@@ -535,7 +523,7 @@ def build_debt_insights(
                 "Total debt equals approximately "
                 f"{debt_ratio:.1f}% of annualized income."
             ),
-            category=InsightCategory.DEBT,
+            category=CoachingCategory.DEBT,
             severity=severity,
             metric="Debt-to-Income Ratio",
             current_value=debt_ratio,
@@ -582,7 +570,7 @@ def build_spending_insights(
                 f"${amount:,.2f}, representing approximately "
                 f"{concentration:.1f}% of total expenses."
             ),
-            category=InsightCategory.SPENDING,
+            category=CoachingCategory.SPENDING,
             severity=severity,
             metric="Spending Concentration",
             current_value=concentration,
@@ -614,7 +602,7 @@ def build_net_worth_insights(
                 message=(
                     f"Current liabilities exceed assets by " f"${abs(net_worth):,.2f}."
                 ),
-                category=InsightCategory.NET_WORTH,
+                category=CoachingCategory.NET_WORTH,
                 severity=InsightSeverity.WARNING,
                 metric=METRIC_NET_WORTH,
                 current_value=float(net_worth),
@@ -630,7 +618,7 @@ def build_net_worth_insights(
             key="net_worth:positive",
             title="Positive Net Worth",
             message=(f"Current estimated net worth is " f"${net_worth:,.2f}."),
-            category=InsightCategory.NET_WORTH,
+            category=CoachingCategory.NET_WORTH,
             severity=InsightSeverity.POSITIVE,
             metric=METRIC_NET_WORTH,
             current_value=float(net_worth),
@@ -690,7 +678,7 @@ def build_health_score_insights(
                 f"{health_score:.0f}/100 "
                 f"({health_status})."
             ),
-            category=InsightCategory.FINANCIAL_HEALTH,
+            category=CoachingCategory.FINANCIAL_HEALTH,
             severity=severity,
             metric="Financial Health Score",
             current_value=health_score,

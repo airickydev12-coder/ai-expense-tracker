@@ -14,13 +14,19 @@ class CoachingPriority(Enum):
 
 
 class CoachingCategory(Enum):
-    """Financial category associated with coaching advice."""
+    """
+    Financial category shared by coaching advice and coaching insights.
+
+    Kept as a single enum so advice (coach/models.py) and deterministic
+    insights (coach/insights.py) use one consistent category vocabulary.
+    """
 
     CASH_FLOW = "Cash Flow"
     DEBT = "Debt"
     SAVINGS = "Savings"
     SPENDING = "Spending"
     INCOME = "Income"
+    NET_WORTH = "Net Worth"
     FINANCIAL_HEALTH = "Financial Health"
     GENERAL = "General"
 

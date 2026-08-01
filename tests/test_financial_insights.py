@@ -2,7 +2,6 @@ import pytest
 
 from src.financial.coach.insights import (
     FinancialCoachInsight,
-    InsightCategory,
     InsightSeverity,
     calculate_debt_to_income_ratio,
     calculate_emergency_fund_months,
@@ -10,6 +9,7 @@ from src.financial.coach.insights import (
     find_top_spending_category,
     generate_financial_coach_insights,
 )
+from src.financial.coach.models import CoachingCategory
 
 
 def build_snapshot() -> dict:
@@ -37,7 +37,7 @@ def test_financial_coach_insight():
         key="cash_flow:test",
         title="Positive Cash Flow",
         message="Cash flow is positive.",
-        category=InsightCategory.CASH_FLOW,
+        category=CoachingCategory.CASH_FLOW,
         severity=InsightSeverity.POSITIVE,
         metric="Net Cash Flow",
         current_value=1000,
@@ -58,7 +58,7 @@ def test_insight_rejects_empty_key():
             key=" ",
             title="Title",
             message="Message",
-            category=InsightCategory.GENERAL,
+            category=CoachingCategory.GENERAL,
             severity=InsightSeverity.INFORMATIONAL,
         )
 
@@ -139,7 +139,7 @@ def test_spending_concentration_warning():
     insights = generate_financial_coach_insights(snapshot)
 
     spending_insight = next(
-        insight for insight in insights if insight.category == InsightCategory.SPENDING
+        insight for insight in insights if insight.category == CoachingCategory.SPENDING
     )
 
     assert spending_insight.severity == InsightSeverity.WARNING
