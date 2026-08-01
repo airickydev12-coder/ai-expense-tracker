@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 from src.core.config import DATA_DIR
 from src.financial.scenarios.models import (
@@ -11,6 +12,32 @@ from src.financial.scenarios.models import (
 )
 
 SCENARIO_WORKSPACE_FILE = DATA_DIR / "scenario_workspace.json"
+
+
+class _DecimalEncoder(json.JSONEncoder):
+    """
+    Serialize Decimal values found anywhere in a scenario result.
+
+    original_snapshot/projected_snapshot are free-form dicts that can
+    contain Decimal values at any depth (top-level totals, nested
+    accounts/goals/debts/bills). A tagged object lets the matching
+    object_hook restore Decimal on load without needing to know which
+    keys are monetary.
+    """
+
+    def default(self, o: object) -> Any:
+        if isinstance(o, Decimal):
+            return {"__decimal__": str(o)}
+
+        return super().default(o)
+
+
+def _decimal_object_hook(data: dict) -> object:
+    """Restore Decimal values tagged by _DecimalEncoder."""
+    if set(data.keys()) == {"__decimal__"}:
+        return Decimal(data["__decimal__"])
+
+    return data
 
 
 def _scenario_type_from_value(
@@ -170,7 +197,10 @@ def load_workspace_from_file(
             "r",
             encoding="utf-8",
         ) as file:
-            data = json.load(file)
+            data = json.load(
+                file,
+                object_hook=_decimal_object_hook,
+            )
 
     except json.JSONDecodeError as error:
         raise ValueError("Scenario workspace contains invalid JSON.") from error
@@ -199,6 +229,7 @@ def save_workspace_to_file(
             [result.to_dict() for result in results],
             file,
             indent=4,
+            cls=_DecimalEncoder,
         )
 
 

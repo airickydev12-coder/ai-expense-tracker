@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -87,6 +88,73 @@ def test_save_and_load_workspace(
     loaded_results = load_workspace_from_file(file_path)
 
     assert loaded_results == original_results
+
+
+def test_save_and_load_workspace_with_decimal_snapshot(
+    tmp_path,
+):
+    """Snapshots built from live domain models contain Decimal values.
+
+    json.dump cannot serialize Decimal natively, so this guards against
+    a regression where saving a real (non-test-literal) scenario result
+    raised TypeError: Object of type Decimal is not JSON serializable.
+    """
+    file_path = tmp_path / "scenario_workspace.json"
+
+    snapshot = {
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("3000.00"),
+        "net_cash_flow": Decimal("2000.00"),
+        "total_account_balance": Decimal("8000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("10000.00"),
+        "net_worth": Decimal("500.00"),
+        "health_score": 70,
+        "health_status": "Good",
+        "accounts": [
+            {
+                "id": 1,
+                "name": "Checking",
+                "balance": Decimal("1234.56"),
+            }
+        ],
+    }
+
+    result = ScenarioResult(
+        scenario_type=ScenarioType.INCOME_INCREASE,
+        name="Income Increase",
+        description="Model a ten percent raise.",
+        assumptions=[],
+        original_snapshot=snapshot,
+        projected_snapshot=snapshot,
+        impacts=[
+            ScenarioImpact.create(
+                metric="Net Worth",
+                original_value=Decimal("500.00"),
+                projected_value=Decimal("6500.00"),
+            )
+        ],
+    )
+
+    save_workspace_to_file(
+        [result],
+        file_path,
+    )
+
+    loaded_results = load_workspace_from_file(file_path)
+
+    loaded_snapshot = loaded_results[0].original_snapshot
+
+    assert loaded_snapshot["total_account_balance"] == Decimal("8000.00")
+    assert isinstance(
+        loaded_snapshot["total_account_balance"],
+        Decimal,
+    )
+    assert loaded_snapshot["accounts"][0]["balance"] == Decimal("1234.56")
+    assert isinstance(
+        loaded_snapshot["accounts"][0]["balance"],
+        Decimal,
+    )
 
 
 def test_load_workspace_returns_empty_when_missing(
