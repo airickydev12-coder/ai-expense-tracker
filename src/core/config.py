@@ -5,6 +5,7 @@ VERSION = "0.7.0"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
+LOG_DIR = PROJECT_ROOT / "logs"
 
 DATA_FILE = DATA_DIR / "expenses.json"
 GOALS_FILE = DATA_DIR / "goals.json"

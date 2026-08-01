@@ -1,6 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.financial.bills.models import Bill
 from src.financial.bills.repository import (
     BILLS_FILE,
@@ -8,6 +9,7 @@ from src.financial.bills.repository import (
     save_bills_to_file,
 )
 
+logger = get_logger(__name__)
 
 bills: list[Bill] = []
 
@@ -73,6 +75,12 @@ def add_bill(
     bills.append(bill)
     save_bills(file_path)
 
+    logger.info(
+        "Added bill %d (%s)",
+        bill.id,
+        bill.name,
+    )
+
     return bill
 
 
@@ -102,6 +110,11 @@ def update_bill(
     bills[bill_index] = updated_bill
 
     save_bills(file_path)
+
+    logger.info(
+        "Updated bill %d",
+        bill_id,
+    )
 
     return updated_bill
 
@@ -139,6 +152,10 @@ def delete_bill(
         if bill.id == bill_id:
             deleted_bill = bills.pop(index)
             save_bills(file_path)
+            logger.info(
+                "Deleted bill %d",
+                bill_id,
+            )
             return deleted_bill
 
     return None

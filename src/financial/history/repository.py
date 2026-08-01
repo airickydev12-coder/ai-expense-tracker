@@ -2,9 +2,13 @@ import json
 from pathlib import Path
 
 from src.core.config import DATA_DIR
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.history.models import (
     FinancialSnapshotRecord,
 )
+
+logger = get_logger(__name__)
 
 HISTORY_FILE = (
     DATA_DIR /
@@ -28,19 +32,32 @@ def load_history_from_file(
             data = json.load(file)
 
     except json.JSONDecodeError as error:
-        raise ValueError(
+        logger.error(
+            "Failed to parse financial history file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError(
             "Financial history contains invalid JSON."
         ) from error
 
     if not isinstance(data, list):
-        raise ValueError(
+        raise PersistenceError(
             "Financial history must be a JSON list."
         )
 
-    return [
+    records = [
         FinancialSnapshotRecord.from_dict(item)
         for item in data
     ]
+
+    logger.debug(
+        "Loaded %d financial history record(s) from %s",
+        len(records),
+        file_path,
+    )
+
+    return records
 
 
 def save_history_to_file(
@@ -66,3 +83,9 @@ def save_history_to_file(
             file,
             indent=4,
         )
+
+    logger.debug(
+        "Saved %d financial history record(s) to %s",
+        len(history),
+        file_path,
+    )

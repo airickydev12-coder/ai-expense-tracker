@@ -1,6 +1,8 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.exceptions import ValidationError
+from src.core.logging import get_logger
 from src.financial.debt.models import Debt
 from src.financial.debt.repository import (
     DEBTS_FILE,
@@ -8,6 +10,7 @@ from src.financial.debt.repository import (
     save_debts_to_file,
 )
 
+logger = get_logger(__name__)
 
 ZERO_MONEY = Decimal("0")
 
@@ -75,6 +78,12 @@ def add_debt(
     debts.append(debt)
     save_debts(file_path)
 
+    logger.info(
+        "Added debt %d (%s)",
+        debt.id,
+        debt.name,
+    )
+
     return debt
 
 
@@ -109,6 +118,11 @@ def update_debt(
 
     save_debts(file_path)
 
+    logger.info(
+        "Updated debt %d",
+        debt_id,
+    )
+
     return updated_debt
 
 
@@ -119,7 +133,7 @@ def apply_payment_to_debt(
 ) -> Debt | None:
     """Apply a payment to an existing debt."""
     if payment < ZERO_MONEY:
-        raise ValueError("Debt payment cannot be negative.")
+        raise ValidationError("Debt payment cannot be negative.")
 
     debt = get_debt_by_id(debt_id)
 
@@ -131,11 +145,19 @@ def apply_payment_to_debt(
         ZERO_MONEY,
     )
 
-    return update_debt(
+    updated_debt = update_debt(
         debt_id=debt.id,
         balance=updated_balance,
         file_path=file_path,
     )
+
+    logger.info(
+        "Applied payment of %s to debt %d",
+        payment,
+        debt_id,
+    )
+
+    return updated_debt
 
 
 def delete_debt(
@@ -147,6 +169,10 @@ def delete_debt(
         if debt.id == debt_id:
             deleted_debt = debts.pop(index)
             save_debts(file_path)
+            logger.info(
+                "Deleted debt %d",
+                debt_id,
+            )
             return deleted_debt
 
     return None

@@ -11,6 +11,8 @@ from src.core.config import (
     GOAL_LEDGER_FILE,
     GOALS_FILE,
 )
+from src.core.exceptions import NotFoundError, ValidationError
+from src.core.logging import get_logger
 from src.core.money import (
     ZERO,
     add_money,
@@ -34,6 +36,8 @@ from src.financial.goals.repository import (
     save_goals_to_file,
 )
 
+
+logger = get_logger(__name__)
 
 MoneyInput: TypeAlias = Decimal | int | float | str
 
@@ -131,10 +135,10 @@ def record_contribution(
     normalized_amount = to_money(amount)
 
     if normalized_amount < ZERO:
-        raise ValueError("Goal contribution cannot be negative.")
+        raise ValidationError("Goal contribution cannot be negative.")
 
     if normalized_amount == ZERO:
-        raise ValueError("Goal contribution must be greater than zero.")
+        raise ValidationError("Goal contribution must be greater than zero.")
 
     migrate_existing_goal_balances(
         [goal],
@@ -175,6 +179,12 @@ def record_contribution(
         goals_file_path=goals_file_path,
     )
 
+    logger.info(
+        "Recorded contribution of %s to goal %d",
+        recorded_amount,
+        goal.id,
+    )
+
     return entry
 
 
@@ -194,10 +204,10 @@ def record_withdrawal(
     normalized_amount = to_money(amount)
 
     if normalized_amount < ZERO:
-        raise ValueError("Goal withdrawal cannot be negative.")
+        raise ValidationError("Goal withdrawal cannot be negative.")
 
     if normalized_amount == ZERO:
-        raise ValueError("Goal withdrawal must be greater than zero.")
+        raise ValidationError("Goal withdrawal must be greater than zero.")
 
     migrate_existing_goal_balances(
         [goal],
@@ -205,7 +215,7 @@ def record_withdrawal(
     )
 
     if normalized_amount > goal.current_amount:
-        raise ValueError("Goal withdrawal cannot exceed the " "current goal balance.")
+        raise ValidationError("Goal withdrawal cannot exceed the " "current goal balance.")
 
     entry = create_ledger_entry(
         goal_id=goal.id,
@@ -223,6 +233,12 @@ def record_withdrawal(
         goals=goals,
         ledger_file_path=ledger_file_path,
         goals_file_path=goals_file_path,
+    )
+
+    logger.info(
+        "Recorded withdrawal of %s from goal %d",
+        normalized_amount,
+        goal.id,
     )
 
     return entry
@@ -244,7 +260,7 @@ def record_adjustment(
     normalized_amount = to_money(amount)
 
     if normalized_amount == ZERO:
-        raise ValueError("Goal adjustment cannot be zero.")
+        raise ValidationError("Goal adjustment cannot be zero.")
 
     migrate_existing_goal_balances(
         [goal],
@@ -257,10 +273,10 @@ def record_adjustment(
     )
 
     if projected_balance < ZERO:
-        raise ValueError("Goal adjustment cannot produce " "a negative balance.")
+        raise ValidationError("Goal adjustment cannot produce " "a negative balance.")
 
     if projected_balance > goal.target_amount:
-        raise ValueError(
+        raise ValidationError(
             "Goal adjustment cannot produce a " "balance above the target amount."
         )
 
@@ -280,6 +296,12 @@ def record_adjustment(
         goals=goals,
         ledger_file_path=ledger_file_path,
         goals_file_path=goals_file_path,
+    )
+
+    logger.info(
+        "Recorded adjustment of %s to goal %d",
+        normalized_amount,
+        goal.id,
     )
 
     return entry
@@ -306,16 +328,16 @@ def reverse_entry(
     )
 
     if original is None:
-        raise ValueError("Goal ledger entry was not found.")
+        raise NotFoundError("Goal ledger entry was not found.")
 
     if original.goal_id != goal.id:
-        raise ValueError("The ledger entry does not belong " "to the selected goal.")
+        raise ValidationError("The ledger entry does not belong " "to the selected goal.")
 
     if original.entry_type is GoalLedgerEntryType.REVERSAL:
-        raise ValueError("A reversal entry cannot be reversed.")
+        raise ValidationError("A reversal entry cannot be reversed.")
 
     if any(entry.reverses_entry_id == entry_id for entry in entries):
-        raise ValueError("The ledger entry has already been reversed.")
+        raise ValidationError("The ledger entry has already been reversed.")
 
     reversal = create_ledger_entry(
         goal_id=goal.id,
@@ -334,6 +356,12 @@ def reverse_entry(
         goals=goals,
         ledger_file_path=ledger_file_path,
         goals_file_path=goals_file_path,
+    )
+
+    logger.info(
+        "Reversed goal ledger entry %s for goal %d",
+        entry_id,
+        goal.id,
     )
 
     return reversal
@@ -435,4 +463,4 @@ def _replace_cached_goal(
 
         return updated_goal
 
-    raise ValueError("Goal was not found in application memory.")
+    raise NotFoundError("Goal was not found in application memory.")

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
+
 
 @dataclass
 class Bill:
@@ -14,16 +16,16 @@ class Bill:
 
     def __post_init__(self) -> None:
         if self.id <= 0:
-            raise ValueError("Bill ID must be greater than zero.")
+            raise ValidationError("Bill ID must be greater than zero.")
 
         if not self.name.strip():
-            raise ValueError("Bill name cannot be empty.")
+            raise ValidationError("Bill name cannot be empty.")
 
         if self.amount < 0:
-            raise ValueError("Bill amount cannot be negative.")
+            raise ValidationError("Bill amount cannot be negative.")
 
         if self.due_day < 1 or self.due_day > 31:
-            raise ValueError("Due day must be between 1 and 31.")
+            raise ValidationError("Due day must be between 1 and 31.")
 
     def to_dict(self) -> dict:
         return {

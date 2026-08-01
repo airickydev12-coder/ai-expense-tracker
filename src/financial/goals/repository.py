@@ -2,7 +2,11 @@ import json
 from pathlib import Path
 
 from src.core.config import GOALS_FILE
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.goals.models import Goal
+
+logger = get_logger(__name__)
 
 
 def load_goals_from_file(
@@ -20,14 +24,27 @@ def load_goals_from_file(
             raw_data = json.load(file)
 
     except json.JSONDecodeError as error:
-        raise ValueError(
+        logger.error(
+            "Failed to parse goals file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError(
             f"Goal data file contains invalid JSON: {file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError("Goal data must be stored as a JSON list.")
+        raise PersistenceError("Goal data must be stored as a JSON list.")
 
-    return [Goal.from_dict(goal_data) for goal_data in raw_data]
+    goals = [Goal.from_dict(goal_data) for goal_data in raw_data]
+
+    logger.debug(
+        "Loaded %d goal(s) from %s",
+        len(goals),
+        file_path,
+    )
+
+    return goals
 
 
 def save_goals_to_file(
@@ -62,3 +79,9 @@ def save_goals_to_file(
             missing_ok=True,
         )
         raise
+
+    logger.debug(
+        "Saved %d goal(s) to %s",
+        len(goals),
+        file_path,
+    )

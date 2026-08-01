@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     ZERO,
     money_to_json,
@@ -54,30 +55,34 @@ class GoalProjection:
         )
 
         if self.goal_id <= 0:
-            raise ValueError("Goal projection ID must be greater than zero.")
+            raise ValidationError("Goal projection ID must be greater than zero.")
 
         if not normalized_name:
-            raise ValueError("Goal projection name cannot be empty.")
+            raise ValidationError("Goal projection name cannot be empty.")
 
         if normalized_target_amount <= ZERO:
-            raise ValueError(
+            raise ValidationError(
                 "Goal projection target amount must be " "greater than zero."
             )
 
         if normalized_current_amount < ZERO:
-            raise ValueError("Goal projection current amount cannot be negative.")
+            raise ValidationError("Goal projection current amount cannot be negative.")
 
         if normalized_remaining_amount < ZERO:
-            raise ValueError("Goal projection remaining amount cannot be negative.")
+            raise ValidationError(
+                "Goal projection remaining amount cannot be negative."
+            )
 
         if self.months_remaining < 0:
-            raise ValueError("Goal projection months remaining cannot be negative.")
+            raise ValidationError(
+                "Goal projection months remaining cannot be negative."
+            )
 
         if normalized_required_contribution < ZERO:
-            raise ValueError("Required monthly contribution cannot be negative.")
+            raise ValidationError("Required monthly contribution cannot be negative.")
 
         if normalized_planned_contribution < ZERO:
-            raise ValueError("Planned monthly contribution cannot be negative.")
+            raise ValidationError("Planned monthly contribution cannot be negative.")
 
         object.__setattr__(
             self,
@@ -211,10 +216,10 @@ class GoalFeasibilityAssessment:
             )
 
         if not normalized_summary:
-            raise ValueError("Goal feasibility summary cannot be empty.")
+            raise ValidationError("Goal feasibility summary cannot be empty.")
 
         if not normalized_recommendation:
-            raise ValueError("Goal feasibility recommendation cannot be empty.")
+            raise ValidationError("Goal feasibility recommendation cannot be empty.")
 
         object.__setattr__(
             self,

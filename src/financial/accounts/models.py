@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
+
 
 @dataclass
 class Account:
@@ -17,13 +19,13 @@ class Account:
             self.balance = Decimal(str(self.balance))
 
         if self.id <= 0:
-            raise ValueError("Account ID must be greater than zero.")
+            raise ValidationError("Account ID must be greater than zero.")
 
         if not self.name.strip():
-            raise ValueError("Account name cannot be empty.")
+            raise ValidationError("Account name cannot be empty.")
 
         if not self.account_type.strip():
-            raise ValueError("Account type cannot be empty.")
+            raise ValidationError("Account type cannot be empty.")
 
     def to_dict(self) -> dict:
         """Convert the account to a dictionary for JSON storage."""

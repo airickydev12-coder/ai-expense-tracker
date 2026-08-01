@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.financial.scenarios.comparison import (
     ComparisonDirection,
     MetricComparison,
@@ -26,7 +27,7 @@ class ScenarioPlanStep:
     def __post_init__(self) -> None:
         """Validate the plan-step order."""
         if self.order <= 0:
-            raise ValueError("Scenario plan step order must be greater than zero.")
+            raise ValidationError("Scenario plan step order must be greater than zero.")
 
     def to_dict(self) -> dict:
         """Convert the plan step to a dictionary."""
@@ -114,7 +115,7 @@ class ScenarioPlanResult:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario plan name cannot be empty.")
+            raise ValidationError("Scenario plan name cannot be empty.")
 
         object.__setattr__(
             self,

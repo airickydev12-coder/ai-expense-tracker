@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
+from src.core.exceptions import ValidationError
 from src.core.money import to_money
 
 
@@ -30,7 +31,7 @@ class MetricComparison:
         normalized_metric = self.metric.strip()
 
         if not normalized_metric:
-            raise ValueError("Comparison metric cannot be empty.")
+            raise ValidationError("Comparison metric cannot be empty.")
 
         object.__setattr__(
             self,

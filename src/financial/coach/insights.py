@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
+from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
 
 
@@ -48,13 +49,13 @@ class FinancialCoachInsight:
         normalized_message = self.message.strip()
 
         if not normalized_key:
-            raise ValueError("Financial insight key cannot be empty.")
+            raise ValidationError("Financial insight key cannot be empty.")
 
         if not normalized_title:
-            raise ValueError("Financial insight title cannot be empty.")
+            raise ValidationError("Financial insight title cannot be empty.")
 
         if not normalized_message:
-            raise ValueError("Financial insight message cannot be empty.")
+            raise ValidationError("Financial insight message cannot be empty.")
 
         object.__setattr__(
             self,

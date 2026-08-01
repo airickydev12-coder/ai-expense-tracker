@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
+
 
 @dataclass
 class Income:
@@ -13,16 +15,16 @@ class Income:
     def __post_init__(self) -> None:
         """Validate the income after initialization."""
         if self.id <= 0:
-            raise ValueError("Income ID must be greater than zero.")
+            raise ValidationError("Income ID must be greater than zero.")
 
         if not self.source.strip():
-            raise ValueError("Income source cannot be empty.")
+            raise ValidationError("Income source cannot be empty.")
 
         if not isinstance(self.amount, Decimal):
             self.amount = Decimal(str(self.amount))
 
         if self.amount < Decimal("0"):
-            raise ValueError("Income amount cannot be negative.")
+            raise ValidationError("Income amount cannot be negative.")
 
     def to_dict(self) -> dict:
         """Convert the income to a dictionary for JSON storage."""

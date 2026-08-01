@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
+from src.core.exceptions import PersistenceError, ValidationError
+from src.core.logging import get_logger
 from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
     MoneyInput,
@@ -15,6 +17,7 @@ from src.financial.application.goal_planning_service import (
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 
+logger = get_logger(__name__)
 
 MONEY_QUANTUM = Decimal("0.01")
 
@@ -31,16 +34,16 @@ def load_goal_planning_requests_from_file(
         with file_path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except json.JSONDecodeError as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Goal-planning request file contains invalid JSON: {file_path}"
         ) from error
     except OSError as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Unable to read goal-planning request file: {file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError("Goal-planning requests must be stored as a JSON list.")
+        raise PersistenceError("Goal-planning requests must be stored as a JSON list.")
 
     goals_by_id = {goal.id: goal for goal in goals}
     requests: dict[int, GoalPlanningRequest] = {}
@@ -56,12 +59,18 @@ def load_goal_planning_requests_from_file(
             continue
 
         if request.goal.id in requests:
-            raise ValueError(
+            raise PersistenceError(
                 "Goal-planning request file contains duplicate goal ID "
                 f"{request.goal.id}."
             )
 
         requests[request.goal.id] = request
+
+    logger.debug(
+        "Loaded %d goal planning request(s) from %s",
+        len(requests),
+        file_path,
+    )
 
     return requests
 
@@ -98,6 +107,12 @@ def save_goal_planning_requests_to_file(
         temporary_path.unlink(missing_ok=True)
         raise
 
+    logger.debug(
+        "Saved %d goal planning request(s) to %s",
+        len(records),
+        file_path,
+    )
+
 
 def remove_goal_planning_request_from_file(
     goal_id: int,
@@ -105,7 +120,7 @@ def remove_goal_planning_request_from_file(
 ) -> bool:
     """Remove one persisted request by goal ID."""
     if goal_id <= 0:
-        raise ValueError("Goal ID must be greater than zero.")
+        raise ValidationError("Goal ID must be greater than zero.")
 
     if not file_path.exists():
         return False
@@ -114,23 +129,23 @@ def remove_goal_planning_request_from_file(
         with file_path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except json.JSONDecodeError as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Goal-planning request file contains invalid JSON: {file_path}"
         ) from error
     except OSError as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Unable to read goal-planning request file: {file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError("Goal-planning requests must be stored as a JSON list.")
+        raise PersistenceError("Goal-planning requests must be stored as a JSON list.")
 
     retained_records: list[dict[str, Any]] = []
     removed = False
 
     for record in raw_data:
         if not isinstance(record, dict):
-            raise ValueError(
+            raise PersistenceError(
                 "Every goal-planning request record must be a JSON object."
             )
 
@@ -161,6 +176,12 @@ def remove_goal_planning_request_from_file(
         temporary_path.unlink(missing_ok=True)
         raise
 
+    logger.debug(
+        "Removed goal planning request for goal %d from %s",
+        goal_id,
+        file_path,
+    )
+
     return True
 
 
@@ -186,7 +207,7 @@ def _request_from_record(
 ) -> GoalPlanningRequest | None:
     """Convert one persisted record into a planning request."""
     if not isinstance(record, dict):
-        raise ValueError(
+        raise PersistenceError(
             f"Goal-planning request record {record_number} " "must be a JSON object."
         )
 
@@ -196,12 +217,12 @@ def _request_from_record(
         contribution = _money_from_json(record["planned_monthly_contribution"])
         priority = GoalPriority[str(record["priority"])]
     except KeyError as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Goal-planning request record {record_number} "
             f"is missing field {error.args[0]!r}."
         ) from error
     except (TypeError, ValueError, InvalidOperation) as error:
-        raise ValueError(
+        raise PersistenceError(
             f"Goal-planning request record {record_number} " "contains invalid values."
         ) from error
 
@@ -223,7 +244,7 @@ def _money_to_json(value: MoneyInput) -> str:
     amount = to_money(value)
 
     if not amount.is_finite():
-        raise ValueError("Goal-planning monetary values must be finite.")
+        raise PersistenceError("Goal-planning monetary values must be finite.")
 
     return format(
         amount.quantize(MONEY_QUANTUM),
@@ -239,10 +260,10 @@ def _money_from_json(value: object) -> Decimal:
     try:
         amount = Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError) as error:
-        raise ValueError("Invalid persisted monetary value.") from error
+        raise PersistenceError("Invalid persisted monetary value.") from error
 
     if not amount.is_finite():
-        raise ValueError("Persisted monetary values must be finite.")
+        raise PersistenceError("Persisted monetary values must be finite.")
 
     return amount.quantize(MONEY_QUANTUM)
 
@@ -254,12 +275,12 @@ def _parse_goal_id(
     try:
         goal_id = int(record["goal_id"])
     except (KeyError, TypeError, ValueError) as error:
-        raise ValueError(
+        raise PersistenceError(
             "Goal-planning request record contains an invalid goal_id."
         ) from error
 
     if goal_id <= 0:
-        raise ValueError("Goal-planning request goal_id must be greater than zero.")
+        raise PersistenceError("Goal-planning request goal_id must be greater than zero.")
 
     return goal_id
 
@@ -279,4 +300,4 @@ def _validate_request_mapping(
             )
 
         if request.goal.id != goal_id:
-            raise ValueError("Goal-planning request key must match its goal ID.")
+            raise PersistenceError("Goal-planning request key must match its goal ID.")

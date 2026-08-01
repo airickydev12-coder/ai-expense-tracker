@@ -23,3 +23,6 @@ __pycache__/
 .pytest_temp/
 .coverage
 htmlcov/
+
+# Application logs
+logs/

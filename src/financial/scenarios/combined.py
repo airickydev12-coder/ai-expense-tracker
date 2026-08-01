@@ -1,6 +1,7 @@
 from copy import deepcopy
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioRequest,
@@ -142,10 +143,10 @@ def run_combined_scenario_plan(
     normalized_name = name.strip()
 
     if not normalized_name:
-        raise ValueError("Combined scenario plan name cannot be empty.")
+        raise ValidationError("Combined scenario plan name cannot be empty.")
 
     if not requests:
-        raise ValueError("At least one scenario request is required.")
+        raise ValidationError("At least one scenario request is required.")
 
     active_service = service if service is not None else scenario_service
 

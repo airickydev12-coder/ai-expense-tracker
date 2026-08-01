@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from src.core.exceptions import ValidationError
 from src.financial.coach.advisor import (
     generate_optimizer_advice,
 )
@@ -43,10 +44,10 @@ class CoachingSession:
         normalized_summary = self.summary.strip()
 
         if not normalized_status:
-            raise ValueError("Financial health status cannot be empty.")
+            raise ValidationError("Financial health status cannot be empty.")
 
         if not normalized_summary:
-            raise ValueError("Coaching session summary cannot be empty.")
+            raise ValidationError("Coaching session summary cannot be empty.")
 
         object.__setattr__(
             self,
@@ -307,10 +308,10 @@ def build_coaching_session(
 ) -> CoachingSession:
     """Build a complete financial coaching session."""
     if advice_limit < 0:
-        raise ValueError("Advice limit cannot be negative.")
+        raise ValidationError("Advice limit cannot be negative.")
 
     if next_step_limit <= 0:
-        raise ValueError("Next-step limit must be greater than zero.")
+        raise ValidationError("Next-step limit must be greater than zero.")
 
     advice = generate_optimizer_advice(
         optimization_result,

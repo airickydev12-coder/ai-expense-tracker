@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.factory import (
     register_default_scenario_handlers,
@@ -59,10 +60,10 @@ class OptimizationCandidate:
         normalized_rationale = self.rationale.strip()
 
         if not normalized_source:
-            raise ValueError("Optimization candidate source cannot be empty.")
+            raise ValidationError("Optimization candidate source cannot be empty.")
 
         if not normalized_rationale:
-            raise ValueError("Optimization candidate rationale cannot be empty.")
+            raise ValidationError("Optimization candidate rationale cannot be empty.")
 
         object.__setattr__(
             self,
@@ -98,10 +99,10 @@ class OptimizationFailure:
         normalized_error = self.error.strip()
 
         if not normalized_name:
-            raise ValueError("Optimization failure candidate name cannot be empty.")
+            raise ValidationError("Optimization failure candidate name cannot be empty.")
 
         if not normalized_error:
-            raise ValueError("Optimization failure error cannot be empty.")
+            raise ValidationError("Optimization failure error cannot be empty.")
 
         object.__setattr__(
             self,
@@ -494,7 +495,7 @@ def generate_optimization_candidates(
 ) -> list[OptimizationCandidate]:
     """Generate candidate scenarios from a financial snapshot."""
     if horizon_months <= 0:
-        raise ValueError("Optimization horizon must be greater than zero months.")
+        raise ValidationError("Optimization horizon must be greater than zero months.")
 
     normalized_expense_percentages = _normalize_positive_values(
         expense_reduction_percentages
@@ -564,7 +565,7 @@ def optimize_financial_snapshot(
 ) -> OptimizationResult:
     """Generate, evaluate, score, and rank candidate scenarios."""
     if limit is not None and limit <= 0:
-        raise ValueError("Optimization result limit must be greater than zero.")
+        raise ValidationError("Optimization result limit must be greater than zero.")
 
     active_service = service if service is not None else scenario_service
 

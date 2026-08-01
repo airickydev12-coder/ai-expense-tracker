@@ -9,6 +9,8 @@ from src.core.config import (
     GOAL_LEDGER_FILE,
     GOALS_FILE,
 )
+from src.core.exceptions import ValidationError
+from src.core.logging import get_logger
 from src.core.money import (
     ZERO,
     to_money,
@@ -26,6 +28,7 @@ from src.financial.planning.repository import (
     remove_goal_planning_request_from_file,
 )
 
+logger = get_logger(__name__)
 
 MoneyInput: TypeAlias = Decimal | int | float | str
 
@@ -117,6 +120,12 @@ def add_goal(
             ledger_file_path=resolved_ledger_path,
         )
 
+    logger.info(
+        "Added goal %d (%s)",
+        goal.id,
+        goal.name,
+    )
+
     return goal
 
 
@@ -159,6 +168,11 @@ def update_goal(
 
     save_goals(file_path)
 
+    logger.info(
+        "Updated goal %d",
+        goal_id,
+    )
+
     return updated_goal
 
 
@@ -176,7 +190,7 @@ def contribute_to_goal(
     normalized_contribution = to_money(contribution)
 
     if normalized_contribution < ZERO:
-        raise ValueError("Goal contribution cannot be negative.")
+        raise ValidationError("Goal contribution cannot be negative.")
 
     goal = get_goal_by_id(goal_id)
 
@@ -198,6 +212,12 @@ def contribute_to_goal(
         correlation_id=correlation_id,
         ledger_file_path=resolved_ledger_path,
         goals_file_path=file_path,
+    )
+
+    logger.info(
+        "Recorded contribution of %s to goal %d",
+        normalized_contribution,
+        goal_id,
     )
 
     return get_goal_by_id(goal_id)
@@ -224,6 +244,11 @@ def delete_goal(
         remove_goal_planning_request_from_file(
             goal_id,
             file_path=planning_file_path,
+        )
+
+        logger.info(
+            "Deleted goal %d",
+            goal_id,
         )
 
         return deleted_goal

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.financial.shared.categories import ExpenseCategory
 
 
@@ -17,7 +18,7 @@ class Budget:
             self.limit = Decimal(str(self.limit))
 
         if self.limit < Decimal("0"):
-            raise ValueError("Budget limit cannot be negative.")
+            raise ValidationError("Budget limit cannot be negative.")
 
         if not isinstance(self.category, ExpenseCategory):
             self.category = ExpenseCategory(self.category)

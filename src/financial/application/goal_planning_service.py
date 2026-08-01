@@ -3,6 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     ZERO,
     money_to_json,
@@ -45,7 +46,7 @@ class GoalPlanningRequest:
         normalized_contribution = to_money(self.planned_monthly_contribution)
 
         if normalized_contribution < ZERO:
-            raise ValueError("Planned monthly contribution cannot be negative.")
+            raise ValidationError("Planned monthly contribution cannot be negative.")
 
         if not isinstance(self.priority, GoalPriority):
             raise TypeError("Goal planning priority must be a GoalPriority.")
@@ -90,23 +91,23 @@ class GoalPlanningResult:
         ]
 
         if len(projection_goal_ids) != len(set(projection_goal_ids)):
-            raise ValueError(
+            raise ValidationError(
                 "Goal planning result cannot contain duplicate " "projection goal IDs."
             )
 
         if len(assessment_goal_ids) != len(set(assessment_goal_ids)):
-            raise ValueError(
+            raise ValidationError(
                 "Goal planning result cannot contain duplicate " "assessment goal IDs."
             )
 
         if set(projection_goal_ids) != set(assessment_goal_ids):
-            raise ValueError(
+            raise ValidationError(
                 "Goal planning projections and assessments must "
                 "contain the same goal IDs."
             )
 
         if set(projection_goal_ids) != set(allocation_goal_ids):
-            raise ValueError(
+            raise ValidationError(
                 "Goal planning projections and allocations must "
                 "contain the same goal IDs."
             )
@@ -276,7 +277,7 @@ def allocate_monthly_funding(
     normalized_total_available = to_money(total_available)
 
     if normalized_total_available < ZERO:
-        raise ValueError("Total available funding cannot be negative.")
+        raise ValidationError("Total available funding cannot be negative.")
 
     _validate_unique_goal_ids(requests)
 
@@ -312,7 +313,7 @@ def analyze_goals(
     normalized_total_available = to_money(total_available)
 
     if normalized_total_available < ZERO:
-        raise ValueError("Total available funding cannot be negative.")
+        raise ValidationError("Total available funding cannot be negative.")
 
     _validate_unique_goal_ids(requests)
 
@@ -357,4 +358,4 @@ def _validate_unique_goal_ids(
     goal_ids = [request.goal.id for request in requests]
 
     if len(goal_ids) != len(set(goal_ids)):
-        raise ValueError("Goal planning requests cannot contain duplicate " "goal IDs.")
+        raise ValidationError("Goal planning requests cannot contain duplicate " "goal IDs.")

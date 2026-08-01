@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from src.core.logging import get_logger
 from src.financial.expenses.models import Expense
 from src.financial.expenses.repository import (
     load_expenses_from_file,
@@ -7,10 +8,11 @@ from src.financial.expenses.repository import (
 )
 from src.financial.events.bus import event_bus
 from src.financial.events.event_types import FinancialEvent
+from src.financial.shared.categories import ExpenseCategory
+
+logger = get_logger(__name__)
 
 expenses: list[Expense] = []
-
-from src.financial.shared.categories import ExpenseCategory
 
 
 def load_expenses() -> None:
@@ -50,6 +52,13 @@ def add_expense(
 
     event_bus.publish(FinancialEvent.EXPENSE_ADDED, expense)
 
+    logger.info(
+        "Added expense %d (%s, %s)",
+        expense.id,
+        expense.name,
+        expense.category.value,
+    )
+
     return expense
 
 
@@ -84,6 +93,10 @@ def delete_expense(expense_id: int) -> Expense | None:
         if expense.id == expense_id:
             deleted_expense = expenses.pop(index)
             save_expenses()
+            logger.info(
+                "Deleted expense %d",
+                expense_id,
+            )
             return deleted_expense
 
     return None
@@ -108,6 +121,10 @@ def update_expense(
                 expense.amount = amount
 
             save_expenses()
+            logger.info(
+                "Updated expense %d",
+                expense_id,
+            )
             return expense
 
     return None

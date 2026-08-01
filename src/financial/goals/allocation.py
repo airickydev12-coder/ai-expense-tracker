@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import IntEnum
 from typing import Any
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     ZERO,
     money_to_json,
@@ -55,16 +56,16 @@ class GoalAllocation:
         allocated_amount = to_money(self.allocated_amount)
 
         if self.goal_id <= 0:
-            raise ValueError("Goal allocation ID must be greater than zero.")
+            raise ValidationError("Goal allocation ID must be greater than zero.")
 
         if not normalized_name:
-            raise ValueError("Goal allocation name cannot be empty.")
+            raise ValidationError("Goal allocation name cannot be empty.")
 
         if required_amount < ZERO:
-            raise ValueError("Goal required amount cannot be negative.")
+            raise ValidationError("Goal required amount cannot be negative.")
 
         if allocated_amount < ZERO:
-            raise ValueError("Goal allocated amount cannot be negative.")
+            raise ValidationError("Goal allocated amount cannot be negative.")
 
         object.__setattr__(self, "goal_name", normalized_name)
         object.__setattr__(self, "required_amount", required_amount)
@@ -118,12 +119,14 @@ class GoalAllocationPlan:
         total_available = to_money(total_available)
 
         if total_available < ZERO:
-            raise ValueError("Total available funding cannot be negative.")
+            raise ValidationError("Total available funding cannot be negative.")
 
         goal_ids = [allocation.goal_id for allocation in allocations]
 
         if len(goal_ids) != len(set(goal_ids)):
-            raise ValueError("Goal allocation plan cannot contain duplicate goal IDs.")
+            raise ValidationError(
+                "Goal allocation plan cannot contain duplicate goal IDs."
+            )
 
         self._allocations = tuple(allocations)
         self._total_available = total_available
@@ -234,12 +237,12 @@ def allocate_goal_funding(
     total_available = to_money(total_available)
 
     if total_available < ZERO:
-        raise ValueError("Total available funding cannot be negative.")
+        raise ValidationError("Total available funding cannot be negative.")
 
     goal_ids = [request.projection.goal_id for request in requests]
 
     if len(goal_ids) != len(set(goal_ids)):
-        raise ValueError("Funding requests cannot contain duplicate goal IDs.")
+        raise ValidationError("Funding requests cannot contain duplicate goal IDs.")
 
     prioritized_requests = prioritize_goal_funding_requests(requests)
 

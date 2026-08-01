@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     money_from_json,
     money_to_json,
@@ -25,16 +26,16 @@ class Goal:
         self.current_amount = to_money(self.current_amount)
 
         if self.id <= 0:
-            raise ValueError("Goal ID must be greater than zero.")
+            raise ValidationError("Goal ID must be greater than zero.")
 
         if not self.name.strip():
-            raise ValueError("Goal name cannot be empty.")
+            raise ValidationError("Goal name cannot be empty.")
 
         if self.target_amount <= Decimal("0.00"):
-            raise ValueError("Goal target amount must be greater than zero.")
+            raise ValidationError("Goal target amount must be greater than zero.")
 
         if self.current_amount < Decimal("0.00"):
-            raise ValueError("Goal current amount cannot be negative.")
+            raise ValidationError("Goal current amount cannot be negative.")
 
     def to_dict(self) -> dict:
         """Convert the goal into JSON-compatible data."""

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
+from src.core.exceptions import NotFoundError, ValidationError
 from src.financial.scenarios.models import (
     ScenarioRequest,
     ScenarioResult,
@@ -55,7 +56,7 @@ class ScenarioService:
         handler = self._handlers.get(request.scenario_type)
 
         if handler is None:
-            raise ValueError(
+            raise NotFoundError(
                 "No handler is registered for scenario type: "
                 f"{request.scenario_type.value}"
             )
@@ -69,7 +70,7 @@ class ScenarioService:
         )
 
         if result.scenario_type != request.scenario_type:
-            raise ValueError(
+            raise ValidationError(
                 "Scenario handler returned an unexpected " "scenario type."
             )
 
@@ -101,7 +102,7 @@ class ScenarioService:
         if missing_fields:
             formatted_fields = ", ".join(sorted(missing_fields))
 
-            raise ValueError(
+            raise ValidationError(
                 "Financial snapshot is missing required " f"fields: {formatted_fields}"
             )
 

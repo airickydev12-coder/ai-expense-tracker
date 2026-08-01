@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Mapping, Sequence
 
+from src.core.exceptions import ValidationError
 from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
     assess_goal,
@@ -293,7 +294,7 @@ def _validate_goals(
         goal_ids.append(goal.id)
 
     if len(goal_ids) != len(set(goal_ids)):
-        raise ValueError("Goal dashboard cannot contain duplicate goal IDs.")
+        raise ValidationError("Goal dashboard cannot contain duplicate goal IDs.")
 
 
 def _validate_requests(
@@ -317,6 +318,6 @@ def _validate_requests(
             )
 
         if request.goal.id != goal_id:
-            raise ValueError(
+            raise ValidationError(
                 "Goal planning request key must match " "the request goal ID."
             )

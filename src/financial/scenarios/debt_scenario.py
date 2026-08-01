@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from src.core.exceptions import BusinessRuleError, NotFoundError, ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
@@ -33,7 +34,7 @@ def _validate_extra_payment(
 ) -> None:
     """Validate the additional monthly debt payment."""
     if extra_monthly_payment <= 0:
-        raise ValueError("Extra monthly debt payment must be greater than zero.")
+        raise ValidationError("Extra monthly debt payment must be greater than zero.")
 
 
 def _validate_horizon_months(
@@ -41,7 +42,7 @@ def _validate_horizon_months(
 ) -> None:
     """Validate the scenario horizon."""
     if horizon_months <= 0:
-        raise ValueError("Scenario horizon must be greater than zero months.")
+        raise ValidationError("Scenario horizon must be greater than zero months.")
 
 
 def _get_debt(
@@ -60,7 +61,7 @@ def _get_debt(
         if current_debt_id == debt_id:
             return debt.copy()
 
-    raise ValueError(f"No debt was found with ID: {debt_id}")
+    raise NotFoundError(f"No debt was found with ID: {debt_id}")
 
 
 def _validate_debt_values(
@@ -70,18 +71,18 @@ def _validate_debt_values(
 ) -> None:
     """Validate values required for debt amortization."""
     if balance <= 0:
-        raise ValueError("Debt balance must be greater than zero.")
+        raise ValidationError("Debt balance must be greater than zero.")
 
     if interest_rate < 0:
-        raise ValueError("Debt interest rate cannot be negative.")
+        raise ValidationError("Debt interest rate cannot be negative.")
 
     if minimum_payment <= 0:
-        raise ValueError("Debt minimum payment must be greater than zero.")
+        raise ValidationError("Debt minimum payment must be greater than zero.")
 
     monthly_interest = balance * interest_rate / 100 / 12
 
     if minimum_payment <= monthly_interest:
-        raise ValueError(
+        raise ValidationError(
             "Debt minimum payment must exceed the " "first month's interest charge."
         )
 
@@ -99,13 +100,13 @@ def calculate_debt_payoff(
     monthly_payment = to_money(monthly_payment)
 
     if balance <= 0:
-        raise ValueError("Debt balance must be greater than zero.")
+        raise ValidationError("Debt balance must be greater than zero.")
 
     if annual_interest_rate < 0:
-        raise ValueError("Debt interest rate cannot be negative.")
+        raise ValidationError("Debt interest rate cannot be negative.")
 
     if monthly_payment <= 0:
-        raise ValueError("Monthly payment must be greater than zero.")
+        raise ValidationError("Monthly payment must be greater than zero.")
 
     _validate_horizon_months(horizon_months)
 
@@ -114,7 +115,7 @@ def calculate_debt_payoff(
     first_month_interest = balance * monthly_rate
 
     if monthly_payment <= first_month_interest:
-        raise ValueError("Monthly payment is not sufficient " "to amortize the debt.")
+        raise BusinessRuleError("Monthly payment is not sufficient " "to amortize the debt.")
 
     remaining_balance = to_money(balance)
     total_interest = ZERO
@@ -145,7 +146,7 @@ def calculate_debt_payoff(
             remaining_balance_at_horizon = remaining_balance
 
     if remaining_balance > BALANCE_TOLERANCE:
-        raise ValueError(
+        raise BusinessRuleError(
             "Debt could not be paid off within " f"{MAX_PAYOFF_MONTHS} months."
         )
 
@@ -168,16 +169,16 @@ def run_extra_debt_payment_scenario(
     try:
         debt_id = int(parameters["debt_id"])
     except KeyError as error:
-        raise ValueError("Debt ID is required.") from error
+        raise ValidationError("Debt ID is required.") from error
     except (TypeError, ValueError) as error:
-        raise ValueError("Debt ID must be a whole number.") from error
+        raise ValidationError("Debt ID must be a whole number.") from error
 
     try:
         extra_monthly_payment = to_money(parameters["extra_monthly_payment"])
     except KeyError as error:
-        raise ValueError("Extra monthly debt payment is required.") from error
+        raise ValidationError("Extra monthly debt payment is required.") from error
     except (TypeError, ValueError) as error:
-        raise ValueError("Extra monthly debt payment must be a number.") from error
+        raise ValidationError("Extra monthly debt payment must be a number.") from error
 
     try:
         horizon_months = int(
@@ -187,7 +188,7 @@ def run_extra_debt_payment_scenario(
             )
         )
     except (TypeError, ValueError) as error:
-        raise ValueError("Scenario horizon must be a whole number.") from error
+        raise ValidationError("Scenario horizon must be a whole number.") from error
 
     _validate_extra_payment(extra_monthly_payment)
     _validate_horizon_months(horizon_months)

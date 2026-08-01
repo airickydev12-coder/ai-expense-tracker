@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     money_from_json,
     money_to_json,
@@ -27,19 +28,19 @@ class Debt:
             self.interest_rate = float(self.interest_rate)
 
         if self.id <= 0:
-            raise ValueError("Debt ID must be greater than zero.")
+            raise ValidationError("Debt ID must be greater than zero.")
 
         if not self.name.strip():
-            raise ValueError("Debt name cannot be empty.")
+            raise ValidationError("Debt name cannot be empty.")
 
         if self.balance < Decimal("0.00"):
-            raise ValueError("Debt balance cannot be negative.")
+            raise ValidationError("Debt balance cannot be negative.")
 
         if self.interest_rate < 0:
-            raise ValueError("Debt interest rate cannot be negative.")
+            raise ValidationError("Debt interest rate cannot be negative.")
 
         if self.minimum_payment < Decimal("0.00"):
-            raise ValueError("Debt minimum payment cannot be negative.")
+            raise ValidationError("Debt minimum payment cannot be negative.")
 
     def to_dict(self) -> dict:
         """Convert the debt to JSON-compatible data."""

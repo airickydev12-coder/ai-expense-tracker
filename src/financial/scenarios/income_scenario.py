@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.exceptions import ValidationError
 from src.core.money import to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
@@ -18,10 +19,10 @@ def _validate_percentage(
 ) -> None:
     """Validate an income-increase percentage."""
     if increase_percentage <= 0:
-        raise ValueError("Income increase percentage must be greater than zero.")
+        raise ValidationError("Income increase percentage must be greater than zero.")
 
     if increase_percentage > 500:
-        raise ValueError("Income increase percentage cannot exceed 500.")
+        raise ValidationError("Income increase percentage cannot exceed 500.")
 
 
 def _validate_horizon_months(
@@ -29,7 +30,7 @@ def _validate_horizon_months(
 ) -> None:
     """Validate the scenario horizon."""
     if horizon_months <= 0:
-        raise ValueError("Scenario horizon must be greater than zero months.")
+        raise ValidationError("Scenario horizon must be greater than zero months.")
 
 
 def run_income_increase_scenario(
@@ -40,9 +41,9 @@ def run_income_increase_scenario(
     try:
         increase_percentage = Decimal(str(parameters["increase_percentage"]))
     except KeyError as error:
-        raise ValueError("Income increase percentage is required.") from error
+        raise ValidationError("Income increase percentage is required.") from error
     except (TypeError, ValueError, ArithmeticError) as error:
-        raise ValueError("Income increase percentage must be a number.") from error
+        raise ValidationError("Income increase percentage must be a number.") from error
 
     try:
         horizon_months = int(
@@ -52,7 +53,7 @@ def run_income_increase_scenario(
             )
         )
     except (TypeError, ValueError) as error:
-        raise ValueError("Scenario horizon must be a whole number.") from error
+        raise ValidationError("Scenario horizon must be a whole number.") from error
 
     _validate_percentage(increase_percentage)
     _validate_horizon_months(horizon_months)

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.core.money import ZERO
 from src.financial.forecasting.models import MetricProjection
 from src.financial.history.models import FinancialSnapshotRecord
@@ -14,7 +15,7 @@ def validate_forecast_horizon(
 ) -> None:
     """Validate a forecast horizon."""
     if horizon_days <= 0:
-        raise ValueError(
+        raise ValidationError(
             "Forecast horizon must be greater than zero."
         )
 
@@ -83,7 +84,7 @@ def project_metric(
     validate_forecast_horizon(horizon_days)
 
     if not history:
-        raise ValueError(
+        raise ValidationError(
             "At least one historical snapshot is required."
         )
 

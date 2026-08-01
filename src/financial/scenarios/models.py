@@ -3,6 +3,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
+from src.core.exceptions import ValidationError
+
 
 def _to_decimal(value: Decimal | float | int | str) -> Decimal:
     """
@@ -43,7 +45,7 @@ class ScenarioAssumption:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario assumption name cannot be empty.")
+            raise ValidationError("Scenario assumption name cannot be empty.")
 
         object.__setattr__(
             self,
@@ -80,7 +82,7 @@ class ScenarioImpact:
         normalized_metric = self.metric.strip()
 
         if not normalized_metric:
-            raise ValueError("Scenario impact metric cannot be empty.")
+            raise ValidationError("Scenario impact metric cannot be empty.")
 
         object.__setattr__(
             self,
@@ -130,7 +132,7 @@ class ScenarioRequest:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario request name cannot be empty.")
+            raise ValidationError("Scenario request name cannot be empty.")
 
         object.__setattr__(
             self,
@@ -180,7 +182,7 @@ class ScenarioResult:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario result name cannot be empty.")
+            raise ValidationError("Scenario result name cannot be empty.")
 
         object.__setattr__(
             self,

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.core.exceptions import ValidationError
 from src.financial.forecasting.models import FinancialForecast
 from src.financial.forecasting.projections import (
     project_account_balance,
@@ -22,7 +23,7 @@ def build_financial_forecast(
     validate_forecast_horizon(horizon_days)
 
     if not history:
-        raise ValueError(
+        raise ValidationError(
             "At least one historical snapshot is required "
             "to build a forecast."
         )

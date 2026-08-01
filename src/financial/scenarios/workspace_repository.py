@@ -4,12 +4,16 @@ from pathlib import Path
 from typing import Any
 
 from src.core.config import DATA_DIR
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
     ScenarioResult,
     ScenarioType,
 )
+
+logger = get_logger(__name__)
 
 SCENARIO_WORKSPACE_FILE = DATA_DIR / "scenario_workspace.json"
 
@@ -53,7 +57,7 @@ def _scenario_type_from_value(
         if scenario_type.value == value:
             return scenario_type
 
-    raise ValueError(f"Unknown scenario type: {value}")
+    raise PersistenceError(f"Unknown scenario type: {value}")
 
 
 def _assumption_from_dict(
@@ -61,7 +65,7 @@ def _assumption_from_dict(
 ) -> ScenarioAssumption:
     """Create a scenario assumption from stored data."""
     if not isinstance(data, dict):
-        raise ValueError("Scenario assumption must be a JSON object.")
+        raise PersistenceError("Scenario assumption must be a JSON object.")
 
     return ScenarioAssumption(
         name=str(data["name"]),
@@ -80,7 +84,7 @@ def _impact_from_dict(
 ) -> ScenarioImpact:
     """Create a scenario impact from stored data."""
     if not isinstance(data, dict):
-        raise ValueError("Scenario impact must be a JSON object.")
+        raise PersistenceError("Scenario impact must be a JSON object.")
 
     return ScenarioImpact(
         metric=str(data["metric"]),
@@ -95,7 +99,7 @@ def _result_from_dict(
 ) -> ScenarioResult:
     """Create a scenario result from stored data."""
     if not isinstance(data, dict):
-        raise ValueError("Scenario result must be a JSON object.")
+        raise PersistenceError("Scenario result must be a JSON object.")
 
     scenario_type = _scenario_type_from_value(str(data["scenario_type"]))
 
@@ -112,13 +116,13 @@ def _result_from_dict(
         assumptions_data,
         list,
     ):
-        raise ValueError("Scenario assumptions must be a JSON list.")
+        raise PersistenceError("Scenario assumptions must be a JSON list.")
 
     if not isinstance(
         impacts_data,
         list,
     ):
-        raise ValueError("Scenario impacts must be a JSON list.")
+        raise PersistenceError("Scenario impacts must be a JSON list.")
 
     original_snapshot = data.get(
         "original_snapshot",
@@ -133,13 +137,13 @@ def _result_from_dict(
         original_snapshot,
         dict,
     ):
-        raise ValueError("Original snapshot must be a JSON object.")
+        raise PersistenceError("Original snapshot must be a JSON object.")
 
     if not isinstance(
         projected_snapshot,
         dict,
     ):
-        raise ValueError("Projected snapshot must be a JSON object.")
+        raise PersistenceError("Projected snapshot must be a JSON object.")
 
     benefits = data.get(
         "benefits",
@@ -155,16 +159,16 @@ def _result_from_dict(
     )
 
     if not isinstance(benefits, list):
-        raise ValueError("Scenario benefits must be a JSON list.")
+        raise PersistenceError("Scenario benefits must be a JSON list.")
 
     if not isinstance(risks, list):
-        raise ValueError("Scenario risks must be a JSON list.")
+        raise PersistenceError("Scenario risks must be a JSON list.")
 
     if not isinstance(
         recommendations,
         list,
     ):
-        raise ValueError("Scenario recommendations must be a JSON list.")
+        raise PersistenceError("Scenario recommendations must be a JSON list.")
 
     return ScenarioResult(
         scenario_type=scenario_type,
@@ -203,12 +207,25 @@ def load_workspace_from_file(
             )
 
     except json.JSONDecodeError as error:
-        raise ValueError("Scenario workspace contains invalid JSON.") from error
+        logger.error(
+            "Failed to parse scenario workspace file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError("Scenario workspace contains invalid JSON.") from error
 
     if not isinstance(data, list):
-        raise ValueError("Scenario workspace must be a JSON list.")
+        raise PersistenceError("Scenario workspace must be a JSON list.")
 
-    return [_result_from_dict(item) for item in data]
+    results = [_result_from_dict(item) for item in data]
+
+    logger.debug(
+        "Loaded %d scenario result(s) from %s",
+        len(results),
+        file_path,
+    )
+
+    return results
 
 
 def save_workspace_to_file(
@@ -231,6 +248,12 @@ def save_workspace_to_file(
             indent=4,
             cls=_DecimalEncoder,
         )
+
+    logger.debug(
+        "Saved %d scenario result(s) to %s",
+        len(results),
+        file_path,
+    )
 
 
 def clear_workspace_file(

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
+from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.comparison import (
     MetricComparison,
@@ -65,13 +66,13 @@ class ScoreComponent:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Score component name cannot be empty.")
+            raise ValidationError("Score component name cannot be empty.")
 
         if self.score < MIN_SCORE or self.score > MAX_SCORE:
-            raise ValueError("Score component score must be between 0 and 100.")
+            raise ValidationError("Score component score must be between 0 and 100.")
 
         if self.weight < 0 or self.weight > 1:
-            raise ValueError("Score component weight must be between 0 and 1.")
+            raise ValidationError("Score component weight must be between 0 and 1.")
 
         object.__setattr__(
             self,
@@ -135,10 +136,10 @@ class ScenarioScore:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario score name cannot be empty.")
+            raise ValidationError("Scenario score name cannot be empty.")
 
         if self.overall_score < MIN_SCORE or self.overall_score > MAX_SCORE:
-            raise ValueError("Overall score must be between 0 and 100.")
+            raise ValidationError("Overall score must be between 0 and 100.")
 
         object.__setattr__(
             self,

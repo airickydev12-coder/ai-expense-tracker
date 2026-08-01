@@ -1,6 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.financial.accounts.models import Account
 from src.financial.accounts.repository import (
     ACCOUNTS_FILE,
@@ -8,6 +9,7 @@ from src.financial.accounts.repository import (
     save_accounts_to_file,
 )
 
+logger = get_logger(__name__)
 
 accounts: list[Account] = []
 
@@ -71,6 +73,12 @@ def add_account(
     accounts.append(account)
     save_accounts(file_path)
 
+    logger.info(
+        "Added account %d (%s)",
+        account.id,
+        account.name,
+    )
+
     return account
 
 
@@ -107,6 +115,11 @@ def update_account(
 
     save_accounts(file_path)
 
+    logger.info(
+        "Updated account %d",
+        account_id,
+    )
+
     return updated_account
 
 
@@ -119,6 +132,10 @@ def delete_account(
         if account.id == account_id:
             deleted_account = accounts.pop(index)
             save_accounts(file_path)
+            logger.info(
+                "Deleted account %d",
+                account_id,
+            )
             return deleted_account
 
     return None

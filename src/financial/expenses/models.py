@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.financial.shared.categories import ExpenseCategory
 
 
@@ -16,16 +17,16 @@ class Expense:
     def __post_init__(self) -> None:
         """Validate the expense after initialization."""
         if self.id <= 0:
-            raise ValueError("Expense ID must be greater than zero.")
+            raise ValidationError("Expense ID must be greater than zero.")
 
         if not self.name.strip():
-            raise ValueError("Expense name cannot be empty.")
+            raise ValidationError("Expense name cannot be empty.")
 
         if not isinstance(self.amount, Decimal):
             self.amount = Decimal(str(self.amount))
 
         if self.amount < Decimal("0"):
-            raise ValueError("Expense amount cannot be negative.")
+            raise ValidationError("Expense amount cannot be negative.")
 
         if not isinstance(self.category, ExpenseCategory):
             self.category = ExpenseCategory(self.category)

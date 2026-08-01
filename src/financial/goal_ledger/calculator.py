@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     add_money,
     ZERO,
@@ -45,7 +46,7 @@ def calculate_goal_balance(
     """
 
     if goal_id <= 0:
-        raise ValueError("Goal ID must be greater than zero.")
+        raise ValidationError("Goal ID must be greater than zero.")
 
     balance = ZERO
 

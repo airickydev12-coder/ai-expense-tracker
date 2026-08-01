@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from src.core.exceptions import ValidationError
 from src.financial.scenarios.models import (
     ScenarioResult,
 )
@@ -45,12 +46,12 @@ class RankedScenario:
     def __post_init__(self) -> None:
         """Validate the ranked scenario."""
         if self.rank <= 0:
-            raise ValueError("Scenario rank must be greater than zero.")
+            raise ValidationError("Scenario rank must be greater than zero.")
 
         normalized_name = self.scenario_name.strip()
 
         if not normalized_name:
-            raise ValueError("Ranked scenario name cannot be empty.")
+            raise ValidationError("Ranked scenario name cannot be empty.")
 
         object.__setattr__(
             self,

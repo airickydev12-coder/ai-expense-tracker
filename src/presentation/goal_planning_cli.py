@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
+from src.core.exceptions import ValidationError
 from src.financial.planning.repository import (
     load_goal_planning_requests_from_file,
     save_goal_planning_requests_to_file,
@@ -550,13 +551,13 @@ def _prompt_for_updated_currency(
     try:
         current_amount = Decimal(str(current_value)).quantize(Decimal("0.01"))
     except (InvalidOperation, ValueError) as error:
-        raise ValueError("current_value must be a valid monetary amount.") from error
+        raise ValidationError("current_value must be a valid monetary amount.") from error
 
     if not current_amount.is_finite():
-        raise ValueError("current_value must be a finite monetary amount.")
+        raise ValidationError("current_value must be a finite monetary amount.")
 
     if current_amount < 0:
-        raise ValueError("current_value cannot be negative.")
+        raise ValidationError("current_value cannot be negative.")
 
     while True:
         raw_value = input_fn(
@@ -732,10 +733,10 @@ def analyze_planning_requests(
 ) -> GoalPlanningResult:
     """Validate and analyze a collection of goal-planning requests."""
     if not requests:
-        raise ValueError("At least one planning request is required.")
+        raise ValidationError("At least one planning request is required.")
 
     if total_available < 0:
-        raise ValueError("Total available funding cannot be negative.")
+        raise ValidationError("Total available funding cannot be negative.")
 
     return analyze_goals(
         list(requests),

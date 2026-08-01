@@ -20,6 +20,8 @@ from decimal import (
     ROUND_HALF_UP,
 )
 
+from src.core.exceptions import ValidationError
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -62,7 +64,7 @@ def to_money(value: object) -> Decimal:
         try:
             amount = Decimal(value.strip())
         except InvalidOperation as error:
-            raise ValueError(f"Invalid monetary value: {value!r}") from error
+            raise ValidationError(f"Invalid monetary value: {value!r}") from error
 
     else:
         raise TypeError(f"Unsupported monetary value: {type(value)}")

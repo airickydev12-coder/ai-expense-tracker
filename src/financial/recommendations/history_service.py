@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.recommendations.history_repository import (
     RECOMMENDATION_HISTORY_FILE,
@@ -11,6 +12,7 @@ from src.financial.recommendations.lifecycle import (
 )
 from src.financial.recommendations.models import Recommendation
 
+logger = get_logger(__name__)
 
 lifecycle_manager = RecommendationLifecycleManager()
 
@@ -98,6 +100,10 @@ def activate_recommendation(
 
     if record is not None and _loaded_file_path is not None:
         save_recommendation_history()
+        logger.info(
+            "Activated recommendation %s",
+            recommendation_key,
+        )
 
     return record
 
@@ -114,6 +120,10 @@ def complete_recommendation(
 
     if record is not None and _loaded_file_path is not None:
         save_recommendation_history()
+        logger.info(
+            "Completed recommendation %s",
+            recommendation_key,
+        )
 
     return record
 
@@ -130,6 +140,10 @@ def dismiss_recommendation(
 
     if record is not None and _loaded_file_path is not None:
         save_recommendation_history()
+        logger.info(
+            "Dismissed recommendation %s",
+            recommendation_key,
+        )
 
     return record
 
@@ -146,6 +160,10 @@ def suppress_recommendation(
 
     if record is not None and _loaded_file_path is not None:
         save_recommendation_history()
+        logger.info(
+            "Suppressed recommendation %s",
+            recommendation_key,
+        )
 
     return record
 

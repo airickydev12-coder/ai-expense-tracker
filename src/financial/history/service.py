@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.core.money import to_money
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.history.repository import (
@@ -9,6 +10,7 @@ from src.financial.history.repository import (
     save_history_to_file,
 )
 
+logger = get_logger(__name__)
 
 _history: list[FinancialSnapshotRecord] = []
 _loaded_file_path: Path = HISTORY_FILE
@@ -89,6 +91,12 @@ def record_snapshot(
 
     _history.append(record)
     save_history(file_path)
+
+    logger.info(
+        "Recorded financial snapshot at %s (health score %d)",
+        record.timestamp.isoformat(),
+        record.health_score,
+    )
 
     return record
 

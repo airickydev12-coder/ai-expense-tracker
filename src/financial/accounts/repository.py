@@ -2,8 +2,11 @@ import json
 from pathlib import Path
 
 from src.core.config import DATA_DIR
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.accounts.models import Account
 
+logger = get_logger(__name__)
 
 ACCOUNTS_FILE = DATA_DIR / "accounts.json"
 
@@ -19,17 +22,30 @@ def load_accounts_from_file(
         with file_path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except json.JSONDecodeError as error:
-        raise ValueError(
+        logger.error(
+            "Failed to parse accounts file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError(
             f"Account data file contains invalid JSON: {file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError("Account data must be stored as a JSON list.")
+        raise PersistenceError("Account data must be stored as a JSON list.")
 
-    return [
+    accounts = [
         Account.from_dict(account_data)
         for account_data in raw_data
     ]
+
+    logger.debug(
+        "Loaded %d account(s) from %s",
+        len(accounts),
+        file_path,
+    )
+
+    return accounts
 
 
 def save_accounts_to_file(
@@ -53,3 +69,9 @@ def save_accounts_to_file(
             file,
             indent=4,
         )
+
+    logger.debug(
+        "Saved %d account(s) to %s",
+        len(accounts),
+        file_path,
+    )

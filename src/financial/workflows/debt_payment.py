@@ -1,4 +1,6 @@
 from decimal import Decimal
+
+from src.core.exceptions import ValidationError
 from src.financial.debt.models import Debt
 
 
@@ -17,7 +19,7 @@ def apply_debt_payment(
         Updated debt.
     """
     if payment < Decimal("0"):
-        raise ValueError("Payment cannot be negative.")
+        raise ValidationError("Payment cannot be negative.")
 
     debt.balance -= payment
 

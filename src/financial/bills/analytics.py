@@ -1,6 +1,8 @@
 from src.financial.bills.models import Bill
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
+
 
 def get_total_bill_amount(
     bills: list[Bill],
@@ -43,10 +45,10 @@ def get_bills_due_soon(
 ) -> list[Bill]:
     """Return unpaid bills due within the requested day range."""
     if current_day < 1 or current_day > 31:
-        raise ValueError("Current day must be between 1 and 31.")
+        raise ValidationError("Current day must be between 1 and 31.")
 
     if days_ahead < 0:
-        raise ValueError("Days ahead cannot be negative.")
+        raise ValidationError("Days ahead cannot be negative.")
 
     return [
         bill

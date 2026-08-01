@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
+from src.core.exceptions import ValidationError
+
 
 class CoachingPriority(Enum):
     """Priority assigned to a coaching recommendation."""
@@ -50,22 +52,22 @@ class CoachingAdvice:
         normalized_reason = self.reason.strip()
 
         if not normalized_key:
-            raise ValueError("Coaching advice key cannot be empty.")
+            raise ValidationError("Coaching advice key cannot be empty.")
 
         if not normalized_title:
-            raise ValueError("Coaching advice title cannot be empty.")
+            raise ValidationError("Coaching advice title cannot be empty.")
 
         if not normalized_message:
-            raise ValueError("Coaching advice message cannot be empty.")
+            raise ValidationError("Coaching advice message cannot be empty.")
 
         if not normalized_action:
-            raise ValueError("Coaching advice action cannot be empty.")
+            raise ValidationError("Coaching advice action cannot be empty.")
 
         if not normalized_reason:
-            raise ValueError("Coaching advice reason cannot be empty.")
+            raise ValidationError("Coaching advice reason cannot be empty.")
 
         if self.score is not None and (self.score < 0 or self.score > 100):
-            raise ValueError("Coaching advice score must be between 0 and 100.")
+            raise ValidationError("Coaching advice score must be between 0 and 100.")
 
         object.__setattr__(
             self,
@@ -143,13 +145,13 @@ class AdviceExplanation:
         normalized_why = self.why_it_matters.strip()
 
         if not normalized_key:
-            raise ValueError("Advice explanation key cannot be empty.")
+            raise ValidationError("Advice explanation key cannot be empty.")
 
         if not normalized_summary:
-            raise ValueError("Advice explanation summary cannot be empty.")
+            raise ValidationError("Advice explanation summary cannot be empty.")
 
         if not normalized_why:
-            raise ValueError("Advice explanation must state why the advice matters.")
+            raise ValidationError("Advice explanation must state why the advice matters.")
 
         object.__setattr__(
             self,

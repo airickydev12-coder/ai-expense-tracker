@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from src.core.exceptions import ValidationError
 from src.financial.recommendations.status import RecommendationStatus
 
 
@@ -20,12 +21,12 @@ class RecommendationRecord:
         self.note = self.note.strip()
 
         if not self.recommendation_key:
-            raise ValueError(
+            raise ValidationError(
                 "Recommendation key cannot be empty."
             )
 
         if self.updated_at < self.created_at:
-            raise ValueError(
+            raise ValidationError(
                 "Updated timestamp cannot be earlier than created timestamp."
             )
 

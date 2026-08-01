@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.exceptions import ValidationError
 from src.core.money import to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
@@ -18,7 +19,7 @@ def _validate_monthly_savings(
 ) -> None:
     """Validate the additional monthly savings amount."""
     if additional_monthly_savings <= 0:
-        raise ValueError("Additional monthly savings must be greater than zero.")
+        raise ValidationError("Additional monthly savings must be greater than zero.")
 
 
 def _validate_horizon_months(
@@ -26,7 +27,7 @@ def _validate_horizon_months(
 ) -> None:
     """Validate the scenario horizon."""
     if horizon_months <= 0:
-        raise ValueError("Scenario horizon must be greater than zero months.")
+        raise ValidationError("Scenario horizon must be greater than zero months.")
 
 
 def run_additional_savings_scenario(
@@ -37,9 +38,9 @@ def run_additional_savings_scenario(
     try:
         additional_monthly_savings = to_money(parameters["additional_monthly_savings"])
     except KeyError as error:
-        raise ValueError("Additional monthly savings is required.") from error
+        raise ValidationError("Additional monthly savings is required.") from error
     except (TypeError, ValueError) as error:
-        raise ValueError("Additional monthly savings must be a number.") from error
+        raise ValidationError("Additional monthly savings must be a number.") from error
 
     try:
         horizon_months = int(
@@ -49,7 +50,7 @@ def run_additional_savings_scenario(
             )
         )
     except (TypeError, ValueError) as error:
-        raise ValueError("Scenario horizon must be a whole number.") from error
+        raise ValidationError("Scenario horizon must be a whole number.") from error
 
     _validate_monthly_savings(additional_monthly_savings)
     _validate_horizon_months(horizon_months)

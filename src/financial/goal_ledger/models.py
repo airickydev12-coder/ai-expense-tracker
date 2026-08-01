@@ -9,6 +9,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
+from src.core.exceptions import PersistenceError, ValidationError
 from src.core.money import (
     money_from_json,
     money_to_json,
@@ -53,10 +54,10 @@ class GoalLedgerEntry:
         try:
             UUID(self.entry_id)
         except (TypeError, ValueError) as error:
-            raise ValueError("Goal ledger entry ID must be a valid UUID.") from error
+            raise ValidationError("Goal ledger entry ID must be a valid UUID.") from error
 
         if self.goal_id <= 0:
-            raise ValueError("Goal ledger goal ID must be greater than zero.")
+            raise ValidationError("Goal ledger goal ID must be greater than zero.")
 
         if not isinstance(
             self.entry_type,
@@ -65,7 +66,7 @@ class GoalLedgerEntry:
             raise TypeError("entry_type must be GoalLedgerEntryType.")
 
         if self.amount == Decimal("0.00"):
-            raise ValueError("Goal ledger entry amount cannot be zero.")
+            raise ValidationError("Goal ledger entry amount cannot be zero.")
 
         if self.entry_type in {
             GoalLedgerEntryType.OPENING_BALANCE,
@@ -73,7 +74,7 @@ class GoalLedgerEntry:
             GoalLedgerEntryType.WITHDRAWAL,
             GoalLedgerEntryType.REVERSAL,
         } and self.amount < Decimal("0.00"):
-            raise ValueError(f"{self.entry_type.value} amount cannot be negative.")
+            raise ValidationError(f"{self.entry_type.value} amount cannot be negative.")
 
         if not isinstance(
             self.effective_date,
@@ -90,7 +91,7 @@ class GoalLedgerEntry:
         source = self.source.strip().upper()
 
         if not source:
-            raise ValueError("Goal ledger source cannot be empty.")
+            raise ValidationError("Goal ledger source cannot be empty.")
 
         note = self.note.strip()
 
@@ -105,20 +106,20 @@ class GoalLedgerEntry:
             correlation = correlation.strip()
 
             if not correlation:
-                raise ValueError("correlation_id cannot be blank.")
+                raise ValidationError("correlation_id cannot be blank.")
 
         if self.entry_type is GoalLedgerEntryType.REVERSAL:
 
             if self.reverses_entry_id is None:
-                raise ValueError("A reversal must identify the original entry.")
+                raise ValidationError("A reversal must identify the original entry.")
 
             try:
                 UUID(self.reverses_entry_id)
             except (TypeError, ValueError) as error:
-                raise ValueError("reverses_entry_id must be a valid UUID.") from error
+                raise ValidationError("reverses_entry_id must be a valid UUID.") from error
 
         elif self.reverses_entry_id is not None:
-            raise ValueError("Only reversal entries may set reverses_entry_id.")
+            raise ValidationError("Only reversal entries may set reverses_entry_id.")
 
         object.__setattr__(
             self,
@@ -204,4 +205,4 @@ class GoalLedgerEntry:
             TypeError,
             ValueError,
         ) as error:
-            raise ValueError("Goal ledger entry contains invalid data.") from error
+            raise PersistenceError("Goal ledger entry contains invalid data.") from error

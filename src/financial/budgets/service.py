@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from src.core.logging import get_logger
 from src.financial.budgets.models import Budget
 from src.financial.budgets.repository import (
     load_budgets_from_file,
@@ -7,6 +8,7 @@ from src.financial.budgets.repository import (
 )
 from src.financial.shared.categories import ExpenseCategory
 
+logger = get_logger(__name__)
 
 budgets: list[Budget] = []
 
@@ -33,11 +35,20 @@ def add_budget(category: ExpenseCategory, limit: Decimal) -> Budget:
         if budget.category == category:
             budget.limit = limit
             save_budgets()
+            logger.info(
+                "Updated budget for %s",
+                category.value,
+            )
             return budget
 
     budget = Budget(category=category, limit=limit)
     budgets.append(budget)
     save_budgets()
+
+    logger.info(
+        "Added budget for %s",
+        category.value,
+    )
 
     return budget
 
@@ -83,6 +94,10 @@ def delete_budget(category: ExpenseCategory) -> Budget | None:
         if budget.category == category:
             deleted_budget = budgets.pop(index)
             save_budgets()
+            logger.info(
+                "Deleted budget for %s",
+                category.value,
+            )
             return deleted_budget
 
     return None

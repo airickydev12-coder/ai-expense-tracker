@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from src.core.exceptions import ValidationError
 from src.financial.scenarios.models import ScenarioResult
 from src.financial.scenarios.ranking import (
     RankedScenario,
@@ -21,7 +22,7 @@ class ScenarioPortfolio:
         normalized_name = self.name.strip()
 
         if not normalized_name:
-            raise ValueError("Scenario portfolio name cannot be empty.")
+            raise ValidationError("Scenario portfolio name cannot be empty.")
 
         object.__setattr__(
             self,

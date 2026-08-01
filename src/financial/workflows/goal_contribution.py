@@ -1,6 +1,8 @@
 from src.financial.goals.models import Goal
 from decimal import Decimal
 
+from src.core.exceptions import ValidationError
+
 
 def apply_contribution_to_goal(
     goal: Goal,
@@ -8,7 +10,7 @@ def apply_contribution_to_goal(
 ) -> Goal:
     """Apply a contribution to a financial goal."""
     if contribution < Decimal("0"):
-        raise ValueError("Goal contribution cannot be negative.")
+        raise ValidationError("Goal contribution cannot be negative.")
 
     goal.current_amount += contribution
 

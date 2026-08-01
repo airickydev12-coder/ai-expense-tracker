@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TypeAlias
 
+from src.core.exceptions import ValidationError
 from src.core.money import (
     ZERO,
     subtract_money,
@@ -56,10 +57,10 @@ def calculate_required_monthly_contribution(
     normalized_remaining = to_money(remaining_amount)
 
     if normalized_remaining < ZERO:
-        raise ValueError("Remaining goal amount cannot be negative.")
+        raise ValidationError("Remaining goal amount cannot be negative.")
 
     if months_remaining < 0:
-        raise ValueError("Months remaining cannot be negative.")
+        raise ValidationError("Months remaining cannot be negative.")
 
     if normalized_remaining == ZERO:
         return ZERO
@@ -76,7 +77,7 @@ def add_months(
 ) -> date:
     """Return a date advanced by a number of calendar months."""
     if months < 0:
-        raise ValueError("Months to add cannot be negative.")
+        raise ValidationError("Months to add cannot be negative.")
 
     target_month_index = starting_date.year * 12 + starting_date.month - 1 + months
 
@@ -109,10 +110,10 @@ def calculate_projected_completion_date(
     normalized_contribution = to_money(monthly_contribution)
 
     if normalized_remaining < ZERO:
-        raise ValueError("Remaining goal amount cannot be negative.")
+        raise ValidationError("Remaining goal amount cannot be negative.")
 
     if normalized_contribution < ZERO:
-        raise ValueError("Monthly contribution cannot be negative.")
+        raise ValidationError("Monthly contribution cannot be negative.")
 
     if normalized_remaining == ZERO:
         return as_of_date
@@ -139,7 +140,7 @@ def build_goal_projection(
     normalized_planned_contribution = to_money(planned_monthly_contribution)
 
     if normalized_planned_contribution < ZERO:
-        raise ValueError("Planned monthly contribution cannot be negative.")
+        raise ValidationError("Planned monthly contribution cannot be negative.")
 
     effective_as_of_date = as_of_date if as_of_date is not None else date.today()
 

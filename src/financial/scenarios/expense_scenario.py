@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.exceptions import NotFoundError, ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.models import (
     ScenarioAssumption,
@@ -18,10 +19,10 @@ def _validate_percentage(
 ) -> None:
     """Validate an expense-reduction percentage."""
     if reduction_percentage <= 0:
-        raise ValueError("Reduction percentage must be greater than zero.")
+        raise ValidationError("Reduction percentage must be greater than zero.")
 
     if reduction_percentage > 100:
-        raise ValueError("Reduction percentage cannot exceed 100.")
+        raise ValidationError("Reduction percentage cannot exceed 100.")
 
 
 def _validate_horizon_months(
@@ -29,7 +30,7 @@ def _validate_horizon_months(
 ) -> None:
     """Validate the scenario horizon."""
     if horizon_months <= 0:
-        raise ValueError("Scenario horizon must be greater than zero months.")
+        raise ValidationError("Scenario horizon must be greater than zero months.")
 
 
 def _get_category_spending(
@@ -48,7 +49,7 @@ def _get_category_spending(
         if str(category_name).strip().lower() == normalized_category:
             return to_money(total)
 
-    raise ValueError(f"No spending was found for category: {category}")
+    raise NotFoundError(f"No spending was found for category: {category}")
 
 
 def run_expense_reduction_scenario(
@@ -64,14 +65,14 @@ def run_expense_reduction_scenario(
     ).strip()
 
     if not category:
-        raise ValueError("Expense category is required.")
+        raise ValidationError("Expense category is required.")
 
     try:
         reduction_percentage = Decimal(str(parameters["reduction_percentage"]))
     except KeyError as error:
-        raise ValueError("Reduction percentage is required.") from error
+        raise ValidationError("Reduction percentage is required.") from error
     except (TypeError, ValueError, ArithmeticError) as error:
-        raise ValueError("Reduction percentage must be a number.") from error
+        raise ValidationError("Reduction percentage must be a number.") from error
 
     try:
         horizon_months = int(
@@ -81,7 +82,7 @@ def run_expense_reduction_scenario(
             )
         )
     except (TypeError, ValueError) as error:
-        raise ValueError("Scenario horizon must be a whole number.") from error
+        raise ValidationError("Scenario horizon must be a whole number.") from error
 
     _validate_percentage(reduction_percentage)
     _validate_horizon_months(horizon_months)

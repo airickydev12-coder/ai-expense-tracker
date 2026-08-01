@@ -2,8 +2,11 @@ import json
 from pathlib import Path
 
 from src.core.config import DATA_DIR
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.recommendations.history import RecommendationRecord
 
+logger = get_logger(__name__)
 
 RECOMMENDATION_HISTORY_FILE = (
     DATA_DIR / "recommendation_history.json"
@@ -21,20 +24,33 @@ def load_recommendation_history_from_file(
         with file_path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except json.JSONDecodeError as error:
-        raise ValueError(
+        logger.error(
+            "Failed to parse recommendation history file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError(
             "Recommendation history file contains invalid JSON: "
             f"{file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError(
+        raise PersistenceError(
             "Recommendation history must be stored as a JSON list."
         )
 
-    return [
+    records = [
         RecommendationRecord.from_dict(record_data)
         for record_data in raw_data
     ]
+
+    logger.debug(
+        "Loaded %d recommendation history record(s) from %s",
+        len(records),
+        file_path,
+    )
+
+    return records
 
 
 def save_recommendation_history_to_file(
@@ -58,3 +74,9 @@ def save_recommendation_history_to_file(
             file,
             indent=4,
         )
+
+    logger.debug(
+        "Saved %d recommendation history record(s) to %s",
+        len(records),
+        file_path,
+    )

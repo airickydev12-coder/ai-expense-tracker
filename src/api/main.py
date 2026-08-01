@@ -5,6 +5,8 @@ This module creates the API application and registers
 routers, middleware, exception handlers, and startup events.
 """
 
+import logging
+
 from fastapi import FastAPI
 
 from src.api.routers.budgets import router as budgets_router
@@ -14,6 +16,9 @@ from src.api.routers import dashboard
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )
+from src.core.logging import configure_logging
+
+configure_logging(console_level=logging.INFO)
 
 app = FastAPI(
     title="AI Expense Tracker API",

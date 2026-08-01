@@ -2,8 +2,11 @@ import json
 from pathlib import Path
 
 from src.core.config import DATA_DIR
+from src.core.exceptions import PersistenceError
+from src.core.logging import get_logger
 from src.financial.debt.models import Debt
 
+logger = get_logger(__name__)
 
 DEBTS_FILE = DATA_DIR / "debts.json"
 
@@ -19,17 +22,30 @@ def load_debts_from_file(
         with file_path.open("r", encoding="utf-8") as file:
             raw_data = json.load(file)
     except json.JSONDecodeError as error:
-        raise ValueError(
+        logger.error(
+            "Failed to parse debts file %s: %s",
+            file_path,
+            error,
+        )
+        raise PersistenceError(
             f"Debt data file contains invalid JSON: {file_path}"
         ) from error
 
     if not isinstance(raw_data, list):
-        raise ValueError("Debt data must be stored as a JSON list.")
+        raise PersistenceError("Debt data must be stored as a JSON list.")
 
-    return [
+    debts = [
         Debt.from_dict(debt_data)
         for debt_data in raw_data
     ]
+
+    logger.debug(
+        "Loaded %d debt(s) from %s",
+        len(debts),
+        file_path,
+    )
+
+    return debts
 
 
 def save_debts_to_file(
@@ -53,3 +69,9 @@ def save_debts_to_file(
             file,
             indent=4,
         )
+
+    logger.debug(
+        "Saved %d debt(s) to %s",
+        len(debts),
+        file_path,
+    )

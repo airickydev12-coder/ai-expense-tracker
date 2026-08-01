@@ -3,6 +3,7 @@
 from collections.abc import Callable, Sequence
 from datetime import date
 
+from src.core.exceptions import ValidationError
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 
@@ -110,7 +111,7 @@ def prompt_for_currency(
     A custom minimum may be supplied, but it cannot be negative.
     """
     if minimum < 0:
-        raise ValueError("Currency minimum cannot be negative.")
+        raise ValidationError("Currency minimum cannot be negative.")
 
     return prompt_for_float(
         prompt,
@@ -227,7 +228,7 @@ def prompt_for_menu_choice(
 ) -> int:
     """Prompt for an integer menu selection within an inclusive range."""
     if minimum > maximum:
-        raise ValueError("Menu minimum cannot be greater than menu maximum.")
+        raise ValidationError("Menu minimum cannot be greater than menu maximum.")
 
     return prompt_for_int(
         prompt,
@@ -248,7 +249,7 @@ def prompt_for_goal_number(
 ) -> Goal:
     """Display available goals and return the selected goal."""
     if not goals:
-        raise ValueError("At least one goal is required for selection.")
+        raise ValidationError("At least one goal is required for selection.")
 
     output_fn("Available Goals")
     output_fn("")
@@ -289,7 +290,7 @@ def print_header(
     normalized_title = title.strip()
 
     if not normalized_title:
-        raise ValueError("Header title cannot be empty.")
+        raise ValidationError("Header title cannot be empty.")
 
     separator_width = _resolve_separator_width(
         title=normalized_title,
@@ -314,7 +315,7 @@ def print_section(
     normalized_title = title.strip()
 
     if not normalized_title:
-        raise ValueError("Section title cannot be empty.")
+        raise ValidationError("Section title cannot be empty.")
 
     separator_width = _resolve_separator_width(
         title=normalized_title,
@@ -351,7 +352,7 @@ def _validate_numeric_range(
 ) -> None:
     """Validate optional numeric boundaries."""
     if minimum is not None and maximum is not None and minimum > maximum:
-        raise ValueError("Minimum cannot be greater than maximum.")
+        raise ValidationError("Minimum cannot be greater than maximum.")
 
 
 def _validate_date_range(
@@ -361,7 +362,7 @@ def _validate_date_range(
 ) -> None:
     """Validate optional date boundaries."""
     if minimum is not None and maximum is not None and minimum > maximum:
-        raise ValueError("Minimum date cannot be greater than maximum date.")
+        raise ValidationError("Minimum date cannot be greater than maximum date.")
 
 
 def _resolve_separator_width(
@@ -372,7 +373,7 @@ def _resolve_separator_width(
 ) -> int:
     """Return a validated separator width for a heading."""
     if width is not None and width <= 0:
-        raise ValueError("Heading width must be greater than zero.")
+        raise ValidationError("Heading width must be greater than zero.")
 
     if width is None:
         return max(
