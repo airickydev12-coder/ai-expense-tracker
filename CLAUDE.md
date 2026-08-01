@@ -14,8 +14,18 @@ This project uses a `.venv` virtual environment — the global `python`/`pip` on
 - No build step — pure Python, no compilation/bundling.
 - **Before reporting any change done**: run the full test suite AND `npx pyright`. Both must be clean (955+ passing, 0 pyright errors) — this project has zero tolerance for regressions introduced silently.
 
+## Architecture Decision Records
+Detailed rationale lives in `docs/Architecture/`. Load the relevant one before making a change in its area rather than re-deriving the reasoning from scratch.
+
+### Clean Architecture (layering) — `@docs/Architecture/ADR-001-clean-architecture.md.txt`
+### Centralized Recommendation Engine — `@docs/Architecture/ADR-002-recommendation-engine.md.txt`
+### Application Adapters — `@docs/Architecture/ADR-003-application-adapters.md.txt`
+### Domain Model Responsibilities — `@docs/Architecture/ADR-004-domain-model-responsibilities.md.txt`
+### Development Workflow — `@docs/Architecture/ADR-005-development-workflow.md.txt`
+### Testing Strategy — `@docs/Architecture/ADR-006-testing-strategy.md.txt`
+
 ## Code Style & Architecture
-- **Layering** (see `docs/Architecture/ADR-001-clean-architecture.md.txt`): `src/core/` (cross-cutting infra: config, money, exceptions, logging) → `src/financial/` (domain logic, one package per domain) → `src/api/` (FastAPI REST layer) and `src/presentation/` (CLI layer) as separate, parallel presentation adapters over the same domain.
+- **Layering** (see ADR-001 above): `src/core/` (cross-cutting infra: config, money, exceptions, logging) → `src/financial/` (domain logic, one package per domain) → `src/api/` (FastAPI REST layer) and `src/presentation/` (CLI layer) as separate, parallel presentation adapters over the same domain.
 - **Per-domain file pattern** inside `src/financial/<domain>/`: `models.py` (dataclasses with `__post_init__` validation), `repository.py` (JSON load/save), `service.py` (in-memory CRUD + orchestration), `analytics.py` (pure calculations). Follow this shape when adding a new domain.
 - **Money is always `Decimal`, never `float`.** Use `src/core/money.py` helpers (`to_money`, `add_money`, `subtract_money`, `money_to_json`, `money_from_json`) instead of calling `Decimal()`/`round()` directly. Percentages, scores, ratios, and rates (e.g. interest rate, health score, scenario ranking score) are legitimately `float` — don't force those into Decimal.
 - **Exceptions**: raise from `src/core/exceptions.py` (`ValidationError`, `NotFoundError`, `BusinessRuleError`, `PersistenceError`) instead of bare `ValueError`. All subclass `ValueError` for backward compatibility, so `except ValueError` / `pytest.raises(ValueError)` still work — pick the most specific subclass: input/invariant validation → `ValidationError`; "no X found" lookups → `NotFoundError`; calculation-feasibility failures → `BusinessRuleError`; malformed persisted/JSON data → `PersistenceError`. `TypeError` from `isinstance` checks is left alone (different semantics, not part of this hierarchy).
