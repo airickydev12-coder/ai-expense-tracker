@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.budgets.service import (
     add_budget,
     update_budget,
@@ -15,7 +17,7 @@ def test_add_budget():
 
     budget = add_budget(
         ExpenseCategory.FOOD,
-        500,
+        Decimal("500.00"),
     )
 
     assert budget.limit == 500
@@ -27,7 +29,7 @@ def test_get_budgets():
 
     add_budget(
         ExpenseCategory.FOOD,
-        500,
+        Decimal("500.00"),
     )
 
     assert len(get_budgets()) == 1
@@ -38,7 +40,7 @@ def test_get_budget_by_category():
 
     add_budget(
         ExpenseCategory.FOOD,
-        500,
+        Decimal("500.00"),
     )
 
     budget = get_budget_by_category(
@@ -52,7 +54,7 @@ def test_get_budget_by_category():
 def test_delete_budget():
     budgets.clear()
 
-    add_budget(ExpenseCategory.FOOD, 500)
+    add_budget(ExpenseCategory.FOOD, Decimal("500.00"))
 
     deleted_budget = delete_budget(ExpenseCategory.FOOD)
 
@@ -66,12 +68,12 @@ def test_update_budget_updates_existing_budget():
 
     add_budget(
         ExpenseCategory.FOOD,
-        500,
+        Decimal("500.00"),
     )
 
     updated_budget = update_budget(
         ExpenseCategory.FOOD,
-        750,
+        Decimal("750.00"),
     )
 
     assert updated_budget.category == ExpenseCategory.FOOD
@@ -84,7 +86,7 @@ def test_update_budget_creates_budget_when_missing():
 
     updated_budget = update_budget(
         ExpenseCategory.FOOD,
-        600,
+        Decimal("600.00"),
     )
 
     assert updated_budget.category == ExpenseCategory.FOOD

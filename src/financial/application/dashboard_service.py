@@ -1,6 +1,7 @@
 """Application service for the financial dashboard."""
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 from src.financial.budgets.models import Budget
 from src.financial.budgets.service import get_budgets
@@ -16,19 +17,19 @@ from src.financial.reports.budget_report import build_budget_report
 class Dashboard:
     """Represents the application's financial dashboard."""
 
-    total_expenses: float
-    average_expense: float
+    total_expenses: Decimal
+    average_expense: Decimal
 
     highest_expense: Expense | None
     lowest_expense: Expense | None
 
-    category_totals: dict[str, float]
+    category_totals: dict[str, Decimal]
 
     budget_count: int
 
-    monthly_budget: float
-    remaining_budget: float
-    budget_used_percent: float
+    monthly_budget: Decimal
+    remaining_budget: Decimal
+    budget_used_percent: Decimal
 
     recommendation_count: int
 
@@ -74,14 +75,19 @@ def build_dashboard() -> Dashboard:
         expenses,
     )
 
-    monthly_budget = sum(item["limit"] for item in budget_report)
+    monthly_budget = sum(
+        (item["limit"] for item in budget_report),
+        Decimal("0"),
+    )
 
-    remaining_budget = sum(item["remaining"] for item in budget_report)
+    remaining_budget = sum(
+        (item["remaining"] for item in budget_report),
+        Decimal("0"),
+    )
 
-    spent_budget = sum(item["spent"] for item in budget_report)
-
-    budget_used_percent = (
-        (spent_budget / monthly_budget) * 100 if monthly_budget > 0 else 0.0
+    spent_budget = sum(
+        (item["spent"] for item in budget_report),
+        Decimal("0"),
     )
 
     # -------------------------
@@ -115,7 +121,11 @@ def build_dashboard() -> Dashboard:
         budget_count=budget_count,
         monthly_budget=monthly_budget,
         remaining_budget=remaining_budget,
-        budget_used_percent=budget_used_percent,
+        budget_used_percent=(
+            (spent_budget / monthly_budget) * Decimal("100")
+            if monthly_budget > Decimal("0")
+            else Decimal("0")
+        ),
         recommendation_count=recommendation_count,
         health_score=score,
         health_status=status,

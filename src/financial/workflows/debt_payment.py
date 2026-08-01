@@ -1,9 +1,12 @@
+from decimal import Decimal
+from src.financial.debt.repository import DEBTS_FILE
 from src.financial.debt.models import Debt
+from decimal import Decimal
 
 
 def apply_debt_payment(
     debt: Debt,
-    payment: float,
+    payment: Decimal,
 ) -> Debt:
     """
     Apply a payment toward a debt.
@@ -15,12 +18,12 @@ def apply_debt_payment(
     Returns:
         Updated debt.
     """
-    if payment < 0:
+    if payment < Decimal("0"):
         raise ValueError("Payment cannot be negative.")
 
     debt.balance -= payment
 
-    if debt.balance < 0:
-        debt.balance = 0
+    if debt.balance < Decimal("0"):
+        debt.balance = Decimal("0")
 
     return debt

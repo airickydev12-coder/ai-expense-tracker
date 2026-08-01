@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from decimal import Decimal
+
 from src.financial.recommendations.history import (
     RecommendationRecord,
 )
@@ -30,9 +32,7 @@ def build_record() -> RecommendationRecord:
     timestamp = datetime.now(timezone.utc)
 
     return RecommendationRecord(
-        recommendation_key=(
-            "debt:high_interest_debt"
-        ),
+        recommendation_key=("debt:high_interest_debt"),
         status=RecommendationStatus.NEW,
         created_at=timestamp,
         updated_at=timestamp,
@@ -47,9 +47,7 @@ def test_select_recommendation_key(
         lambda _: "1",
     )
 
-    result = cli.select_recommendation_key(
-        build_snapshot()["recommendations"]
-    )
+    result = cli.select_recommendation_key(build_snapshot()["recommendations"])
 
     assert result == "debt:high_interest_debt"
 
@@ -62,9 +60,7 @@ def test_select_recommendation_key_rejects_invalid_input(
         lambda _: "invalid",
     )
 
-    result = cli.select_recommendation_key(
-        build_snapshot()["recommendations"]
-    )
+    result = cli.select_recommendation_key(build_snapshot()["recommendations"])
 
     assert result is None
 
@@ -77,9 +73,7 @@ def test_select_history_record_key(
         lambda _: "1",
     )
 
-    result = cli.select_history_record_key(
-        [build_record()]
-    )
+    result = cli.select_history_record_key([build_record()])
 
     assert result == "debt:high_interest_debt"
 

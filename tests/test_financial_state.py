@@ -21,6 +21,7 @@ from src.financial.shared.categories import ExpenseCategory
 from src.financial.scenarios.workspace import (
     scenario_workspace,
 )
+from decimal import Decimal
 
 
 def setup_function():
@@ -110,7 +111,7 @@ def test_get_financial_state_returns_all_domains():
         Income(
             id=1,
             source="Salary",
-            amount=5000,
+            amount=Decimal("5000.00"),
         )
     )
 
@@ -119,14 +120,14 @@ def test_get_financial_state_returns_all_domains():
             id=1,
             name="Rent",
             category=ExpenseCategory.HOUSING,
-            amount=1200,
+            amount=Decimal("1200.00"),
         )
     )
 
     budgets.append(
         Budget(
             category=ExpenseCategory.HOUSING,
-            limit=1500,
+            limit=Decimal("1500.00"),
         )
     )
 
@@ -135,7 +136,7 @@ def test_get_financial_state_returns_all_domains():
             id=1,
             name="Checking",
             account_type="Bank",
-            balance=2000,
+            balance=Decimal("1000.00"),
         )
     )
 
@@ -143,8 +144,8 @@ def test_get_financial_state_returns_all_domains():
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         )
     )
 
@@ -152,9 +153,9 @@ def test_get_financial_state_returns_all_domains():
         Debt(
             id=1,
             name="Credit Card",
-            balance=1000,
+            balance=Decimal("1000.00"),
             interest_rate=19.99,
-            minimum_payment=50,
+            minimum_payment=Decimal("50.00"),
         )
     )
 
@@ -162,7 +163,7 @@ def test_get_financial_state_returns_all_domains():
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         )
@@ -184,7 +185,7 @@ def test_build_current_financial_snapshot():
         Income(
             id=1,
             source="Salary",
-            amount=5000,
+            amount=Decimal("5000.00"),
         )
     )
 
@@ -193,14 +194,14 @@ def test_build_current_financial_snapshot():
             id=1,
             name="Rent",
             category=ExpenseCategory.HOUSING,
-            amount=1200,
+            amount=Decimal("1200.00"),
         )
     )
 
     budgets.append(
         Budget(
             category=ExpenseCategory.HOUSING,
-            limit=1500,
+            limit=Decimal("1500.00"),
         )
     )
 
@@ -209,7 +210,7 @@ def test_build_current_financial_snapshot():
             id=1,
             name="Checking",
             account_type="Bank",
-            balance=2000,
+            balance=Decimal("2000.00"),
         )
     )
 
@@ -217,8 +218,8 @@ def test_build_current_financial_snapshot():
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         )
     )
 
@@ -226,9 +227,9 @@ def test_build_current_financial_snapshot():
         Debt(
             id=1,
             name="Credit Card",
-            balance=1000,
+            balance=Decimal("1000.00"),
             interest_rate=19.99,
-            minimum_payment=50,
+            minimum_payment=Decimal("50.00"),
         )
     )
 
@@ -236,7 +237,7 @@ def test_build_current_financial_snapshot():
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         )
@@ -246,12 +247,12 @@ def test_build_current_financial_snapshot():
         current_day=10,
     )
 
-    assert snapshot["total_income"] == 5000
-    assert snapshot["total_expenses"] == 1200
-    assert snapshot["net_cash_flow"] == 3800
-    assert snapshot["total_account_balance"] == 2000
-    assert snapshot["total_goal_progress"] == 2500
-    assert snapshot["total_debt"] == 1000
+    assert snapshot["total_income"] == Decimal("5000.00")
+    assert snapshot["total_expenses"] == Decimal("1200.00")
+    assert snapshot["net_cash_flow"] == Decimal("3800.00")
+    assert snapshot["total_account_balance"] == Decimal("2000.00")
+    assert snapshot["total_goal_progress"] == Decimal("2500.00")
+    assert snapshot["total_debt"] == Decimal("1000.00")
     assert len(snapshot["bills"]) == 1
     assert snapshot["current_day"] == 10
     assert "recommendations" in snapshot
@@ -265,13 +266,13 @@ def test_record_current_financial_snapshot(
     captured_snapshot: dict = {}
 
     fake_snapshot = {
-        "total_income": 5000,
-        "total_expenses": 1500,
-        "net_cash_flow": 3500,
-        "total_account_balance": 2000,
-        "total_goal_progress": 2500,
-        "total_debt": 1000,
-        "net_worth": 3500,
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("1500.00"),
+        "net_cash_flow": Decimal("3500.00"),
+        "total_account_balance": Decimal("2000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("1000.00"),
+        "net_worth": Decimal("3500.00"),
         "health_score": 85,
         "health_status": "Excellent",
         "accounts": [
@@ -322,14 +323,14 @@ def test_record_current_financial_snapshot(
 
     assert snapshot == fake_snapshot
     assert record == "recorded"
-    assert captured_snapshot["net_worth"] == 3500
+    assert captured_snapshot["net_worth"] == Decimal("3500.00")
 
-    assert snapshot["total_income"] == 5000
-    assert snapshot["total_expenses"] == 1500
-    assert snapshot["net_cash_flow"] == 3500
-    assert snapshot["total_account_balance"] == 2000
-    assert snapshot["total_goal_progress"] == 2500
-    assert snapshot["total_debt"] == 1000
+    assert snapshot["total_income"] == Decimal("5000.00")
+    assert snapshot["total_expenses"] == Decimal("1500.00")
+    assert snapshot["net_cash_flow"] == Decimal("3500.00")
+    assert snapshot["total_account_balance"] == Decimal("2000.00")
+    assert snapshot["total_goal_progress"] == Decimal("2500.00")
+    assert snapshot["total_debt"] == Decimal("1000.00")
     assert len(snapshot["bills"]) == 1
     assert snapshot["current_day"] == 10
     assert "recommendations" in snapshot

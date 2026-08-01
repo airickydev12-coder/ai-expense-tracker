@@ -8,11 +8,13 @@ from src.financial.budgets.analytics import (
     get_budget_variance,
 )
 
+from decimal import Decimal
+
 
 def test_get_budget_variance_under_budget():
     budget = Budget(
         category=ExpenseCategory.FOOD,
-        limit=100,
+        limit=Decimal("100.00"),
     )
 
     expenses = [
@@ -20,13 +22,13 @@ def test_get_budget_variance_under_budget():
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5,
+            amount=Decimal("5.00"),
         ),
         Expense(
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
-            amount=15,
+            amount=Decimal("15.00"),
         ),
     ]
 
@@ -38,7 +40,7 @@ def test_get_budget_variance_under_budget():
 def test_get_budget_variance_over_budget():
     budget = Budget(
         category=ExpenseCategory.FOOD,
-        limit=10,
+        limit=Decimal("10.00"),
     )
 
     expenses = [
@@ -46,7 +48,7 @@ def test_get_budget_variance_over_budget():
             id=1,
             name="Dinner",
             category=ExpenseCategory.FOOD,
-            amount=25,
+            amount=Decimal("25.00"),
         ),
     ]
 
@@ -58,7 +60,7 @@ def test_get_budget_variance_over_budget():
 def test_get_budget_variance_ignores_other_categories():
     budget = Budget(
         category=ExpenseCategory.FOOD,
-        limit=100,
+        limit=Decimal("100.00"),
     )
 
     expenses = [
@@ -66,7 +68,7 @@ def test_get_budget_variance_ignores_other_categories():
             id=1,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=50,
+            amount=Decimal("50.00"),
         ),
     ]
 
@@ -76,37 +78,53 @@ def test_get_budget_variance_ignores_other_categories():
 
 
 def test_get_budget_status_under_budget():
-    budget = Budget(category=ExpenseCategory.FOOD, limit=100)
-    expenses = [Expense(id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=25)]
+    budget = Budget(category=ExpenseCategory.FOOD, limit=Decimal("100.00"))
+    expenses = [
+        Expense(
+            id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=Decimal("25.00")
+        )
+    ]
 
     assert get_budget_status(budget, expenses) == "Under Budget"
 
 
 def test_get_budget_status_over_budget():
-    budget = Budget(category=ExpenseCategory.FOOD, limit=10)
-    expenses = [Expense(id=1, name="Dinner", category=ExpenseCategory.FOOD, amount=25)]
+    budget = Budget(category=ExpenseCategory.FOOD, limit=Decimal("10.00"))
+    expenses = [
+        Expense(
+            id=1, name="Dinner", category=ExpenseCategory.FOOD, amount=Decimal("25.00")
+        )
+    ]
 
     assert get_budget_status(budget, expenses) == "Over Budget"
 
 
 def test_get_budget_status_on_budget():
-    budget = Budget(category=ExpenseCategory.FOOD, limit=25)
-    expenses = [Expense(id=1, name="Dinner", category=ExpenseCategory.FOOD, amount=25)]
+    budget = Budget(category=ExpenseCategory.FOOD, limit=Decimal("25.00"))
+    expenses = [
+        Expense(
+            id=1, name="Dinner", category=ExpenseCategory.FOOD, amount=Decimal("25.00")
+        )
+    ]
 
     assert get_budget_status(budget, expenses) == "On Budget"
 
 
 def test_get_budget_summary():
-    budget = Budget(category=ExpenseCategory.FOOD, limit=100)
+    budget = Budget(category=ExpenseCategory.FOOD, limit=Decimal("100.00"))
     expenses = [
-        Expense(id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=5),
-        Expense(id=2, name="Lunch", category=ExpenseCategory.FOOD, amount=15),
+        Expense(
+            id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=Decimal("5.00")
+        ),
+        Expense(
+            id=2, name="Lunch", category=ExpenseCategory.FOOD, amount=Decimal("15.00")
+        ),
     ]
 
     summary = get_budget_summary(budget, expenses)
 
     assert summary["category"] == "Food"
-    assert summary["limit"] == 100
-    assert summary["spent"] == 20
-    assert summary["remaining"] == 80
+    assert summary["limit"] == Decimal("100.00")
+    assert summary["spent"] == Decimal("20.00")
+    assert summary["remaining"] == Decimal("80.00")
     assert summary["status"] == "Under Budget"

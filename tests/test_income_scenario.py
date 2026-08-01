@@ -14,17 +14,19 @@ from src.financial.scenarios.service import (
     scenario_service,
 )
 
+from decimal import Decimal
+
 
 def build_snapshot() -> dict:
     """Create a snapshot for income-scenario tests."""
     return {
-        "total_income": 5000,
-        "total_expenses": 3000,
-        "net_cash_flow": 2000,
-        "total_account_balance": 8000,
-        "total_goal_progress": 2500,
-        "total_debt": 10000,
-        "net_worth": 500,
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("3000.00"),
+        "net_cash_flow": Decimal("2000.00"),
+        "total_account_balance": Decimal("8000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("10000.00"),
+        "net_worth": Decimal("500.00"),
         "health_score": 70,
         "health_status": "Good",
     }
@@ -59,24 +61,24 @@ def test_run_income_increase_scenario():
     savings_rate_impact = result.get_impact("Savings Rate")
 
     assert income_impact is not None
-    assert income_impact.original_value == 5000
-    assert income_impact.projected_value == 5500
-    assert income_impact.change == 500
+    assert income_impact.original_value == Decimal("5000.00")
+    assert income_impact.projected_value == Decimal("5500.00")
+    assert income_impact.change == Decimal("500.00")
 
     assert cash_flow_impact is not None
-    assert cash_flow_impact.projected_value == 2500
-    assert cash_flow_impact.change == 500
+    assert cash_flow_impact.projected_value == Decimal("2500.00")
+    assert cash_flow_impact.change == Decimal("500.00")
 
     assert balance_impact is not None
-    assert balance_impact.projected_value == 14000
-    assert balance_impact.change == 6000
+    assert balance_impact.projected_value == Decimal("14000.00")
+    assert balance_impact.change == Decimal("6000.00")
 
     assert net_worth_impact is not None
-    assert net_worth_impact.projected_value == 6500
-    assert net_worth_impact.change == 6000
+    assert net_worth_impact.projected_value == Decimal("6500.00")
+    assert net_worth_impact.change == Decimal("6000.00")
 
     assert annual_income_impact is not None
-    assert annual_income_impact.projected_value == 6000
+    assert annual_income_impact.projected_value == Decimal("6000.00")
 
     assert savings_rate_impact is not None
     assert savings_rate_impact.original_value == pytest.approx(40)
@@ -94,11 +96,11 @@ def test_projected_snapshot_is_updated():
 
     projected = result.projected_snapshot
 
-    assert projected["total_income"] == 6000
-    assert projected["total_expenses"] == 3000
-    assert projected["net_cash_flow"] == 3000
-    assert projected["total_account_balance"] == 14000
-    assert projected["net_worth"] == 6500
+    assert projected["total_income"] == Decimal("6000.00")
+    assert projected["total_expenses"] == Decimal("3000.00")
+    assert projected["net_cash_flow"] == Decimal("3000.00")
+    assert projected["total_account_balance"] == Decimal("14000.00")
+    assert projected["net_worth"] == Decimal("6500.00")
 
 
 def test_default_horizon_is_twelve_months():
@@ -253,7 +255,7 @@ def test_original_snapshot_is_not_mutated():
         },
     )
 
-    assert snapshot["total_income"] == 5000
-    assert snapshot["net_cash_flow"] == 2000
-    assert snapshot["total_account_balance"] == 8000
-    assert snapshot["net_worth"] == 500
+    assert snapshot["total_income"] == Decimal("5000.00")
+    assert snapshot["net_cash_flow"] == Decimal("2000.00")
+    assert snapshot["total_account_balance"] == Decimal("8000.00")
+    assert snapshot["net_worth"] == Decimal("500.00")

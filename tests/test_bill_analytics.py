@@ -1,5 +1,7 @@
 import pytest
 
+from decimal import Decimal
+
 from src.financial.bills.analytics import (
     get_bills_due_soon,
     get_next_unpaid_bill,
@@ -17,21 +19,21 @@ def build_bills() -> list[Bill]:
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         ),
         Bill(
             id=2,
             name="Internet",
-            amount=80,
+            amount=Decimal("80.00"),
             due_day=20,
             is_paid=True,
         ),
         Bill(
             id=3,
             name="Insurance",
-            amount=150,
+            amount=Decimal("150.00"),
             due_day=25,
             is_paid=False,
         ),

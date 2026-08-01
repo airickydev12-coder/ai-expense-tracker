@@ -1,6 +1,7 @@
 """Models representing consolidated financial application state."""
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 from src.financial.accounts.models import Account
 from src.financial.bills.models import Bill
@@ -18,23 +19,23 @@ class FinancialSnapshot:
     insights, recommendations, coaching content, forecasts, and simulations.
     """
 
-    total_income: float
-    total_expenses: float
-    net_cash_flow: float
+    total_income: Decimal
+    total_expenses: Decimal
+    net_cash_flow: Decimal
 
-    average_expense: float
+    average_expense: Decimal
     highest_expense: Expense | None
     lowest_expense: Expense | None
-    category_totals: dict[str, float]
+    category_totals: dict[str, Decimal]
 
     budget_count: int
     goal_count: int
     budget_report: list[dict]
 
-    total_account_balance: float
-    total_goal_progress: float
-    total_debt: float
-    net_worth: float
+    total_account_balance: Decimal
+    total_goal_progress: Decimal
+    total_debt: Decimal
+    net_worth: Decimal
 
     accounts: list[Account]
     goals: list[Goal]

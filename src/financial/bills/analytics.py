@@ -1,24 +1,25 @@
+from ast import Import
 from src.financial.bills.models import Bill
+from decimal import Decimal
 
 
 def get_total_bill_amount(
     bills: list[Bill],
-) -> float:
+) -> Decimal:
     """Return the total amount of all bills."""
     return sum(
-        bill.amount
-        for bill in bills
+        (bill.amount for bill in bills),
+        start=Decimal("0"),
     )
 
 
 def get_total_unpaid_bill_amount(
     bills: list[Bill],
-) -> float:
+) -> Decimal:
     """Return the total amount of unpaid bills."""
     return sum(
-        bill.amount
-        for bill in bills
-        if not bill.is_paid
+        (bill.amount for bill in bills if not bill.is_paid),
+        start=Decimal("0"),
     )
 
 
@@ -26,22 +27,14 @@ def get_paid_bills(
     bills: list[Bill],
 ) -> list[Bill]:
     """Return all paid bills."""
-    return [
-        bill
-        for bill in bills
-        if bill.is_paid
-    ]
+    return [bill for bill in bills if bill.is_paid]
 
 
 def get_unpaid_bills(
     bills: list[Bill],
 ) -> list[Bill]:
     """Return all unpaid bills."""
-    return [
-        bill
-        for bill in bills
-        if not bill.is_paid
-    ]
+    return [bill for bill in bills if not bill.is_paid]
 
 
 def get_bills_due_soon(
@@ -59,10 +52,7 @@ def get_bills_due_soon(
     return [
         bill
         for bill in bills
-        if (
-            not bill.is_paid
-            and 0 <= bill.due_day - current_day <= days_ahead
-        )
+        if (not bill.is_paid and 0 <= bill.due_day - current_day <= days_ahead)
     ]
 
 
@@ -72,12 +62,7 @@ def get_next_unpaid_bill(
 ) -> Bill | None:
     """Return the next unpaid bill due on or after the current day."""
     upcoming_bills = [
-        bill
-        for bill in bills
-        if (
-            not bill.is_paid
-            and bill.due_day >= current_day
-        )
+        bill for bill in bills if (not bill.is_paid and bill.due_day >= current_day)
     ]
 
     if not upcoming_bills:

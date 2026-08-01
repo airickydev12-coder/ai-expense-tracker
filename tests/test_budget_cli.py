@@ -2,10 +2,12 @@ from src.financial.budgets.models import Budget
 from src.financial.shared.categories import ExpenseCategory
 from src.presentation import budget_cli
 
+from decimal import Decimal
+
 
 def build_budget(
     category: ExpenseCategory = ExpenseCategory.FOOD,
-    limit: float = 500,
+    limit: Decimal = Decimal("500.00"),
 ) -> Budget:
     """Create a budget for CLI tests."""
     return Budget(
@@ -18,9 +20,9 @@ def build_summary() -> dict:
     """Create a budget summary for CLI tests."""
     return {
         "category": "Food",
-        "limit": 500,
-        "spent": 100,
-        "remaining": 400,
+        "limit": Decimal("500.00"),
+        "spent": Decimal("100.00"),
+        "remaining": Decimal("400.00"),
         "status": "Within Budget",
     }
 
@@ -164,11 +166,11 @@ def test_create_or_update_multiple_budgets(
     assert captured == [
         (
             ExpenseCategory.FOOD,
-            500,
+            Decimal("500.00"),
         ),
         (
             ExpenseCategory.HOUSING,
-            1500,
+            Decimal("1500.00"),
         ),
     ]
 

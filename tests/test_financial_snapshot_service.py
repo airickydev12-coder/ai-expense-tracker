@@ -1,18 +1,23 @@
 """Tests for the financial snapshot application service."""
 
+from decimal import Decimal
+
 import pytest
 
 from src.financial.application.financial_snapshot_service import (
     build_financial_snapshot,
 )
+from src.financial.accounts import service as account_service
+from src.financial.bills import service as bill_service
 from src.financial.budgets import service as budget_service
 from src.financial.budgets.models import Budget
+from src.financial.debt import service as debt_service
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 from src.financial.goals import service as goal_service
-from src.financial.shared.categories import ExpenseCategory
 from src.financial.goals.models import Goal
-from decimal import Decimal
+from src.financial.income import service as income_service
+from src.financial.shared.categories import ExpenseCategory
 
 
 def test_build_financial_snapshot_with_data(
@@ -25,24 +30,24 @@ def test_build_financial_snapshot_with_data(
             id=1,
             name="Groceries",
             category=ExpenseCategory.FOOD,
-            amount=100.00,
+            amount=Decimal("100.00"),
         ),
         Expense(
             id=2,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=50.00,
+            amount=Decimal("50.00"),
         ),
     ]
 
     test_budgets = [
         Budget(
             category=ExpenseCategory.FOOD,
-            limit=500.00,
+            limit=Decimal("500.00"),
         ),
         Budget(
             category=ExpenseCategory.TRANSPORTATION,
-            limit=250.00,
+            limit=Decimal("250.00"),
         ),
     ]
 
@@ -67,39 +72,31 @@ def test_build_financial_snapshot_with_data(
         ),
     ]
 
-    monkeypatch.setattr(
-        expense_service,
-        "expenses",
-        test_expenses,
-    )
+    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+    monkeypatch.setattr(budget_service, "budgets", test_budgets)
+    monkeypatch.setattr(goal_service, "goals", test_goals)
 
-    monkeypatch.setattr(
-        budget_service,
-        "budgets",
-        test_budgets,
-    )
-
-    monkeypatch.setattr(
-        goal_service,
-        "goals",
-        test_goals,
-    )
+    monkeypatch.setattr(income_service, "income_entries", [])
+    monkeypatch.setattr(account_service, "accounts", [])
+    monkeypatch.setattr(debt_service, "debts", [])
+    monkeypatch.setattr(bill_service, "bills", [])
 
     snapshot = build_financial_snapshot()
 
-    assert snapshot.total_expenses == 150.00
-    assert snapshot.average_expense == 75.00
+    assert snapshot.total_expenses == Decimal("150.00")
+    assert snapshot.average_expense == Decimal("75.00")
     assert snapshot.highest_expense == test_expenses[0]
     assert snapshot.lowest_expense == test_expenses[1]
 
     assert snapshot.category_totals == {
-        "Food": 100.00,
-        "Transportation": 50.00,
+        "Food": Decimal("100.00"),
+        "Transportation": Decimal("50.00"),
     }
 
     assert snapshot.budget_count == 2
     assert snapshot.goal_count == 3
-    assert snapshot.health_score == 65
+
+    assert snapshot.health_score == 60
     assert snapshot.health_status == "Fair"
 
 
@@ -108,32 +105,25 @@ def test_build_financial_snapshot_without_data(
 ) -> None:
     """Build an empty financial snapshot."""
 
-    monkeypatch.setattr(
-        expense_service,
-        "expenses",
-        [],
-    )
+    monkeypatch.setattr(expense_service, "expenses", [])
+    monkeypatch.setattr(budget_service, "budgets", [])
+    monkeypatch.setattr(goal_service, "goals", [])
 
-    monkeypatch.setattr(
-        budget_service,
-        "budgets",
-        [],
-    )
-
-    monkeypatch.setattr(
-        goal_service,
-        "goals",
-        [],
-    )
+    monkeypatch.setattr(income_service, "income_entries", [])
+    monkeypatch.setattr(account_service, "accounts", [])
+    monkeypatch.setattr(debt_service, "debts", [])
+    monkeypatch.setattr(bill_service, "bills", [])
 
     snapshot = build_financial_snapshot()
 
-    assert snapshot.total_expenses == 0.0
-    assert snapshot.average_expense == 0.0
+    assert snapshot.total_expenses == Decimal("0")
+    assert snapshot.average_expense == Decimal("0")
     assert snapshot.highest_expense is None
     assert snapshot.lowest_expense is None
     assert snapshot.category_totals == {}
+
     assert snapshot.budget_count == 0
     assert snapshot.goal_count == 0
+
     assert snapshot.health_score == 65
     assert snapshot.health_status == "Fair"

@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from decimal import Decimal
+
 from src.financial.bills.models import Bill
 from src.financial.bills.repository import (
     load_bills_from_file,
@@ -16,14 +18,14 @@ def test_save_and_load_bills(tmp_path):
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         ),
         Bill(
             id=2,
             name="Internet",
-            amount=80,
+            amount=Decimal("80.00"),
             due_day=20,
             is_paid=True,
         ),
@@ -52,18 +54,13 @@ def test_load_bills_returns_empty_list_when_file_missing(
 def test_save_bills_creates_parent_directory(
     tmp_path,
 ):
-    file_path = (
-        tmp_path
-        / "nested"
-        / "data"
-        / "bills.json"
-    )
+    file_path = tmp_path / "nested" / "data" / "bills.json"
 
     bills = [
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         )

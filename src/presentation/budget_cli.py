@@ -9,6 +9,7 @@ from src.presentation.views import (
     display_budget_summary,
     display_current_budgets,
 )
+from decimal import Decimal, InvalidOperation
 
 
 def create_or_update_budgets() -> None:
@@ -19,32 +20,23 @@ def create_or_update_budgets() -> None:
         category = select_category()
 
         if category is None:
-            retry = input(
-                "Try selecting a category again? (y/n): "
-            ).strip().lower()
+            retry = input("Try selecting a category again? (y/n): ").strip().lower()
 
             if retry != "y":
                 return
 
             continue
 
-        limit_text = input(
-            "Enter budget limit: "
-        ).strip()
+        limit_text = input("Enter budget limit: ").strip()
 
         try:
-            limit = float(limit_text)
-        except ValueError:
-            print(
-                "Invalid budget limit. "
-                "Please enter a number."
-            )
+            limit = Decimal(limit_text)
+        except InvalidOperation, ValueError:
+            print("Invalid budget limit. " "Please enter a number.")
             continue
 
         if limit <= 0:
-            print(
-                "Budget limit must be greater than zero."
-            )
+            print("Budget limit must be greater than zero.")
             continue
 
         budget = add_budget(
@@ -60,9 +52,9 @@ def create_or_update_budgets() -> None:
         print("\nBudget saved successfully.")
         display_budget_summary(summary)
 
-        add_another = input(
-            "\nCreate or update another budget? (y/n): "
-        ).strip().lower()
+        add_another = (
+            input("\nCreate or update another budget? (y/n): ").strip().lower()
+        )
 
         if add_another != "y":
             return
@@ -81,10 +73,7 @@ def delete_budget_flow() -> None:
         print("Budget not found.")
         return
 
-    print(
-        "Deleted budget for "
-        f"{deleted_budget.category.value}."
-    )
+    print("Deleted budget for " f"{deleted_budget.category.value}.")
 
 
 def manage_budgets() -> None:
@@ -96,9 +85,7 @@ def manage_budgets() -> None:
     print("2. Delete Budget")
     print("3. Back")
 
-    budget_choice = input(
-        "Choose an option: "
-    ).strip()
+    budget_choice = input("Choose an option: ").strip()
 
     if budget_choice == "1":
         create_or_update_budgets()

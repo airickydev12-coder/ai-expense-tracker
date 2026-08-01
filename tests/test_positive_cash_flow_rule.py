@@ -4,14 +4,16 @@ from src.financial.rules.positive_cash_flow_rule import (
     PositiveCashFlowAllocationRule,
 )
 
+from decimal import Decimal
+
 
 def test_positive_cash_flow_with_debt():
     rule = PositiveCashFlowAllocationRule()
 
     snapshot = {
-        "net_cash_flow": 1000,
-        "total_debt": 5000,
-        "total_goal_progress": 1000,
+        "net_cash_flow": Decimal("1000.00"),
+        "total_debt": Decimal("5000.00"),
+        "total_goal_progress": Decimal("1000.00"),
     }
 
     result = rule.evaluate(snapshot)
@@ -43,9 +45,9 @@ def test_positive_cash_flow_general_recommendation():
     rule = PositiveCashFlowAllocationRule()
 
     snapshot = {
-        "net_cash_flow": 1000,
-        "total_debt": 0,
-        "total_goal_progress": 500,
+        "net_cash_flow": Decimal("1000.00"),
+        "total_debt": Decimal("0.00"),
+        "total_goal_progress": Decimal("500.00"),
     }
 
     result = rule.evaluate(snapshot)
@@ -60,9 +62,9 @@ def test_positive_cash_flow_rule_returns_none():
     rule = PositiveCashFlowAllocationRule()
 
     snapshot = {
-        "net_cash_flow": 0,
-        "total_debt": 0,
-        "total_goal_progress": 500,
+        "net_cash_flow": Decimal("0.00"),
+        "total_debt": Decimal("0.00"),
+        "total_goal_progress": Decimal("500.00"),
     }
 
     assert rule.evaluate(snapshot) is None

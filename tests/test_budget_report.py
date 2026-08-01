@@ -3,22 +3,31 @@ from src.financial.expenses.models import Expense
 from src.financial.reports.budget_report import build_budget_report
 from src.financial.shared.categories import ExpenseCategory
 
+from decimal import Decimal
+
 
 def test_build_budget_report():
     budgets = [
-        Budget(category=ExpenseCategory.FOOD, limit=100),
-        Budget(category=ExpenseCategory.TRANSPORTATION, limit=50),
+        Budget(category=ExpenseCategory.FOOD, limit=Decimal("100.00")),
+        Budget(category=ExpenseCategory.TRANSPORTATION, limit=Decimal("50.00")),
     ]
 
     expenses = [
-        Expense(id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=10),
-        Expense(id=2, name="Gas", category=ExpenseCategory.TRANSPORTATION, amount=20),
+        Expense(
+            id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=Decimal("10.00")
+        ),
+        Expense(
+            id=2,
+            name="Gas",
+            category=ExpenseCategory.TRANSPORTATION,
+            amount=Decimal("20.00"),
+        ),
     ]
 
     report = build_budget_report(budgets, expenses)
 
     assert len(report) == 2
     assert report[0]["category"] == "Food"
-    assert report[0]["remaining"] == 90
+    assert report[0]["remaining"] == Decimal("90.00")
     assert report[1]["category"] == "Transportation"
-    assert report[1]["remaining"] == 30
+    assert report[1]["remaining"] == Decimal("30.00")

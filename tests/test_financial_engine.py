@@ -8,13 +8,15 @@ from src.financial.goals.models import Goal
 from src.financial.income.models import Income
 from src.financial.shared.categories import ExpenseCategory
 
+from decimal import Decimal
+
 
 def test_build_financial_snapshot():
     income_entries = [
         Income(
             id=1,
             source="Salary",
-            amount=5000,
+            amount=Decimal("5000.00"),
         ),
     ]
 
@@ -23,20 +25,20 @@ def test_build_financial_snapshot():
             id=1,
             name="Rent",
             category=ExpenseCategory.HOUSING,
-            amount=1200,
+            amount=Decimal("1200.00"),
         ),
         Expense(
             id=2,
             name="Food",
             category=ExpenseCategory.FOOD,
-            amount=300,
+            amount=Decimal("300.00"),
         ),
     ]
 
     budgets = [
         Budget(
             category=ExpenseCategory.FOOD,
-            limit=500,
+            limit=Decimal("500.00"),
         ),
     ]
 
@@ -45,7 +47,7 @@ def test_build_financial_snapshot():
             id=1,
             name="Checking",
             account_type="Bank",
-            balance=2000,
+            balance=Decimal("2000.00"),
         ),
     ]
 
@@ -53,8 +55,8 @@ def test_build_financial_snapshot():
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         ),
     ]
 
@@ -62,9 +64,9 @@ def test_build_financial_snapshot():
         Debt(
             id=1,
             name="Credit Card",
-            balance=1000,
+            balance=Decimal("1000.00"),
             interest_rate=19.99,
-            minimum_payment=50,
+            minimum_payment=Decimal("50.00"),
         ),
     ]
 
@@ -72,7 +74,7 @@ def test_build_financial_snapshot():
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=15,
             is_paid=False,
         ),
@@ -90,23 +92,23 @@ def test_build_financial_snapshot():
     )
 
     # Financial metrics
-    assert snapshot["total_income"] == 5000
-    assert snapshot["total_expenses"] == 1500
-    assert snapshot["net_cash_flow"] == 3500
-    assert snapshot["average_expense"] == 750
-    assert snapshot["total_account_balance"] == 2000
-    assert snapshot["total_goal_progress"] == 2500
-    assert snapshot["total_debt"] == 1000
-    assert snapshot["net_worth"] == 3500
+    assert snapshot["total_income"] == Decimal("5000.00")
+    assert snapshot["total_expenses"] == Decimal("1500.00")
+    assert snapshot["net_cash_flow"] == Decimal("3500.00")
+    assert snapshot["average_expense"] == Decimal("750.00")
+    assert snapshot["total_account_balance"] == Decimal("2000.00")
+    assert snapshot["total_goal_progress"] == Decimal("2500.00")
+    assert snapshot["total_debt"] == Decimal("1000.00")
+    assert snapshot["net_worth"] == Decimal("3500.00")
 
     # Largest expense
     assert snapshot["largest_expense"] is not None
     assert snapshot["largest_expense"]["name"] == "Rent"
-    assert snapshot["largest_expense"]["amount"] == 1200
+    assert snapshot["largest_expense"]["amount"] == Decimal("1200.00")
 
     # Category totals
-    assert snapshot["category_totals"]["Housing"] == 1200
-    assert snapshot["category_totals"]["Food"] == 300
+    assert snapshot["category_totals"]["Housing"] == Decimal("1200.00")
+    assert snapshot["category_totals"]["Food"] == Decimal("300.00")
 
     # Budget report
     assert len(snapshot["budget_report"]) == 1
@@ -137,8 +139,7 @@ def test_build_financial_snapshot():
     assert isinstance(snapshot["recommendations"], list)
 
     priorities = [
-        recommendation["priority"]
-        for recommendation in snapshot["recommendations"]
+        recommendation["priority"] for recommendation in snapshot["recommendations"]
     ]
 
     priority_order = {
@@ -148,10 +149,7 @@ def test_build_financial_snapshot():
         "LOW": 1,
     }
 
-    priority_values = [
-        priority_order[priority]
-        for priority in priorities
-    ]
+    priority_values = [priority_order[priority] for priority in priorities]
 
     assert priority_values == sorted(priority_values, reverse=True)
 

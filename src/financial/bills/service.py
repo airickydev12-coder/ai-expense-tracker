@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 from src.financial.bills.models import Bill
@@ -16,9 +17,7 @@ def load_bills(
 ) -> None:
     """Load bills into application memory."""
     bills.clear()
-    bills.extend(
-        load_bills_from_file(file_path)
-    )
+    bills.extend(load_bills_from_file(file_path))
 
 
 def save_bills(
@@ -52,15 +51,12 @@ def get_next_bill_id() -> int:
     if not bills:
         return 1
 
-    return max(
-        bill.id
-        for bill in bills
-    ) + 1
+    return max(bill.id for bill in bills) + 1
 
 
 def add_bill(
     name: str,
-    amount: float,
+    amount: Decimal,
     due_day: int,
     is_paid: bool = False,
     file_path: Path = BILLS_FILE,
@@ -83,7 +79,7 @@ def add_bill(
 def update_bill(
     bill_id: int,
     name: str | None = None,
-    amount: float | None = None,
+    amount: Decimal | None = None,
     due_day: int | None = None,
     is_paid: bool | None = None,
     file_path: Path = BILLS_FILE,
@@ -96,26 +92,10 @@ def update_bill(
 
     updated_bill = Bill(
         id=bill.id,
-        name=(
-            name.strip()
-            if name is not None
-            else bill.name
-        ),
-        amount=(
-            amount
-            if amount is not None
-            else bill.amount
-        ),
-        due_day=(
-            due_day
-            if due_day is not None
-            else bill.due_day
-        ),
-        is_paid=(
-            is_paid
-            if is_paid is not None
-            else bill.is_paid
-        ),
+        name=(name.strip() if name is not None else bill.name),
+        amount=(amount if amount is not None else bill.amount),
+        due_day=(due_day if due_day is not None else bill.due_day),
+        is_paid=(is_paid if is_paid is not None else bill.is_paid),
     )
 
     bill_index = bills.index(bill)

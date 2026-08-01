@@ -1,6 +1,8 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from src.financial.expenses.models import Expense
+
+CURRENCY_PRECISION = Decimal("0.01")
 
 
 def get_total(expenses: list[Expense]) -> Decimal:
@@ -16,12 +18,18 @@ def get_average(expenses: list[Expense]) -> Decimal:
         expenses: List of expenses.
 
     Returns:
-        Decimal: Average expense amount.
+        Decimal: Average expense amount rounded to two decimal places.
     """
     if not expenses:
-        return Decimal("0")
+        return Decimal("0.00")
 
-    return get_total(expenses) / Decimal(len(expenses))
+    average = get_total(expenses) / Decimal(len(expenses))
+
+    return average.quantize(
+        CURRENCY_PRECISION,
+        rounding=ROUND_HALF_UP,
+    )
+    print(f"Average before return: {average}")
 
 
 def get_highest_expense(expenses: list[Expense]) -> Expense | None:

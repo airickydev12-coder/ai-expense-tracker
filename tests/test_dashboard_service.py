@@ -2,6 +2,8 @@
 
 import pytest
 
+from decimal import Decimal
+
 from src.financial.application.dashboard_service import (
     Dashboard,
     build_dashboard,
@@ -22,13 +24,13 @@ def test_build_dashboard(
         Expense(
             id=1,
             name="Groceries",
-            amount=100.00,
+            amount=Decimal("100.00"),
             category=ExpenseCategory.FOOD,
         ),
         Expense(
             id=2,
             name="Gas",
-            amount=50.00,
+            amount=Decimal("50.00"),
             category=ExpenseCategory.TRANSPORTATION,
         ),
     ]
@@ -36,11 +38,11 @@ def test_build_dashboard(
     test_budgets = [
         Budget(
             category=ExpenseCategory.FOOD,
-            limit=500.00,
+            limit=Decimal("500.00"),
         ),
         Budget(
             category=ExpenseCategory.TRANSPORTATION,
-            limit=250.00,
+            limit=Decimal("250.00"),
         ),
     ]
 
@@ -60,8 +62,8 @@ def test_build_dashboard(
 
     assert isinstance(dashboard, Dashboard)
 
-    assert dashboard.total_expenses == 150.00
-    assert dashboard.average_expense == 75.00
+    assert dashboard.total_expenses == Decimal("150.00")
+    assert dashboard.average_expense == Decimal("75.00")
 
     assert dashboard.highest_expense is not None
     assert dashboard.highest_expense.name == "Groceries"
@@ -71,14 +73,14 @@ def test_build_dashboard(
 
     assert dashboard.category_totals == {
         "Food": 100.00,
-        "Transportation": 50.00,
+        "Transportation": Decimal("50.00"),
     }
 
     assert dashboard.budget_count == 2
 
-    assert dashboard.monthly_budget == 750.00
-    assert dashboard.remaining_budget == 600.00
-    assert dashboard.budget_used_percent == 20.0
+    assert dashboard.monthly_budget == Decimal("750.00")
+    assert dashboard.remaining_budget == Decimal("600.00")
+    assert dashboard.budget_used_percent == Decimal("20.00")
 
     assert dashboard.recommendation_count == 0
 

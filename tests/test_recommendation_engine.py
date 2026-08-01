@@ -3,6 +3,8 @@ from src.financial.recommendations.engine import RecommendationEngine
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 
+from decimal import Decimal
+
 
 def build_recommendations() -> list[Recommendation]:
     """Create recommendations for recommendation-engine tests."""
@@ -134,7 +136,5 @@ def test_recommendation_serialization_includes_metadata():
     assert data["priority"] == "HIGH"
     assert data["category"] == "Debt"
     assert data["score"] == 300
-    assert data["rationale"] == (
-        "Interest charges increase the repayment cost."
-    )
+    assert data["rationale"] == ("Interest charges increase the repayment cost.")
     assert data["source_rule"] == "HighInterestDebtRule"

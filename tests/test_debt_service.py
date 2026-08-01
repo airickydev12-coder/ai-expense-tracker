@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.debt.service import (
@@ -23,17 +25,17 @@ def test_add_debt(tmp_path):
 
     debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     assert debt.id == 1
     assert debt.name == "Credit Card"
-    assert debt.balance == 2500
+    assert debt.balance == Decimal("2500")
     assert debt.interest_rate == 24.99
-    assert debt.minimum_payment == 75
+    assert debt.minimum_payment == Decimal("75")
     assert file_path.exists()
 
 
@@ -44,17 +46,17 @@ def test_add_multiple_debts_assigns_unique_ids(
 
     first_debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     second_debt = add_debt(
         name="Car Loan",
-        balance=12000,
+        balance=Decimal("12000"),
         interest_rate=6.5,
-        minimum_payment=350,
+        minimum_payment=Decimal("350"),
         file_path=file_path,
     )
 
@@ -70,9 +72,9 @@ def test_get_debts_returns_copy(
 
     add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
@@ -87,9 +89,9 @@ def test_get_debt_by_id(tmp_path):
 
     created_debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
@@ -105,25 +107,25 @@ def test_update_debt(tmp_path):
 
     debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     updated_debt = update_debt(
         debt_id=debt.id,
         name="Primary Credit Card",
-        balance=2000,
-        minimum_payment=100,
+        balance=Decimal("2000"),
+        minimum_payment=Decimal("100"),
         file_path=file_path,
     )
 
     assert updated_debt is not None
     assert updated_debt.name == "Primary Credit Card"
-    assert updated_debt.balance == 2000
+    assert updated_debt.balance == Decimal("2000")
     assert updated_debt.interest_rate == 24.99
-    assert updated_debt.minimum_payment == 100
+    assert updated_debt.minimum_payment == Decimal("100")
 
 
 def test_update_debt_preserves_unchanged_fields(
@@ -133,23 +135,23 @@ def test_update_debt_preserves_unchanged_fields(
 
     debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     updated_debt = update_debt(
         debt_id=debt.id,
-        balance=2200,
+        balance=Decimal("2200"),
         file_path=file_path,
     )
 
     assert updated_debt is not None
     assert updated_debt.name == "Credit Card"
-    assert updated_debt.balance == 2200
+    assert updated_debt.balance == Decimal("2200")
     assert updated_debt.interest_rate == 24.99
-    assert updated_debt.minimum_payment == 75
+    assert updated_debt.minimum_payment == Decimal("75")
 
 
 def test_update_debt_returns_none_when_missing(
@@ -172,20 +174,20 @@ def test_apply_payment_to_debt(tmp_path):
 
     debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     updated_debt = apply_payment_to_debt(
         debt_id=debt.id,
-        payment=500,
+        payment=Decimal("500"),
         file_path=file_path,
     )
 
     assert updated_debt is not None
-    assert updated_debt.balance == 2000
+    assert updated_debt.balance == Decimal("2000")
 
 
 def test_overpayment_sets_balance_to_zero(
@@ -195,20 +197,20 @@ def test_overpayment_sets_balance_to_zero(
 
     debt = add_debt(
         name="Credit Card",
-        balance=500,
+        balance=Decimal("500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
     updated_debt = apply_payment_to_debt(
         debt_id=debt.id,
-        payment=1000,
+        payment=Decimal("1000"),
         file_path=file_path,
     )
 
     assert updated_debt is not None
-    assert updated_debt.balance == 0
+    assert updated_debt.balance == Decimal("0")
 
 
 def test_negative_debt_payment_raises_error(
@@ -218,9 +220,9 @@ def test_negative_debt_payment_raises_error(
 
     debt = add_debt(
         name="Credit Card",
-        balance=500,
+        balance=Decimal("500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
@@ -230,7 +232,7 @@ def test_negative_debt_payment_raises_error(
     ):
         apply_payment_to_debt(
             debt_id=debt.id,
-            payment=-100,
+            payment=Decimal("-100"),
             file_path=file_path,
         )
 
@@ -240,9 +242,9 @@ def test_delete_debt(tmp_path):
 
     debt = add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
@@ -276,9 +278,9 @@ def test_load_debts_restores_saved_debts(
 
     add_debt(
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75"),
         file_path=file_path,
     )
 
@@ -290,4 +292,4 @@ def test_load_debts_restores_saved_debts(
 
     assert len(loaded_debts) == 1
     assert loaded_debts[0].name == "Credit Card"
-    assert loaded_debts[0].balance == 2500
+    assert loaded_debts[0].balance == Decimal("2500")

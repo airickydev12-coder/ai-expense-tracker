@@ -17,6 +17,8 @@ from src.financial.income import analytics as income_analytics
 from src.financial.income.models import Income
 from src.financial.reports.budget_report import build_budget_report
 
+ZERO_MONEY = Decimal("0")
+
 
 def build_financial_snapshot(
     income_entries: list[Income],
@@ -53,8 +55,6 @@ def build_financial_snapshot(
     lowest_expense = expense_analytics.get_lowest_expense(expenses)
 
     category_totals = expense_analytics.get_category_totals(expenses)
-
-    ZERO_MONEY = Decimal("0")
 
     total_account_balance = sum(
         (account.balance for account in accounts),

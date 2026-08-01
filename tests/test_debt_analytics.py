@@ -7,6 +7,8 @@ from src.financial.debt.analytics import (
 )
 from src.financial.debt.models import Debt
 
+from decimal import Decimal
+
 
 def build_debts() -> list[Debt]:
     """Create debt records for analytics tests."""
@@ -14,23 +16,23 @@ def build_debts() -> list[Debt]:
         Debt(
             id=1,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         ),
         Debt(
             id=2,
             name="Car Loan",
-            balance=12000,
+            balance=Decimal("12000.00"),
             interest_rate=6.5,
-            minimum_payment=350,
+            minimum_payment=Decimal("350.00"),
         ),
         Debt(
             id=3,
             name="Paid Loan",
-            balance=0,
+            balance=Decimal("0.00"),
             interest_rate=10,
-            minimum_payment=100,
+            minimum_payment=Decimal("100.00"),
         ),
     ]
 
@@ -55,9 +57,9 @@ def test_get_highest_interest_debt_returns_none_without_active_debt():
         Debt(
             id=1,
             name="Paid Loan",
-            balance=0,
+            balance=Decimal("0.00"),
             interest_rate=10,
-            minimum_payment=100,
+            minimum_payment=Decimal("100.00"),
         )
     ]
 
@@ -72,9 +74,9 @@ def test_is_debt_paid_off():
     debt = Debt(
         id=1,
         name="Paid Loan",
-        balance=0,
+        balance=Decimal("0.00"),
         interest_rate=10,
-        minimum_payment=100,
+        minimum_payment=Decimal("100.00"),
     )
 
     assert is_debt_paid_off(debt) is True
@@ -84,9 +86,9 @@ def test_is_debt_not_paid_off():
     debt = Debt(
         id=1,
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500.00"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75.00"),
     )
 
     assert is_debt_paid_off(debt) is False

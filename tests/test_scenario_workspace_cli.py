@@ -132,7 +132,7 @@ def test_remove_saved_scenario(
 
     scenario_workspace_cli.remove_saved_scenario()
 
-    assert scenario_workspace_cli.scenario_workspace.is_empty()
+    assert scenario_workspace_cli.get_scenario_workspace().is_empty()
 
 
 def test_clear_workspace_flow(
@@ -152,7 +152,7 @@ def test_clear_workspace_flow(
 
     scenario_workspace_cli.clear_workspace_flow()
 
-    assert scenario_workspace_cli.scenario_workspace.is_empty()
+    assert scenario_workspace_cli.get_scenario_workspace().is_empty()
 
 
 def test_manage_workspace_returns_on_seven(

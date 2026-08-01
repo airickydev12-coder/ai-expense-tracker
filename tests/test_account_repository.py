@@ -7,6 +7,7 @@ from src.financial.accounts.repository import (
     load_accounts_from_file,
     save_accounts_to_file,
 )
+from decimal import Decimal
 
 
 def test_save_and_load_accounts(tmp_path):
@@ -17,13 +18,13 @@ def test_save_and_load_accounts(tmp_path):
             id=1,
             name="Checking",
             account_type="Bank",
-            balance=1500,
+            balance=Decimal("1500"),
         ),
         Account(
             id=2,
             name="Savings",
             account_type="Bank",
-            balance=5000,
+            balance=Decimal("5000"),
         ),
     ]
 
@@ -54,19 +55,14 @@ def test_load_accounts_returns_empty_list_when_file_missing(
 def test_save_accounts_creates_parent_directory(
     tmp_path,
 ):
-    file_path = (
-        tmp_path
-        / "nested"
-        / "data"
-        / "accounts.json"
-    )
+    file_path = tmp_path / "nested" / "data" / "accounts.json"
 
     accounts = [
         Account(
             id=1,
             name="Checking",
             account_type="Bank",
-            balance=1500,
+            balance=Decimal("1500"),
         )
     ]
 

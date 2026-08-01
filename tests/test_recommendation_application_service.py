@@ -18,25 +18,27 @@ from src.financial.application.recommendation_application_service import (
     get_recommendation_by_key,
 )
 
+from decimal import Decimal
+
 
 def test_build_recommendations(monkeypatch):
     """Application service orchestrates the recommendation pipeline."""
 
     snapshot = FinancialSnapshot(
-        total_income=Decimal("0"),
-        total_expenses=Decimal("100"),
-        net_cash_flow=Decimal("0"),
-        average_expense=Decimal("50"),
+        total_income=Decimal("0.00"),
+        total_expenses=Decimal("100.00"),
+        net_cash_flow=Decimal("0.00"),
+        average_expense=Decimal("50.00"),
         highest_expense=None,
         lowest_expense=None,
         category_totals={},
         budget_count=1,
         goal_count=1,
         budget_report=[],
-        total_account_balance=Decimal("0"),
-        total_goal_progress=Decimal("0"),
-        total_debt=Decimal("0"),
-        net_worth=Decimal("0"),
+        total_account_balance=Decimal("0.00"),
+        total_goal_progress=Decimal("0.00"),
+        total_debt=Decimal("0.00"),
+        net_worth=Decimal("0.00"),
         accounts=[],
         goals=[],
         debts=[],

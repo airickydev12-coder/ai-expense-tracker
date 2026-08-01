@@ -1,3 +1,4 @@
+import decimal
 from src.financial.accounts.service import (
     accounts,
     add_account,
@@ -8,6 +9,7 @@ from src.financial.accounts.service import (
     load_accounts,
     update_account,
 )
+from decimal import Decimal
 
 
 def setup_function():
@@ -21,7 +23,7 @@ def test_add_account(tmp_path):
     account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
@@ -40,14 +42,14 @@ def test_add_multiple_accounts_assigns_unique_ids(
     first_account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
     second_account = add_account(
         name="Savings",
         account_type="Bank",
-        balance=5000,
+        balance=Decimal("5000"),
         file_path=file_path,
     )
 
@@ -64,7 +66,7 @@ def test_get_accounts_returns_copy(
     add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
@@ -80,13 +82,11 @@ def test_get_account_by_id(tmp_path):
     created_account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
-    found_account = get_account_by_id(
-        created_account.id
-    )
+    found_account = get_account_by_id(created_account.id)
 
     assert found_account == created_account
 
@@ -101,21 +101,21 @@ def test_update_account(tmp_path):
     account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
     updated_account = update_account(
         account_id=account.id,
         name="Primary Checking",
-        balance=2000,
+        balance=Decimal("2000"),
         file_path=file_path,
     )
 
     assert updated_account is not None
     assert updated_account.name == "Primary Checking"
     assert updated_account.account_type == "Bank"
-    assert updated_account.balance == 2000
+    assert updated_account.balance == Decimal("2000")
 
 
 def test_update_account_preserves_unchanged_fields(
@@ -126,13 +126,13 @@ def test_update_account_preserves_unchanged_fields(
     account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
     updated_account = update_account(
         account_id=account.id,
-        balance=1800,
+        balance=Decimal("1800"),
         file_path=file_path,
     )
 
@@ -162,7 +162,7 @@ def test_delete_account(tmp_path):
     account = add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
@@ -196,7 +196,7 @@ def test_load_accounts_restores_saved_accounts(
     add_account(
         name="Checking",
         account_type="Bank",
-        balance=1500,
+        balance=Decimal("1500"),
         file_path=file_path,
     )
 
@@ -210,4 +210,4 @@ def test_load_accounts_restores_saved_accounts(
 
     assert len(loaded_accounts) == 1
     assert loaded_accounts[0].name == "Checking"
-    assert loaded_accounts[0].balance == 1500
+    assert loaded_accounts[0].balance == Decimal("1500")

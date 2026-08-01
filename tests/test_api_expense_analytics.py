@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
@@ -28,19 +30,19 @@ def test_category_totals_returns_grouped_totals(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         ),
         Expense(
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
-            amount=15.00,
+            amount=Decimal("15.00"),
         ),
         Expense(
             id=3,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=40.00,
+            amount=Decimal("40.00"),
         ),
     ]
 
@@ -85,19 +87,19 @@ def test_expense_statistics_returns_summary(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         ),
         Expense(
             id=2,
             name="Rent",
             category=ExpenseCategory.HOUSING,
-            amount=1200.00,
+            amount=Decimal("1200.00"),
         ),
         Expense(
             id=3,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=45.00,
+            amount=Decimal("45.00"),
         ),
     ]
 
@@ -106,9 +108,10 @@ def test_expense_statistics_returns_summary(
     response = client.get("/expenses/statistics")
 
     assert response.status_code == 200
+
     assert response.json() == {
         "total": 1250.0,
-        "average": 416.6666666666667,
+        "average": 416.67,
         "highest": {
             "id": 2,
             "name": "Rent",

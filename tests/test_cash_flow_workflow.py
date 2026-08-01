@@ -3,19 +3,28 @@ from src.financial.income.models import Income
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.workflows.cash_flow import calculate_cash_flow
 
+from decimal import Decimal
+
 
 def test_calculate_cash_flow():
     income_entries = [
-        Income(id=1, source="Salary", amount=5000),
+        Income(id=1, source="Salary", amount=Decimal("5000.00")),
     ]
 
     expenses = [
-        Expense(id=1, name="Rent", category=ExpenseCategory.HOUSING, amount=1200),
-        Expense(id=2, name="Food", category=ExpenseCategory.FOOD, amount=300),
+        Expense(
+            id=1,
+            name="Rent",
+            category=ExpenseCategory.HOUSING,
+            amount=Decimal("1200.00"),
+        ),
+        Expense(
+            id=2, name="Food", category=ExpenseCategory.FOOD, amount=Decimal("300.00")
+        ),
     ]
 
     cash_flow = calculate_cash_flow(income_entries, expenses)
 
-    assert cash_flow["income"] == 5000
-    assert cash_flow["expenses"] == 1500
-    assert cash_flow["net_cash_flow"] == 3500
+    assert cash_flow["income"] == Decimal("5000.00")
+    assert cash_flow["expenses"] == Decimal("1500.00")
+    assert cash_flow["net_cash_flow"] == Decimal("3500.00")

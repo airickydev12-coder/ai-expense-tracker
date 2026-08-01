@@ -15,9 +15,7 @@ def render_goal_dashboard_item(
 ) -> str:
     """Render one compact goal-dashboard row."""
     priority = (
-        format_priority(item.priority)
-        if item.priority is not None
-        else "Not assigned"
+        format_priority(item.priority) if item.priority is not None else "Not assigned"
     )
 
     return (
@@ -38,10 +36,7 @@ def render_goal_dashboard(
         "FINANCIAL GOAL DASHBOARD",
         "=" * 24,
         f"Total Goals: {dashboard.total_goals}",
-        (
-            "Total Target Amount: "
-            f"{format_currency(dashboard.total_target_amount)}"
-        ),
+        ("Total Target Amount: " f"{format_currency(dashboard.total_target_amount)}"),
         (
             "Total Currently Saved: "
             f"{format_currency(dashboard.total_current_amount)}"
@@ -50,30 +45,26 @@ def render_goal_dashboard(
             "Total Remaining Amount: "
             f"{format_currency(dashboard.total_remaining_amount)}"
         ),
-        (
-            "Overall Funding: "
-            f"{dashboard.overall_funding_percentage:.1f}%"
-        ),
+        ("Overall Funding: " f"{dashboard.overall_funding_percentage:.1f}%"),
         f"Completed Goals: {dashboard.completed_goals}",
         f"On-Track Goals: {dashboard.on_track_goals}",
         f"At-Risk Goals: {dashboard.at_risk_goals}",
         f"Unfunded Goals: {dashboard.unfunded_goals}",
         f"Missed Deadlines: {dashboard.missed_deadline_goals}",
-        (
-            "Planning Required: "
-            f"{dashboard.planning_required_goals}"
-        ),
+        ("Planning Required: " f"{dashboard.planning_required_goals}"),
     ]
 
     if dashboard.highest_priority_goal is None:
         lines.append("Highest-Priority Goal: Not assigned")
     else:
         highest = dashboard.highest_priority_goal
-        lines.append(
-            "Highest-Priority Goal: "
-            f"{highest.goal_name} "
-            f"({format_priority(highest.priority)})"
+        priority = (
+            format_priority(highest.priority)
+            if highest.priority is not None
+            else "Not assigned"
         )
+
+        lines.append("Highest-Priority Goal: " f"{highest.goal_name} " f"({priority})")
 
     lines.extend(
         [
@@ -86,9 +77,6 @@ def render_goal_dashboard(
     if not dashboard.items:
         lines.append("No financial goals are available.")
     else:
-        lines.extend(
-            render_goal_dashboard_item(item)
-            for item in dashboard.items
-        )
+        lines.extend(render_goal_dashboard_item(item) for item in dashboard.items)
 
     return "\n".join(lines)

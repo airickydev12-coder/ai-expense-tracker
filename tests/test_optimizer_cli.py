@@ -11,29 +11,31 @@ from src.financial.scenarios.ranking import (
 )
 from src.presentation import optimizer_cli
 
+from decimal import Decimal
+
 
 def build_snapshot() -> dict:
     """Create a snapshot for optimizer CLI tests."""
     return {
-        "total_income": 5000,
-        "total_expenses": 3000,
-        "net_cash_flow": 2000,
-        "total_account_balance": 8000,
-        "total_goal_progress": 2500,
-        "total_debt": 10000,
-        "net_worth": 500,
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("3000.00"),
+        "net_cash_flow": Decimal("2000.00"),
+        "total_account_balance": Decimal("8000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("10000.00"),
+        "net_worth": Decimal("500.00"),
         "health_score": 70,
         "health_status": "Good",
         "category_totals": {
-            "Food": 600,
+            "Food": Decimal("600.00"),
         },
         "debts": [
             {
                 "id": 1,
                 "name": "Credit Card",
-                "balance": 10000,
+                "balance": Decimal("10000.00"),
                 "interest_rate": 18,
-                "minimum_payment": 300,
+                "minimum_payment": Decimal("300.00"),
             }
         ],
     }
@@ -45,10 +47,10 @@ def build_result() -> ScenarioResult:
 
     projected = {
         **original,
-        "total_income": 5500,
-        "net_cash_flow": 2500,
-        "total_account_balance": 14000,
-        "net_worth": 6500,
+        "total_income": Decimal("5500.00"),
+        "net_cash_flow": Decimal("2500.00"),
+        "total_account_balance": Decimal("14000.00"),
+        "net_worth": Decimal("6500.00"),
         "health_score": 82,
     }
 
@@ -272,6 +274,9 @@ def test_save_best_optimizer_result(
     result = build_optimization_result()
 
     optimizer_cli.save_best_optimizer_result(result)
+
+    assert result.best_scenario is not None
+    assert captured["saved_result"] == result.best_scenario.result
 
     assert captured["saved_result"] == result.best_scenario.result
 

@@ -5,6 +5,7 @@ from src.financial.expenses.service import (
 )
 from src.presentation.input_handlers import select_category
 from src.presentation.views import display_expenses
+from decimal import Decimal, InvalidOperation
 
 
 def add_expense_flow() -> None:
@@ -18,8 +19,8 @@ def add_expense_flow() -> None:
     amount_text = input("Amount: ").strip()
 
     try:
-        amount = float(amount_text)
-    except ValueError:
+        amount = Decimal(amount_text)
+    except (ValueError, InvalidOperation):
         print("Invalid amount. Please enter a number.")
         return
 
@@ -40,13 +41,11 @@ def delete_expense_flow() -> None:
     """Collect input and delete an expense."""
     display_expenses()
 
-    expense_id_text = input(
-        "Enter the expense ID to delete: "
-    ).strip()
+    expense_id_text = input("Enter the expense ID to delete: ").strip()
 
     try:
         expense_id = int(expense_id_text)
-    except ValueError:
+    except (ValueError, InvalidOperation):
         print("Invalid input. Please enter a number.")
         return
 
@@ -63,23 +62,17 @@ def update_expense_flow() -> None:
     """Collect input and update an expense."""
     display_expenses()
 
-    expense_id_text = input(
-        "Enter the expense ID to update: "
-    ).strip()
+    expense_id_text = input("Enter the expense ID to update: ").strip()
 
     try:
         expense_id = int(expense_id_text)
-    except ValueError:
+    except (ValueError, InvalidOperation):
         print("Invalid input. Please enter a number.")
         return
 
-    new_name = input(
-        "New name (press Enter to keep unchanged): "
-    )
+    new_name = input("New name (press Enter to keep unchanged): ")
 
-    category_input = input(
-        "Change category? (y/n): "
-    ).strip().lower()
+    category_input = input("Change category? (y/n): ").strip().lower()
 
     category = None
 
@@ -89,17 +82,15 @@ def update_expense_flow() -> None:
         if category is None:
             return
 
-    new_amount_text = input(
-        "New amount (press Enter to keep unchanged): "
-    ).strip()
+    new_amount_text = input("New amount (press Enter to keep unchanged): ").strip()
 
     name = new_name.strip() or None
     amount = None
 
     if new_amount_text:
         try:
-            amount = float(new_amount_text)
-        except ValueError:
+            amount = Decimal(new_amount_text)
+        except (ValueError, InvalidOperation):
             print("Invalid amount. Please enter a number.")
             return
 

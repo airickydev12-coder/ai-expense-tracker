@@ -5,21 +5,23 @@ from src.financial.income.service import (
     income_entries,
 )
 
+from decimal import Decimal
+
 
 def test_add_income():
     income_entries.clear()
 
-    income = add_income("Salary", 5000)
+    income = add_income("Salary", Decimal("5000.00"))
 
     assert income.id == 1
     assert income.source == "Salary"
-    assert income.amount == 5000
+    assert income.amount == Decimal("5000.00")
 
 
 def test_get_income_entries():
     income_entries.clear()
 
-    add_income("Salary", 5000)
+    add_income("Salary", Decimal("5000.00"))
 
     assert len(get_income_entries()) == 1
 
@@ -27,7 +29,7 @@ def test_get_income_entries():
 def test_delete_income():
     income_entries.clear()
 
-    add_income("Salary", 5000)
+    add_income("Salary", Decimal("5000.00"))
 
     deleted_income = delete_income(1)
 

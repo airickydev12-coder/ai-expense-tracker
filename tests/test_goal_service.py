@@ -12,6 +12,8 @@ from src.financial.goals.service import (
     update_goal,
 )
 
+from decimal import Decimal
+
 
 def setup_function():
     """Clear goal state before every test."""
@@ -23,15 +25,15 @@ def test_add_goal(tmp_path):
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
         file_path=file_path,
     )
 
     assert goal.id == 1
     assert goal.name == "Emergency Fund"
-    assert goal.target_amount == 10000
-    assert goal.current_amount == 2500
+    assert goal.target_amount == Decimal("10000.00")
+    assert goal.current_amount == Decimal("2500.00")
     assert file_path.exists()
 
 
@@ -42,13 +44,13 @@ def test_add_multiple_goals_assigns_unique_ids(
 
     first_goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000.00"),
         file_path=file_path,
     )
 
     second_goal = add_goal(
         name="Vacation",
-        target_amount=3000,
+        target_amount=Decimal("3000.00"),
         file_path=file_path,
     )
 
@@ -64,7 +66,7 @@ def test_get_goals_returns_copy(
 
     add_goal(
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000.00"),
         file_path=file_path,
     )
 
@@ -79,7 +81,7 @@ def test_get_goal_by_id(tmp_path):
 
     created_goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000.00"),
         file_path=file_path,
     )
 
@@ -95,22 +97,22 @@ def test_update_goal(tmp_path):
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
         file_path=file_path,
     )
 
     updated_goal = update_goal(
         goal_id=goal.id,
         name="Primary Emergency Fund",
-        target_amount=12000,
+        target_amount=Decimal("12000.00"),
         file_path=file_path,
     )
 
     assert updated_goal is not None
     assert updated_goal.name == "Primary Emergency Fund"
-    assert updated_goal.target_amount == 12000
-    assert updated_goal.current_amount == 2500
+    assert updated_goal.target_amount == Decimal("12000.00")
+    assert updated_goal.current_amount == Decimal("2500.00")
 
 
 def test_update_goal_preserves_unchanged_fields(
@@ -120,21 +122,21 @@ def test_update_goal_preserves_unchanged_fields(
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
         file_path=file_path,
     )
 
     updated_goal = update_goal(
         goal_id=goal.id,
-        current_amount=3000,
+        current_amount=Decimal("3000.00"),
         file_path=file_path,
     )
 
     assert updated_goal is not None
     assert updated_goal.name == "Emergency Fund"
-    assert updated_goal.target_amount == 10000
-    assert updated_goal.current_amount == 3000
+    assert updated_goal.target_amount == Decimal("10000.00")
+    assert updated_goal.current_amount == Decimal("3000.00")
 
 
 def test_update_goal_returns_none_when_missing(
@@ -157,19 +159,19 @@ def test_contribute_to_goal(tmp_path):
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
         file_path=file_path,
     )
 
     updated_goal = contribute_to_goal(
         goal_id=goal.id,
-        contribution=500,
+        contribution=5000,
         file_path=file_path,
     )
 
     assert updated_goal is not None
-    assert updated_goal.current_amount == 3000
+    assert updated_goal.current_amount == Decimal("7500.00")
 
 
 def test_contribution_does_not_exceed_target(
@@ -179,8 +181,8 @@ def test_contribution_does_not_exceed_target(
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=9500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("9500.00"),
         file_path=file_path,
     )
 
@@ -191,7 +193,7 @@ def test_contribution_does_not_exceed_target(
     )
 
     assert updated_goal is not None
-    assert updated_goal.current_amount == 10000
+    assert updated_goal.current_amount == Decimal("10000.00")
 
 
 def test_negative_goal_contribution_raises_error(
@@ -201,7 +203,7 @@ def test_negative_goal_contribution_raises_error(
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000.00"),
         file_path=file_path,
     )
 
@@ -221,7 +223,7 @@ def test_delete_goal(tmp_path):
 
     goal = add_goal(
         name="Emergency Fund",
-        target_amount=10000,
+        target_amount=Decimal("10000.00"),
         file_path=file_path,
     )
 
@@ -255,8 +257,8 @@ def test_load_goals_restores_saved_goals(
 
     add_goal(
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
         file_path=file_path,
     )
 
@@ -268,4 +270,4 @@ def test_load_goals_restores_saved_goals(
 
     assert len(loaded_goals) == 1
     assert loaded_goals[0].name == "Emergency Fund"
-    assert loaded_goals[0].current_amount == 2500
+    assert loaded_goals[0].current_amount == Decimal("2500.00")

@@ -9,6 +9,7 @@ from src.financial.budgets.models import Budget
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
+from decimal import Decimal
 
 
 client = TestClient(app)
@@ -24,24 +25,24 @@ def test_get_dashboard_with_financial_data(
             id=1,
             name="Groceries",
             category=ExpenseCategory.FOOD,
-            amount=100.00,
+            amount=Decimal("100.0"),
         ),
         Expense(
             id=2,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=50.00,
+            amount=Decimal("50.0"),
         ),
     ]
 
     test_budgets = [
         Budget(
             category=ExpenseCategory.FOOD,
-            limit=500.00,
+            limit=Decimal("500.0"),
         ),
         Budget(
             category=ExpenseCategory.TRANSPORTATION,
-            limit=250.00,
+            limit=Decimal("250.0"),
         ),
     ]
 

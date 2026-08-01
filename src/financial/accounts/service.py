@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 from src.financial.accounts.models import Account
@@ -16,9 +17,7 @@ def load_accounts(
 ) -> None:
     """Load accounts into application memory."""
     accounts.clear()
-    accounts.extend(
-        load_accounts_from_file(file_path)
-    )
+    accounts.extend(load_accounts_from_file(file_path))
 
 
 def save_accounts(
@@ -52,16 +51,13 @@ def get_next_account_id() -> int:
     if not accounts:
         return 1
 
-    return max(
-        account.id
-        for account in accounts
-    ) + 1
+    return max(account.id for account in accounts) + 1
 
 
 def add_account(
     name: str,
     account_type: str,
-    balance: float,
+    balance: Decimal,
     file_path: Path = ACCOUNTS_FILE,
 ) -> Account:
     """Create and save a financial account."""
@@ -82,7 +78,7 @@ def update_account(
     account_id: int,
     name: str | None = None,
     account_type: str | None = None,
-    balance: float | None = None,
+    balance: Decimal | None = None,
     file_path: Path = ACCOUNTS_FILE,
 ) -> Account | None:
     """Update an existing account."""
@@ -91,23 +87,13 @@ def update_account(
     if account is None:
         return None
 
-    updated_name = (
-        name.strip()
-        if name is not None
-        else account.name
-    )
+    updated_name = name.strip() if name is not None else account.name
 
     updated_account_type = (
-        account_type.strip()
-        if account_type is not None
-        else account.account_type
+        account_type.strip() if account_type is not None else account.account_type
     )
 
-    updated_balance = (
-        balance
-        if balance is not None
-        else account.balance
-    )
+    updated_balance = balance if balance is not None else account.balance
 
     updated_account = Account(
         id=account.id,

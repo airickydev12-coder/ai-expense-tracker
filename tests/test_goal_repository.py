@@ -8,6 +8,8 @@ from src.financial.goals.repository import (
     save_goals_to_file,
 )
 
+from decimal import Decimal
+
 
 def test_save_and_load_goals(tmp_path):
     file_path = tmp_path / "goals.json"
@@ -16,14 +18,14 @@ def test_save_and_load_goals(tmp_path):
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         ),
         Goal(
             id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=500,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("500.00"),
         ),
     ]
 
@@ -50,19 +52,14 @@ def test_load_goals_returns_empty_list_when_file_missing(
 def test_save_goals_creates_parent_directory(
     tmp_path,
 ):
-    file_path = (
-        tmp_path
-        / "nested"
-        / "data"
-        / "goals.json"
-    )
+    file_path = tmp_path / "nested" / "data" / "goals.json"
 
     goals = [
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         )
     ]
 

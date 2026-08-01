@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass
@@ -7,7 +8,7 @@ class Bill:
 
     id: int
     name: str
-    amount: float
+    amount: Decimal
     due_day: int
     is_paid: bool = False
 
@@ -28,7 +29,7 @@ class Bill:
         return {
             "id": self.id,
             "name": self.name,
-            "amount": self.amount,
+            "amount": str(self.amount),
             "due_day": self.due_day,
             "is_paid": self.is_paid,
         }
@@ -38,7 +39,7 @@ class Bill:
         return cls(
             id=int(data["id"]),
             name=data["name"],
-            amount=float(data["amount"]),
+            amount=Decimal(str(data["amount"])),
             due_day=int(data["due_day"]),
             is_paid=bool(data["is_paid"]),
         )

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.expenses.models import Expense
 from src.financial.expenses.repository import (
     load_expenses_from_file,
@@ -33,7 +35,7 @@ def get_next_expense_id() -> int:
 def add_expense(
     name: str,
     category: ExpenseCategory,
-    amount: float,
+    amount: Decimal,
 ) -> Expense:
     """Create and add a new expense."""
     expense = Expense(
@@ -91,7 +93,7 @@ def update_expense(
     expense_id: int,
     name: str | None = None,
     category: ExpenseCategory | None = None,
-    amount: float | None = None,
+    amount: Decimal | None = None,
 ) -> Expense | None:
     """Update an existing expense by ID."""
     for expense in expenses:
@@ -111,9 +113,12 @@ def update_expense(
     return None
 
 
-def get_total() -> float:
+def get_total() -> Decimal:
     """Return the total amount of all recorded expenses."""
-    return sum(expense.amount for expense in expenses)
+    return sum(
+        (expense.amount for expense in expenses),
+        start=Decimal("0"),
+    )
 
 
 def calculate_total() -> None:

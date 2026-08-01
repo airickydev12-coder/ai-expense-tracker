@@ -3,6 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.financial.shared.categories import ExpenseCategory
+from decimal import Decimal
 
 
 class ExpenseCreateRequest(BaseModel):
@@ -10,7 +11,7 @@ class ExpenseCreateRequest(BaseModel):
 
     name: str = Field(min_length=1)
     category: ExpenseCategory
-    amount: float = Field(ge=0)
+    amount: Decimal = Field(ge=0)
 
 
 class ExpenseUpdateRequest(BaseModel):
@@ -18,7 +19,7 @@ class ExpenseUpdateRequest(BaseModel):
 
     name: str | None = Field(default=None, min_length=1)
     category: ExpenseCategory | None = None
-    amount: float | None = Field(default=None, ge=0)
+    amount: Decimal | None = Field(default=None, ge=0)
 
 
 class ExpenseResponse(BaseModel):

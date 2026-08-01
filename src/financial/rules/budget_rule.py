@@ -1,5 +1,7 @@
 from src.financial.rules.base_rule import FinancialRule
 from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.priority import RecommendationPriority
 
 
 class BudgetUtilizationRule(FinancialRule):
@@ -18,8 +20,8 @@ class BudgetUtilizationRule(FinancialRule):
 
             if utilization >= 0.90:
                 return Recommendation(
-                    priority="High",
-                    category="Budget",
+                    priority=RecommendationPriority.HIGH,
+                    category=RecommendationCategory.BUDGET,
                     title="Budget Nearly Exhausted",
                     message=(
                         f"Your {budget['category']} budget is "

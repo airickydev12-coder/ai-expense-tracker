@@ -12,11 +12,12 @@ def build_rule_snapshot(
     snapshot: FinancialSnapshot,
 ) -> dict:
     """
-    Convert a FinancialSnapshot into the dictionary expected
-    by the financial rule engine.
+    Convert a FinancialSnapshot into the dictionary
+    consumed by the recommendation rule engine.
 
-    Placeholder values are included for domains that have not
-    yet been integrated (debts, bills, income, accounts, etc.).
+    This adapter maps the canonical FinancialSnapshot
+    to the field names expected by the existing
+    recommendation rules.
     """
 
     return {

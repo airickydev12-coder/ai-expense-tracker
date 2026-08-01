@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.budget_overrun_rule import BudgetOverrunRule
@@ -10,7 +12,7 @@ def test_budget_overrun_rule_triggers():
         "budget_report": [
             {
                 "category": "Food",
-                "remaining": -25.50,
+                "remaining": Decimal("-25.50"),
             }
         ]
     }
@@ -31,7 +33,7 @@ def test_budget_overrun_rule_returns_none():
         "budget_report": [
             {
                 "category": "Food",
-                "remaining": 100,
+                "remaining": Decimal("100.00"),
             }
         ]
     }

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.events.bus import event_bus
 from src.financial.events.event_types import FinancialEvent
 from src.financial.income.models import Income
@@ -33,7 +35,7 @@ def get_next_income_id() -> int:
     return max(income.id for income in income_entries) + 1
 
 
-def add_income(source: str, amount: float) -> Income:
+def add_income(source: str, amount: Decimal) -> Income:
     """Create and add a new income entry."""
     income = Income(
         id=get_next_income_id(),

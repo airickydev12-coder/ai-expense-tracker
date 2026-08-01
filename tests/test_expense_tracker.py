@@ -9,15 +9,19 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 
+from decimal import Decimal
+
 
 def test_get_total():
     expenses.clear()
 
     expenses.append(
-        Expense(id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=5.25)
+        Expense(
+            id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=Decimal("5.25")
+        )
     )
     expenses.append(
-        Expense(id=2, name="Tea", category=ExpenseCategory.FOOD, amount=4.00)
+        Expense(id=2, name="Tea", category=ExpenseCategory.FOOD, amount=Decimal("4.00"))
     )
 
     total = get_total(expenses)
@@ -33,7 +37,7 @@ def test_get_average():
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         )
     )
 
@@ -42,7 +46,7 @@ def test_get_average():
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
-            amount=15.00,
+            amount=Decimal("15.00"),
         )
     )
 
@@ -59,7 +63,7 @@ def test_get_highest_expense():
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         )
     )
 
@@ -68,7 +72,7 @@ def test_get_highest_expense():
             id=2,
             name="Shoes",
             category=ExpenseCategory.CLOTHING,
-            amount=120.00,
+            amount=Decimal("120.00"),
         )
     )
 
@@ -76,7 +80,7 @@ def test_get_highest_expense():
 
     assert highest is not None
     assert highest.name == "Shoes"
-    assert highest.amount == 120.00
+    assert highest.amount == Decimal("120.00")
 
 
 def test_get_lowest_expense():
@@ -87,7 +91,7 @@ def test_get_lowest_expense():
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         )
     )
 
@@ -96,7 +100,7 @@ def test_get_lowest_expense():
             id=2,
             name="Shoes",
             category=ExpenseCategory.CLOTHING,
-            amount=120.00,
+            amount=Decimal("120.00"),
         )
     )
 
@@ -104,7 +108,7 @@ def test_get_lowest_expense():
 
     assert lowest is not None
     assert lowest.name == "Coffee"
-    assert lowest.amount == 5.00
+    assert lowest.amount == Decimal("5.00")
 
 
 def test_get_category_totals():
@@ -115,7 +119,7 @@ def test_get_category_totals():
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
-            amount=5.00,
+            amount=Decimal("5.00"),
         )
     )
 
@@ -124,7 +128,7 @@ def test_get_category_totals():
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
-            amount=15.00,
+            amount=Decimal("15.00"),
         )
     )
 
@@ -133,11 +137,11 @@ def test_get_category_totals():
             id=3,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
-            amount=40.00,
+            amount=Decimal("40.00"),
         )
     )
 
     totals = get_category_totals(expenses)
 
-    assert totals["Food"] == 20.00
-    assert totals["Transportation"] == 40.00
+    assert totals["Food"] == Decimal("20.00")
+    assert totals["Transportation"] == Decimal("40.00")

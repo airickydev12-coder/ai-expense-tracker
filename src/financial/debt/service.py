@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 from src.financial.debt.models import Debt
@@ -8,6 +9,8 @@ from src.financial.debt.repository import (
 )
 
 
+ZERO_MONEY = Decimal("0")
+
 debts: list[Debt] = []
 
 
@@ -16,9 +19,7 @@ def load_debts(
 ) -> None:
     """Load debts into application memory."""
     debts.clear()
-    debts.extend(
-        load_debts_from_file(file_path)
-    )
+    debts.extend(load_debts_from_file(file_path))
 
 
 def save_debts(
@@ -52,17 +53,14 @@ def get_next_debt_id() -> int:
     if not debts:
         return 1
 
-    return max(
-        debt.id
-        for debt in debts
-    ) + 1
+    return max(debt.id for debt in debts) + 1
 
 
 def add_debt(
     name: str,
-    balance: float,
+    balance: Decimal,
     interest_rate: float,
-    minimum_payment: float,
+    minimum_payment: Decimal,
     file_path: Path = DEBTS_FILE,
 ) -> Debt:
     """Create and save a debt."""
@@ -83,9 +81,9 @@ def add_debt(
 def update_debt(
     debt_id: int,
     name: str | None = None,
-    balance: float | None = None,
+    balance: Decimal | None = None,
     interest_rate: float | None = None,
-    minimum_payment: float | None = None,
+    minimum_payment: Decimal | None = None,
     file_path: Path = DEBTS_FILE,
 ) -> Debt | None:
     """Update an existing debt."""
@@ -96,25 +94,13 @@ def update_debt(
 
     updated_debt = Debt(
         id=debt.id,
-        name=(
-            name.strip()
-            if name is not None
-            else debt.name
-        ),
-        balance=(
-            balance
-            if balance is not None
-            else debt.balance
-        ),
+        name=(name.strip() if name is not None else debt.name),
+        balance=(balance if balance is not None else debt.balance),
         interest_rate=(
-            interest_rate
-            if interest_rate is not None
-            else debt.interest_rate
+            interest_rate if interest_rate is not None else debt.interest_rate
         ),
         minimum_payment=(
-            minimum_payment
-            if minimum_payment is not None
-            else debt.minimum_payment
+            minimum_payment if minimum_payment is not None else debt.minimum_payment
         ),
     )
 
@@ -128,11 +114,11 @@ def update_debt(
 
 def apply_payment_to_debt(
     debt_id: int,
-    payment: float,
+    payment: Decimal,
     file_path: Path = DEBTS_FILE,
 ) -> Debt | None:
     """Apply a payment to an existing debt."""
-    if payment < 0:
+    if payment < ZERO_MONEY:
         raise ValueError("Debt payment cannot be negative.")
 
     debt = get_debt_by_id(debt_id)
@@ -142,7 +128,7 @@ def apply_payment_to_debt(
 
     updated_balance = max(
         debt.balance - payment,
-        0.0,
+        ZERO_MONEY,
     )
 
     return update_debt(

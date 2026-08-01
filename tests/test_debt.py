@@ -1,15 +1,16 @@
 import pytest
 
 from src.financial.debt.models import Debt
+from decimal import Decimal
 
 
 def test_debt_creation():
     debt = Debt(
         id=1,
         name="Credit Card",
-        balance=2500,
+        balance=Decimal("2500.00"),
         interest_rate=24.99,
-        minimum_payment=75,
+        minimum_payment=Decimal("75.00"),
     )
 
     assert debt.id == 1
@@ -24,9 +25,9 @@ def test_debt_invalid_id():
         Debt(
             id=0,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         )
 
 
@@ -35,9 +36,9 @@ def test_debt_empty_name():
         Debt(
             id=1,
             name="",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         )
 
 
@@ -46,9 +47,9 @@ def test_debt_negative_balance():
         Debt(
             id=1,
             name="Credit Card",
-            balance=-1,
+            balance=Decimal("-1.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         )
 
 
@@ -57,9 +58,9 @@ def test_debt_negative_interest_rate():
         Debt(
             id=1,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=-1,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         )
 
 
@@ -68,7 +69,7 @@ def test_debt_negative_minimum_payment():
         Debt(
             id=1,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=-1,
+            minimum_payment=Decimal("-1.00"),
         )

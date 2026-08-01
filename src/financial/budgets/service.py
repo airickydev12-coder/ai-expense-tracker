@@ -1,3 +1,6 @@
+from decimal import Decimal
+import decimal
+
 from src.financial.budgets.models import Budget
 from src.financial.budgets.repository import (
     load_budgets_from_file,
@@ -25,7 +28,7 @@ def get_budgets() -> list[Budget]:
     return budgets.copy()
 
 
-def add_budget(category: ExpenseCategory, limit: float) -> Budget:
+def add_budget(category: ExpenseCategory, limit: Decimal) -> Budget:
     """Create or update a budget for a category."""
     for budget in budgets:
         if budget.category == category:
@@ -42,7 +45,7 @@ def add_budget(category: ExpenseCategory, limit: float) -> Budget:
 
 def update_budget(
     category: ExpenseCategory,
-    limit: float,
+    limit: Decimal,
 ) -> Budget:
     """
     Update the budget for a category.

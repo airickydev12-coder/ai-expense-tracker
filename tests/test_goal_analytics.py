@@ -7,13 +7,15 @@ from src.financial.goals.analytics import (
 )
 from src.financial.goals.models import Goal
 
+from decimal import Decimal
+
 
 def test_get_goal_progress_percentage():
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
     )
 
     assert get_goal_progress_percentage(goal) == 25
@@ -23,8 +25,8 @@ def test_get_remaining_goal_amount():
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
     )
 
     assert get_remaining_goal_amount(goal) == 7500
@@ -34,8 +36,8 @@ def test_is_goal_complete():
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=10000,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("10000.00"),
     )
 
     assert is_goal_complete(goal) is True
@@ -45,8 +47,8 @@ def test_is_goal_not_complete():
     goal = Goal(
         id=1,
         name="Emergency Fund",
-        target_amount=10000,
-        current_amount=2500,
+        target_amount=Decimal("10000.00"),
+        current_amount=Decimal("2500.00"),
     )
 
     assert is_goal_complete(goal) is False
@@ -57,14 +59,14 @@ def test_get_total_goal_targets():
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         ),
         Goal(
             id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=500,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("500.00"),
         ),
     ]
 
@@ -76,14 +78,14 @@ def test_get_total_goal_progress():
         Goal(
             id=1,
             name="Emergency Fund",
-            target_amount=10000,
-            current_amount=2500,
+            target_amount=Decimal("10000.00"),
+            current_amount=Decimal("2500.00"),
         ),
         Goal(
             id=2,
             name="Vacation",
-            target_amount=3000,
-            current_amount=500,
+            target_amount=Decimal("3000.00"),
+            current_amount=Decimal("500.00"),
         ),
     ]
 

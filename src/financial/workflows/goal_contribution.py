@@ -1,12 +1,13 @@
 from src.financial.goals.models import Goal
+from decimal import Decimal
 
 
 def apply_contribution_to_goal(
     goal: Goal,
-    contribution: float,
+    contribution: Decimal,
 ) -> Goal:
     """Apply a contribution to a financial goal."""
-    if contribution < 0:
+    if contribution < Decimal("0"):
         raise ValueError("Goal contribution cannot be negative.")
 
     goal.current_amount += contribution

@@ -2,6 +2,8 @@ from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
 from src.presentation import expense_cli
 
+from decimal import Decimal
+
 
 def build_expense() -> Expense:
     """Create an expense for CLI tests."""
@@ -9,7 +11,7 @@ def build_expense() -> Expense:
         id=1,
         name="Coffee",
         category=ExpenseCategory.FOOD,
-        amount=5.50,
+        amount=Decimal("5.50"),
     )
 
 
@@ -59,7 +61,7 @@ def test_add_expense_flow(
 
     assert captured["name"] == "Coffee"
     assert captured["category"] == ExpenseCategory.FOOD
-    assert captured["amount"] == 5.50
+    assert captured["amount"] == Decimal("5.50")
     assert "Expense added successfully!" in output
 
 
@@ -286,7 +288,7 @@ def test_update_expense_flow(
             id=expense_id,
             name=name or "Morning Coffee",
             category=category or ExpenseCategory.FOOD,
-            amount=amount if amount is not None else 7.25,
+            amount=amount if amount is not None else Decimal("7.25"),
         )
 
     monkeypatch.setattr(
@@ -302,7 +304,7 @@ def test_update_expense_flow(
     assert captured["expense_id"] == 1
     assert captured["name"] == "Morning Coffee"
     assert captured["category"] == ExpenseCategory.FOOD
-    assert captured["amount"] == 7.25
+    assert captured["amount"] == Decimal("7.25")
     assert "Updated expense: Morning Coffee" in output
 
 

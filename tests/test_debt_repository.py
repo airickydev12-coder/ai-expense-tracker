@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from decimal import Decimal
+
 from src.financial.debt.models import Debt
 from src.financial.debt.repository import (
     load_debts_from_file,
@@ -16,16 +18,16 @@ def test_save_and_load_debts(tmp_path):
         Debt(
             id=1,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         ),
         Debt(
             id=2,
             name="Car Loan",
-            balance=12000,
+            balance=Decimal("12000.00"),
             interest_rate=6.5,
-            minimum_payment=350,
+            minimum_payment=Decimal("350.00"),
         ),
     ]
 
@@ -52,20 +54,15 @@ def test_load_debts_returns_empty_list_when_file_missing(
 def test_save_debts_creates_parent_directory(
     tmp_path,
 ):
-    file_path = (
-        tmp_path
-        / "nested"
-        / "data"
-        / "debts.json"
-    )
+    file_path = tmp_path / "nested" / "data" / "debts.json"
 
     debts = [
         Debt(
             id=1,
             name="Credit Card",
-            balance=2500,
+            balance=Decimal("2500.00"),
             interest_rate=24.99,
-            minimum_payment=75,
+            minimum_payment=Decimal("75.00"),
         )
     ]
 

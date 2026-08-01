@@ -2,12 +2,14 @@ import pytest
 
 from src.financial.bills.models import Bill
 
+from decimal import Decimal
+
 
 def test_bill_creation():
     bill = Bill(
         id=1,
         name="Electric",
-        amount=125,
+        amount=Decimal("125.00"),
         due_day=15,
     )
 
@@ -22,7 +24,7 @@ def test_invalid_due_day():
         Bill(
             id=1,
             name="Electric",
-            amount=125,
+            amount=Decimal("125.00"),
             due_day=35,
         )
 
@@ -32,6 +34,6 @@ def test_negative_amount():
         Bill(
             id=1,
             name="Electric",
-            amount=-10,
+            amount=Decimal("-10.00"),
             due_day=15,
         )
