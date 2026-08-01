@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -34,75 +33,52 @@ def build_record() -> FinancialSnapshotRecord:
     )
 
 
-def test_save_and_load_financial_history(tmp_path):
-    file_path = tmp_path / "financial_history.json"
-
+def test_save_and_load_financial_history(db_path):
     original_history = [build_record()]
 
     save_history_to_file(
         original_history,
-        file_path,
+        db_path,
     )
 
-    loaded_history = load_history_from_file(file_path)
+    loaded_history = load_history_from_file(db_path)
 
     assert loaded_history == original_history
 
 
-def test_load_history_returns_empty_when_file_missing(
+def test_load_history_returns_empty_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_history.json"
+    db_path = tmp_path / "missing_history.db"
 
-    assert load_history_from_file(file_path) == []
+    assert load_history_from_file(db_path) == []
 
 
 def test_save_history_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "financial_history.json"
+    db_path = tmp_path / "nested" / "data" / "financial_history.db"
 
     save_history_to_file(
         [build_record()],
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_history_rejects_invalid_json(
+def test_load_history_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "financial_history.json"
+    db_path = tmp_path / "financial_history.db"
 
-    file_path.write_text(
-        "not valid json",
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load history",
     ):
-        load_history_from_file(file_path)
-
-
-def test_load_history_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "financial_history.json"
-
-    file_path.write_text(
-        json.dumps(
-            {
-                "timestamp": "2026-07-12T12:00:00+00:00",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_history_from_file(file_path)
+        load_history_from_file(db_path)

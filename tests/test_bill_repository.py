@@ -1,4 +1,3 @@
-import json
 from decimal import Decimal
 
 import pytest
@@ -10,9 +9,7 @@ from src.financial.bills.repository import (
 )
 
 
-def test_save_and_load_bills(tmp_path):
-    file_path = tmp_path / "bills.json"
-
+def test_save_and_load_bills(db_path):
     original_bills = [
         Bill(
             id=1,
@@ -32,28 +29,28 @@ def test_save_and_load_bills(tmp_path):
 
     save_bills_to_file(
         original_bills,
-        file_path,
+        db_path,
     )
 
     loaded_bills = load_bills_from_file(
-        file_path,
+        db_path,
     )
 
     assert loaded_bills == original_bills
 
 
-def test_load_bills_returns_empty_list_when_file_missing(
+def test_load_bills_returns_empty_list_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_bills.json"
+    db_path = tmp_path / "missing_bills.db"
 
-    assert load_bills_from_file(file_path) == []
+    assert load_bills_from_file(db_path) == []
 
 
 def test_save_bills_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "bills.json"
+    db_path = tmp_path / "nested" / "data" / "bills.db"
 
     bills = [
         Bill(
@@ -67,44 +64,23 @@ def test_save_bills_creates_parent_directory(
 
     save_bills_to_file(
         bills,
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_bills_rejects_invalid_json(
+def test_load_bills_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "bills.json"
-    file_path.write_text(
-        "not valid json",
+    db_path = tmp_path / "bills.db"
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load bills",
     ):
-        load_bills_from_file(file_path)
-
-
-def test_load_bills_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "bills.json"
-    file_path.write_text(
-        json.dumps(
-            {
-                "id": 1,
-                "name": "Electric",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_bills_from_file(file_path)
+        load_bills_from_file(db_path)

@@ -8,8 +8,8 @@ from typing import TypeAlias
 from uuid import uuid4
 
 from src.core.config import (
+    DB_PATH,
     GOAL_LEDGER_FILE,
-    GOALS_FILE,
 )
 from src.core.exceptions import NotFoundError, ValidationError
 from src.core.logging import get_logger
@@ -123,7 +123,7 @@ def record_contribution(
     note: str = "",
     correlation_id: str | None = None,
     ledger_file_path: Path = GOAL_LEDGER_FILE,
-    goals_file_path: Path = GOALS_FILE,
+    goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry | None:
     """
     Record a contribution and rebuild the cached balance.
@@ -197,7 +197,7 @@ def record_withdrawal(
     note: str = "",
     correlation_id: str | None = None,
     ledger_file_path: Path = GOAL_LEDGER_FILE,
-    goals_file_path: Path = GOALS_FILE,
+    goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Record a withdrawal and rebuild the cached balance."""
     normalized_amount = to_money(amount)
@@ -255,7 +255,7 @@ def record_adjustment(
     note: str = "",
     correlation_id: str | None = None,
     ledger_file_path: Path = GOAL_LEDGER_FILE,
-    goals_file_path: Path = GOALS_FILE,
+    goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Record a signed balance correction."""
     normalized_amount = to_money(amount)
@@ -318,7 +318,7 @@ def reverse_entry(
     note: str = "",
     correlation_id: str | None = None,
     ledger_file_path: Path = GOAL_LEDGER_FILE,
-    goals_file_path: Path = GOALS_FILE,
+    goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Reverse a ledger entry without modifying history."""
     entries = load_goal_ledger_from_file(ledger_file_path)
@@ -393,7 +393,7 @@ def rebuild_goal_balance_cache(
     *,
     goals: list[Goal],
     ledger_file_path: Path = GOAL_LEDGER_FILE,
-    goals_file_path: Path = GOALS_FILE,
+    goals_file_path: Path = DB_PATH,
 ) -> Goal:
     """Rebuild one cached balance from the ledger."""
     entries = load_goal_ledger_from_file(ledger_file_path)

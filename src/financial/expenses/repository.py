@@ -1,6 +1,8 @@
-import json
+import sqlite3
+from pathlib import Path
 
-from src.core.config import DATA_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.expenses.models import Expense
@@ -8,62 +10,49 @@ from src.financial.expenses.models import Expense
 logger = get_logger(__name__)
 
 
-def load_expenses_from_file() -> list[Expense]:
-    """
-    Load expenses from the JSON data file.
-
-    Returns:
-        list[Expense]: Expenses loaded from storage.
-    """
-    if not DATA_FILE.exists():
-        return []
-
+def load_expenses_from_file(
+    db_path: Path = DB_PATH,
+) -> list[Expense]:
+    """Load expenses from the database."""
     try:
-        with open(DATA_FILE, "r") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse expenses file %s: %s",
-            DATA_FILE,
-            error,
-        )
-        raise PersistenceError(
-            f"Expense data file contains invalid JSON: {DATA_FILE}"
-        ) from error
+        with get_connection(db_path) as connection:
+            rows = connection.execute(
+                "SELECT id, name, category, amount FROM expenses ORDER BY id"
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load expenses from {db_path}") from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Expense data must be stored as a JSON list.")
-
-    expenses = [Expense.from_dict(item) for item in raw_data]
+    expenses = [Expense.from_dict(dict(row)) for row in rows]
 
     logger.debug(
         "Loaded %d expense(s) from %s",
         len(expenses),
-        DATA_FILE,
+        db_path,
     )
 
     return expenses
 
 
-def save_expenses_to_file(expenses: list[Expense]) -> None:
-    """
-    Save expenses to the JSON data file.
-
-    Args:
-        expenses: Expenses to save.
-
-    Returns:
-        None
-    """
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    data = [expense.to_dict() for expense in expenses]
-
-    with open(DATA_FILE, "w") as file:
-        json.dump(data, file, indent=4)
+def save_expenses_to_file(
+    expenses: list[Expense],
+    db_path: Path = DB_PATH,
+) -> None:
+    """Save expenses to the database, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM expenses")
+            connection.executemany(
+                """
+                INSERT INTO expenses (id, name, category, amount)
+                VALUES (:id, :name, :category, :amount)
+                """,
+                [expense.to_dict() for expense in expenses],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to save expenses to {db_path}") from error
 
     logger.debug(
         "Saved %d expense(s) to %s",
         len(expenses),
-        DATA_FILE,
+        db_path,
     )

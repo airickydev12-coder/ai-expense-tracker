@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TypeAlias
 
 from src.core.config import (
+    DB_PATH,
     GOAL_LEDGER_FILE,
     GOALS_FILE,
 )
@@ -36,7 +37,7 @@ goals: list[Goal] = []
 
 
 def load_goals(
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
     ledger_file_path: Path | None = None,
 ) -> None:
     """Load goals and migrate existing balances."""
@@ -55,7 +56,7 @@ def load_goals(
 
 
 def save_goals(
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Save all goals from application memory."""
     save_goals_to_file(
@@ -92,7 +93,7 @@ def add_goal(
     name: str,
     target_amount: MoneyInput,
     current_amount: MoneyInput = ZERO,
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
     ledger_file_path: Path | None = None,
 ) -> Goal:
     """Create and save a financial goal."""
@@ -134,7 +135,7 @@ def update_goal(
     name: str | None = None,
     target_amount: MoneyInput | None = None,
     current_amount: MoneyInput | None = None,
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Goal | None:
     """
     Update an existing goal.
@@ -179,7 +180,7 @@ def update_goal(
 def contribute_to_goal(
     goal_id: int,
     contribution: MoneyInput,
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
     ledger_file_path: Path | None = None,
     effective_date: date | None = None,
     source: str = "MANUAL",
@@ -225,7 +226,7 @@ def contribute_to_goal(
 
 def delete_goal(
     goal_id: int,
-    file_path: Path = GOALS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Goal | None:
     """
     Delete a goal from the active goal list.

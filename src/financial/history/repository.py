@@ -1,7 +1,8 @@
-import json
+import sqlite3
 from pathlib import Path
 
-from src.core.config import HISTORY_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.history.models import (
@@ -12,65 +13,59 @@ logger = get_logger(__name__)
 
 
 def load_history_from_file(
-    file_path: Path = HISTORY_FILE,
+    db_path: Path = DB_PATH,
 ) -> list[FinancialSnapshotRecord]:
-    """Load historical financial snapshots."""
-
-    if not file_path.exists():
-        return []
-
+    """Load historical financial snapshots from the database."""
     try:
-        with file_path.open(
-            "r",
-            encoding="utf-8",
-        ) as file:
-            data = json.load(file)
+        with get_connection(db_path) as connection:
+            rows = connection.execute("""
+                SELECT timestamp, total_income, total_expenses, net_cash_flow,
+                       total_account_balance, total_goal_progress, total_debt,
+                       net_worth, health_score, health_status
+                FROM financial_history ORDER BY id
+                """).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load history from {db_path}") from error
 
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse financial history file %s: %s",
-            file_path,
-            error,
-        )
-        raise PersistenceError("Financial history contains invalid JSON.") from error
-
-    if not isinstance(data, list):
-        raise PersistenceError("Financial history must be a JSON list.")
-
-    records = [FinancialSnapshotRecord.from_dict(item) for item in data]
+    history = [FinancialSnapshotRecord.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d financial history record(s) from %s",
-        len(records),
-        file_path,
+        "Loaded %d snapshot(s) from %s",
+        len(history),
+        db_path,
     )
 
-    return records
+    return history
 
 
 def save_history_to_file(
     history: list[FinancialSnapshotRecord],
-    file_path: Path = HISTORY_FILE,
+    db_path: Path = DB_PATH,
 ) -> None:
-    """Save financial history."""
-
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    with file_path.open(
-        "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            [snapshot.to_dict() for snapshot in history],
-            file,
-            indent=4,
-        )
+    """Save historical snapshots to the database, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM financial_history")
+            connection.executemany(
+                """
+                INSERT INTO financial_history (
+                    timestamp, total_income, total_expenses, net_cash_flow,
+                    total_account_balance, total_goal_progress, total_debt,
+                    net_worth, health_score, health_status
+                )
+                VALUES (
+                    :timestamp, :total_income, :total_expenses, :net_cash_flow,
+                    :total_account_balance, :total_goal_progress, :total_debt,
+                    :net_worth, :health_score, :health_status
+                )
+                """,
+                [record.to_dict() for record in history],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to save history to {db_path}") from error
 
     logger.debug(
-        "Saved %d financial history record(s) to %s",
+        "Saved %d snapshot(s) to %s",
         len(history),
-        file_path,
+        db_path,
     )

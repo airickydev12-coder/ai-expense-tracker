@@ -1,10 +1,10 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.core.logging import get_logger
 from src.financial.accounts.models import Account
 from src.financial.accounts.repository import (
-    ACCOUNTS_FILE,
     load_accounts_from_file,
     save_accounts_to_file,
 )
@@ -15,7 +15,7 @@ accounts: list[Account] = []
 
 
 def load_accounts(
-    file_path: Path = ACCOUNTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load accounts into application memory."""
     accounts.clear()
@@ -23,7 +23,7 @@ def load_accounts(
 
 
 def save_accounts(
-    file_path: Path = ACCOUNTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Save all accounts from application memory."""
     save_accounts_to_file(
@@ -60,7 +60,7 @@ def add_account(
     name: str,
     account_type: str,
     balance: Decimal,
-    file_path: Path = ACCOUNTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Account:
     """Create and save a financial account."""
     account = Account(
@@ -87,7 +87,7 @@ def update_account(
     name: str | None = None,
     account_type: str | None = None,
     balance: Decimal | None = None,
-    file_path: Path = ACCOUNTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Account | None:
     """Update an existing account."""
     account = get_account_by_id(account_id)
@@ -125,7 +125,7 @@ def update_account(
 
 def delete_account(
     account_id: int,
-    file_path: Path = ACCOUNTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Account | None:
     """Delete an account by ID."""
     for index, account in enumerate(accounts):

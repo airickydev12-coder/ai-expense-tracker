@@ -1,10 +1,10 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.core.logging import get_logger
 from src.financial.bills.models import Bill
 from src.financial.bills.repository import (
-    BILLS_FILE,
     load_bills_from_file,
     save_bills_to_file,
 )
@@ -15,7 +15,7 @@ bills: list[Bill] = []
 
 
 def load_bills(
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load bills into application memory."""
     bills.clear()
@@ -23,7 +23,7 @@ def load_bills(
 
 
 def save_bills(
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Save all bills from application memory."""
     save_bills_to_file(
@@ -61,7 +61,7 @@ def add_bill(
     amount: Decimal,
     due_day: int,
     is_paid: bool = False,
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Bill:
     """Create and save a bill."""
     bill = Bill(
@@ -90,7 +90,7 @@ def update_bill(
     amount: Decimal | None = None,
     due_day: int | None = None,
     is_paid: bool | None = None,
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Bill | None:
     """Update an existing bill."""
     bill = get_bill_by_id(bill_id)
@@ -121,7 +121,7 @@ def update_bill(
 
 def mark_bill_paid(
     bill_id: int,
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Bill | None:
     """Mark an existing bill as paid."""
     return update_bill(
@@ -133,7 +133,7 @@ def mark_bill_paid(
 
 def mark_bill_unpaid(
     bill_id: int,
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Bill | None:
     """Mark an existing bill as unpaid."""
     return update_bill(
@@ -145,7 +145,7 @@ def mark_bill_unpaid(
 
 def delete_bill(
     bill_id: int,
-    file_path: Path = BILLS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Bill | None:
     """Delete a bill by ID."""
     for index, bill in enumerate(bills):

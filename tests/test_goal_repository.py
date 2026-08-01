@@ -1,4 +1,3 @@
-import json
 from decimal import Decimal
 
 import pytest
@@ -10,9 +9,7 @@ from src.financial.goals.repository import (
 )
 
 
-def test_save_and_load_goals(tmp_path):
-    file_path = tmp_path / "goals.json"
-
+def test_save_and_load_goals(db_path):
     original_goals = [
         Goal(
             id=1,
@@ -30,28 +27,28 @@ def test_save_and_load_goals(tmp_path):
 
     save_goals_to_file(
         original_goals,
-        file_path,
+        db_path,
     )
 
     loaded_goals = load_goals_from_file(
-        file_path,
+        db_path,
     )
 
     assert loaded_goals == original_goals
 
 
-def test_load_goals_returns_empty_list_when_file_missing(
+def test_load_goals_returns_empty_list_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_goals.json"
+    db_path = tmp_path / "missing_goals.db"
 
-    assert load_goals_from_file(file_path) == []
+    assert load_goals_from_file(db_path) == []
 
 
 def test_save_goals_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "goals.json"
+    db_path = tmp_path / "nested" / "data" / "goals.db"
 
     goals = [
         Goal(
@@ -64,44 +61,23 @@ def test_save_goals_creates_parent_directory(
 
     save_goals_to_file(
         goals,
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_goals_rejects_invalid_json(
+def test_load_goals_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "goals.json"
-    file_path.write_text(
-        "not valid json",
+    db_path = tmp_path / "goals.db"
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load goals",
     ):
-        load_goals_from_file(file_path)
-
-
-def test_load_goals_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "goals.json"
-    file_path.write_text(
-        json.dumps(
-            {
-                "id": 1,
-                "name": "Emergency Fund",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_goals_from_file(file_path)
+        load_goals_from_file(db_path)

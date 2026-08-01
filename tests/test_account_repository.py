@@ -1,4 +1,3 @@
-import json
 from decimal import Decimal
 
 import pytest
@@ -10,9 +9,7 @@ from src.financial.accounts.repository import (
 )
 
 
-def test_save_and_load_accounts(tmp_path):
-    file_path = tmp_path / "accounts.json"
-
+def test_save_and_load_accounts(db_path):
     original_accounts = [
         Account(
             id=1,
@@ -30,23 +27,23 @@ def test_save_and_load_accounts(tmp_path):
 
     save_accounts_to_file(
         original_accounts,
-        file_path,
+        db_path,
     )
 
     loaded_accounts = load_accounts_from_file(
-        file_path,
+        db_path,
     )
 
     assert loaded_accounts == original_accounts
 
 
-def test_load_accounts_returns_empty_list_when_file_missing(
+def test_load_accounts_returns_empty_list_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_accounts.json"
+    db_path = tmp_path / "missing_accounts.db"
 
     loaded_accounts = load_accounts_from_file(
-        file_path,
+        db_path,
     )
 
     assert loaded_accounts == []
@@ -55,7 +52,7 @@ def test_load_accounts_returns_empty_list_when_file_missing(
 def test_save_accounts_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "accounts.json"
+    db_path = tmp_path / "nested" / "data" / "accounts.db"
 
     accounts = [
         Account(
@@ -68,44 +65,23 @@ def test_save_accounts_creates_parent_directory(
 
     save_accounts_to_file(
         accounts,
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_accounts_rejects_invalid_json(
+def test_load_accounts_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "accounts.json"
-    file_path.write_text(
-        "not valid json",
+    db_path = tmp_path / "accounts.db"
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load accounts",
     ):
-        load_accounts_from_file(file_path)
-
-
-def test_load_accounts_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "accounts.json"
-    file_path.write_text(
-        json.dumps(
-            {
-                "id": 1,
-                "name": "Checking",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_accounts_from_file(file_path)
+        load_accounts_from_file(db_path)

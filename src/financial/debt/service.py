@@ -1,11 +1,11 @@
 from decimal import Decimal
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.core.exceptions import ValidationError
 from src.core.logging import get_logger
 from src.financial.debt.models import Debt
 from src.financial.debt.repository import (
-    DEBTS_FILE,
     load_debts_from_file,
     save_debts_to_file,
 )
@@ -18,7 +18,7 @@ debts: list[Debt] = []
 
 
 def load_debts(
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load debts into application memory."""
     debts.clear()
@@ -26,7 +26,7 @@ def load_debts(
 
 
 def save_debts(
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Save all debts from application memory."""
     save_debts_to_file(
@@ -64,7 +64,7 @@ def add_debt(
     balance: Decimal,
     interest_rate: float,
     minimum_payment: Decimal,
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Debt:
     """Create and save a debt."""
     debt = Debt(
@@ -93,7 +93,7 @@ def update_debt(
     balance: Decimal | None = None,
     interest_rate: float | None = None,
     minimum_payment: Decimal | None = None,
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Debt | None:
     """Update an existing debt."""
     debt = get_debt_by_id(debt_id)
@@ -129,7 +129,7 @@ def update_debt(
 def apply_payment_to_debt(
     debt_id: int,
     payment: Decimal,
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Debt | None:
     """Apply a payment to an existing debt."""
     if payment < ZERO_MONEY:
@@ -162,7 +162,7 @@ def apply_payment_to_debt(
 
 def delete_debt(
     debt_id: int,
-    file_path: Path = DEBTS_FILE,
+    file_path: Path = DB_PATH,
 ) -> Debt | None:
     """Delete a debt by ID."""
     for index, debt in enumerate(debts):

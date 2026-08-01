@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.core.config import DB_PATH
 from src.core.logging import get_logger
 from src.core.money import to_money
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.history.repository import (
-    HISTORY_FILE,
     load_history_from_file,
     save_history_to_file,
 )
@@ -13,11 +13,11 @@ from src.financial.history.repository import (
 logger = get_logger(__name__)
 
 _history: list[FinancialSnapshotRecord] = []
-_loaded_file_path: Path = HISTORY_FILE
+_loaded_file_path: Path = DB_PATH
 
 
 def load_history(
-    file_path: Path = HISTORY_FILE,
+    file_path: Path = DB_PATH,
 ) -> None:
     """Load historical snapshots into application memory."""
     global _loaded_file_path

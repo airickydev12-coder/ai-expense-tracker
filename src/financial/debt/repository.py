@@ -1,7 +1,8 @@
-import json
+import sqlite3
 from pathlib import Path
 
-from src.core.config import DEBTS_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.debt.models import Debt
@@ -10,34 +11,24 @@ logger = get_logger(__name__)
 
 
 def load_debts_from_file(
-    file_path: Path = DEBTS_FILE,
+    db_path: Path = DB_PATH,
 ) -> list[Debt]:
-    """Load debts from a JSON file."""
-    if not file_path.exists():
-        return []
-
+    """Load debts from the database."""
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse debts file %s: %s",
-            file_path,
-            error,
-        )
-        raise PersistenceError(
-            f"Debt data file contains invalid JSON: {file_path}"
-        ) from error
+        with get_connection(db_path) as connection:
+            rows = connection.execute("""
+                SELECT id, name, balance, interest_rate, minimum_payment
+                FROM debts ORDER BY id
+                """).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load debts from {db_path}") from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Debt data must be stored as a JSON list.")
-
-    debts = [Debt.from_dict(debt_data) for debt_data in raw_data]
+    debts = [Debt.from_dict(dict(row)) for row in rows]
 
     logger.debug(
         "Loaded %d debt(s) from %s",
         len(debts),
-        file_path,
+        db_path,
     )
 
     return debts
@@ -45,25 +36,24 @@ def load_debts_from_file(
 
 def save_debts_to_file(
     debts: list[Debt],
-    file_path: Path = DEBTS_FILE,
+    db_path: Path = DB_PATH,
 ) -> None:
-    """Save debts to a JSON file."""
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    debt_data = [debt.to_dict() for debt in debts]
-
-    with file_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            debt_data,
-            file,
-            indent=4,
-        )
+    """Save debts to the database, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM debts")
+            connection.executemany(
+                """
+                INSERT INTO debts (id, name, balance, interest_rate, minimum_payment)
+                VALUES (:id, :name, :balance, :interest_rate, :minimum_payment)
+                """,
+                [debt.to_dict() for debt in debts],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to save debts to {db_path}") from error
 
     logger.debug(
         "Saved %d debt(s) to %s",
         len(debts),
-        file_path,
+        db_path,
     )

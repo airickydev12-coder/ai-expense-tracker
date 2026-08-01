@@ -1,7 +1,8 @@
-import json
+import sqlite3
 from pathlib import Path
 
-from src.core.config import ACCOUNTS_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.accounts.models import Account
@@ -10,34 +11,23 @@ logger = get_logger(__name__)
 
 
 def load_accounts_from_file(
-    file_path: Path = ACCOUNTS_FILE,
+    db_path: Path = DB_PATH,
 ) -> list[Account]:
-    """Load accounts from a JSON file."""
-    if not file_path.exists():
-        return []
-
+    """Load accounts from the database."""
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse accounts file %s: %s",
-            file_path,
-            error,
-        )
-        raise PersistenceError(
-            f"Account data file contains invalid JSON: {file_path}"
-        ) from error
+        with get_connection(db_path) as connection:
+            rows = connection.execute(
+                "SELECT id, name, account_type, balance FROM accounts ORDER BY id"
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load accounts from {db_path}") from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Account data must be stored as a JSON list.")
-
-    accounts = [Account.from_dict(account_data) for account_data in raw_data]
+    accounts = [Account.from_dict(dict(row)) for row in rows]
 
     logger.debug(
         "Loaded %d account(s) from %s",
         len(accounts),
-        file_path,
+        db_path,
     )
 
     return accounts
@@ -45,25 +35,24 @@ def load_accounts_from_file(
 
 def save_accounts_to_file(
     accounts: list[Account],
-    file_path: Path = ACCOUNTS_FILE,
+    db_path: Path = DB_PATH,
 ) -> None:
-    """Save accounts to a JSON file."""
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    account_data = [account.to_dict() for account in accounts]
-
-    with file_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            account_data,
-            file,
-            indent=4,
-        )
+    """Save accounts to the database, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM accounts")
+            connection.executemany(
+                """
+                INSERT INTO accounts (id, name, account_type, balance)
+                VALUES (:id, :name, :account_type, :balance)
+                """,
+                [account.to_dict() for account in accounts],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to save accounts to {db_path}") from error
 
     logger.debug(
         "Saved %d account(s) to %s",
         len(accounts),
-        file_path,
+        db_path,
     )

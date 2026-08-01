@@ -1,7 +1,8 @@
-import json
+import sqlite3
 from pathlib import Path
 
-from src.core.config import BILLS_FILE
+from src.core.config import DB_PATH
+from src.core.db import get_connection
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.bills.models import Bill
@@ -10,34 +11,23 @@ logger = get_logger(__name__)
 
 
 def load_bills_from_file(
-    file_path: Path = BILLS_FILE,
+    db_path: Path = DB_PATH,
 ) -> list[Bill]:
-    """Load bills from a JSON file."""
-    if not file_path.exists():
-        return []
-
+    """Load bills from the database."""
     try:
-        with file_path.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-    except json.JSONDecodeError as error:
-        logger.error(
-            "Failed to parse bills file %s: %s",
-            file_path,
-            error,
-        )
-        raise PersistenceError(
-            f"Bill data file contains invalid JSON: {file_path}"
-        ) from error
+        with get_connection(db_path) as connection:
+            rows = connection.execute(
+                "SELECT id, name, amount, due_day, is_paid FROM bills ORDER BY id"
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load bills from {db_path}") from error
 
-    if not isinstance(raw_data, list):
-        raise PersistenceError("Bill data must be stored as a JSON list.")
-
-    bills = [Bill.from_dict(bill_data) for bill_data in raw_data]
+    bills = [Bill.from_dict(dict(row)) for row in rows]
 
     logger.debug(
         "Loaded %d bill(s) from %s",
         len(bills),
-        file_path,
+        db_path,
     )
 
     return bills
@@ -45,25 +35,24 @@ def load_bills_from_file(
 
 def save_bills_to_file(
     bills: list[Bill],
-    file_path: Path = BILLS_FILE,
+    db_path: Path = DB_PATH,
 ) -> None:
-    """Save bills to a JSON file."""
-    file_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    bill_data = [bill.to_dict() for bill in bills]
-
-    with file_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            bill_data,
-            file,
-            indent=4,
-        )
+    """Save bills to the database, replacing all existing rows."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM bills")
+            connection.executemany(
+                """
+                INSERT INTO bills (id, name, amount, due_day, is_paid)
+                VALUES (:id, :name, :amount, :due_day, :is_paid)
+                """,
+                [bill.to_dict() for bill in bills],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to save bills to {db_path}") from error
 
     logger.debug(
         "Saved %d bill(s) to %s",
         len(bills),
-        file_path,
+        db_path,
     )

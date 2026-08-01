@@ -1,4 +1,3 @@
-import json
 from decimal import Decimal
 
 import pytest
@@ -10,9 +9,7 @@ from src.financial.debt.repository import (
 )
 
 
-def test_save_and_load_debts(tmp_path):
-    file_path = tmp_path / "debts.json"
-
+def test_save_and_load_debts(db_path):
     original_debts = [
         Debt(
             id=1,
@@ -32,28 +29,28 @@ def test_save_and_load_debts(tmp_path):
 
     save_debts_to_file(
         original_debts,
-        file_path,
+        db_path,
     )
 
     loaded_debts = load_debts_from_file(
-        file_path,
+        db_path,
     )
 
     assert loaded_debts == original_debts
 
 
-def test_load_debts_returns_empty_list_when_file_missing(
+def test_load_debts_returns_empty_list_when_db_missing(
     tmp_path,
 ):
-    file_path = tmp_path / "missing_debts.json"
+    db_path = tmp_path / "missing_debts.db"
 
-    assert load_debts_from_file(file_path) == []
+    assert load_debts_from_file(db_path) == []
 
 
 def test_save_debts_creates_parent_directory(
     tmp_path,
 ):
-    file_path = tmp_path / "nested" / "data" / "debts.json"
+    db_path = tmp_path / "nested" / "data" / "debts.db"
 
     debts = [
         Debt(
@@ -67,44 +64,23 @@ def test_save_debts_creates_parent_directory(
 
     save_debts_to_file(
         debts,
-        file_path,
+        db_path,
     )
 
-    assert file_path.exists()
+    assert db_path.exists()
 
 
-def test_load_debts_rejects_invalid_json(
+def test_load_debts_rejects_invalid_database_file(
     tmp_path,
 ):
-    file_path = tmp_path / "debts.json"
-    file_path.write_text(
-        "not valid json",
+    db_path = tmp_path / "debts.db"
+    db_path.write_text(
+        "not a valid sqlite database",
         encoding="utf-8",
     )
 
     with pytest.raises(
         ValueError,
-        match="invalid JSON",
+        match="Failed to load debts",
     ):
-        load_debts_from_file(file_path)
-
-
-def test_load_debts_rejects_non_list_json(
-    tmp_path,
-):
-    file_path = tmp_path / "debts.json"
-    file_path.write_text(
-        json.dumps(
-            {
-                "id": 1,
-                "name": "Credit Card",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="JSON list",
-    ):
-        load_debts_from_file(file_path)
+        load_debts_from_file(db_path)

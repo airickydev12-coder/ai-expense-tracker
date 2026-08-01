@@ -16,9 +16,11 @@ from src.api.routers.health import router as health_router
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )
+from src.core.db import initialize_database
 from src.core.logging import configure_logging
 
 configure_logging(console_level=logging.INFO)
+initialize_database()
 
 app = FastAPI(
     title="AI Expense Tracker API",
