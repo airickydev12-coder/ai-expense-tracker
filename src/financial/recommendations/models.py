@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import cast
 
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority

@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-
-import pytest
 from typing import Any
 
 from src.core.money import (

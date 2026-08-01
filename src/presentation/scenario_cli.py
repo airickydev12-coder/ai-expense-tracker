@@ -13,9 +13,6 @@ from src.presentation.views import (
     display_scenario_result,
 )
 
-from src.financial.scenarios.ranking import (
-    ScenarioRankingMetric,
-)
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace,
 )

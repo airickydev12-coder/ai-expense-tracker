@@ -2,7 +2,6 @@
 
 from datetime import date
 from decimal import Decimal
-import decimal
 
 import pytest
 

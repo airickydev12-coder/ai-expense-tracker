@@ -1,7 +1,5 @@
 from decimal import Decimal
-from src.financial.debt.repository import DEBTS_FILE
 from src.financial.debt.models import Debt
-from decimal import Decimal
 
 
 def apply_debt_payment(

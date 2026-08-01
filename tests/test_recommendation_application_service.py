@@ -14,12 +14,6 @@ from src.financial.recommendations.category import (
     RecommendationCategory,
 )
 
-from src.financial.application.recommendation_application_service import (
-    get_recommendation_by_key,
-)
-
-from decimal import Decimal
-
 
 def test_build_recommendations(monkeypatch):
     """Application service orchestrates the recommendation pipeline."""

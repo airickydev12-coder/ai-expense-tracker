@@ -6,7 +6,6 @@ from src.financial.application.financial_snapshot import (
 from src.financial.engine.financial_snapshot_builder import (
     build_financial_snapshot,
 )
-from decimal import Decimal
 
 
 def test_build_empty_financial_snapshot() -> None:

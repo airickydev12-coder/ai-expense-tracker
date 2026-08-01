@@ -3,8 +3,6 @@ from src.financial.recommendations.engine import RecommendationEngine
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 
-from decimal import Decimal
-
 
 def build_recommendations() -> list[Recommendation]:
     """Create recommendations for recommendation-engine tests."""

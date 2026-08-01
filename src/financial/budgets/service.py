@@ -1,5 +1,4 @@
 from decimal import Decimal
-import decimal
 
 from src.financial.budgets.models import Budget
 from src.financial.budgets.repository import (

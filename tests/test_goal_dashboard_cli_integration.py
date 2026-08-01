@@ -5,9 +5,6 @@ from decimal import Decimal
 
 import pytest
 
-from src.financial.application.goal_dashboard_service import (
-    GoalDashboard,
-)
 from src.financial.goals.models import Goal
 from src.presentation import goal_planning_cli
 

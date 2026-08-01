@@ -1,4 +1,3 @@
-from ast import Import
 from src.financial.bills.models import Bill
 from decimal import Decimal
 

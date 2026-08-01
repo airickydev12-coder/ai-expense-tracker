@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 
-from decimal import Decimal
-
 from src.financial.recommendations.history import (
     RecommendationRecord,
 )

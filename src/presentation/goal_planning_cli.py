@@ -18,7 +18,6 @@ from src.financial.application.goal_planning_service import (
     GoalPlanningResult,
     analyze_goals,
     MoneyInput,
-    to_money,
 )
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal

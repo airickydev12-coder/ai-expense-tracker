@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import pytest
 
 from src.financial.coach.coaching import (
-    CoachingSession,
     build_coaching_session,
 )
 from src.financial.coach.insights import (
