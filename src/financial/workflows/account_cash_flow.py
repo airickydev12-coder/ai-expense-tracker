@@ -1,5 +1,6 @@
-from src.financial.accounts.models import Account
 from decimal import Decimal
+
+from src.financial.accounts.models import Account
 
 
 def apply_cash_flow_to_account(

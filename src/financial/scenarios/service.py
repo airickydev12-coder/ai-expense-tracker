@@ -8,7 +8,6 @@ from src.financial.scenarios.models import (
     ScenarioType,
 )
 
-
 ScenarioHandler = Callable[
     [dict, dict[str, Any]],
     ScenarioResult,

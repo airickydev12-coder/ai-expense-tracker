@@ -2,6 +2,11 @@ from dataclasses import dataclass
 from enum import Enum
 
 from src.core.exceptions import ValidationError
+from src.financial.scenarios.comparison import (
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
+)
 from src.financial.scenarios.models import (
     ScenarioResult,
 )
@@ -20,9 +25,9 @@ from src.financial.scenarios.scoring import (
 class ScenarioRankingMetric(Enum):
     """Supported metrics for ranking financial scenarios."""
 
-    NET_WORTH = "Net Worth"
-    CASH_FLOW = "Net Cash Flow"
-    DEBT_REDUCTION = "Total Debt"
+    NET_WORTH = METRIC_NET_WORTH
+    CASH_FLOW = METRIC_NET_CASH_FLOW
+    DEBT_REDUCTION = METRIC_TOTAL_DEBT
     IMPROVEMENT_COUNT = "Improvement Count"
     LOWEST_RISK = "Lowest Risk"
     SUSTAINABILITY = "Sustainability"
@@ -105,7 +110,7 @@ def get_debt_reduction(
     """Return debt reduction as a positive value."""
     debt_change = get_metric_change(
         report,
-        "Total Debt",
+        METRIC_TOTAL_DEBT,
     )
 
     return max(
@@ -171,12 +176,12 @@ def calculate_overall_score(
 
     net_worth_change = get_metric_change(
         report,
-        "Net Worth",
+        METRIC_NET_WORTH,
     )
 
     cash_flow_change = get_metric_change(
         report,
-        "Net Cash Flow",
+        METRIC_NET_CASH_FLOW,
     )
 
     debt_reduction = get_debt_reduction(report)
@@ -197,13 +202,13 @@ def calculate_ranking_score(
     if ranking_metric == ScenarioRankingMetric.NET_WORTH:
         return get_metric_change(
             report,
-            "Net Worth",
+            METRIC_NET_WORTH,
         )
 
     if ranking_metric == ScenarioRankingMetric.CASH_FLOW:
         return get_metric_change(
             report,
-            "Net Cash Flow",
+            METRIC_NET_CASH_FLOW,
         )
 
     if ranking_metric == ScenarioRankingMetric.DEBT_REDUCTION:

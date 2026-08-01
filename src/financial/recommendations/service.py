@@ -13,22 +13,14 @@ def generate_recommendations(
     """Generate, process, and lifecycle-filter recommendations."""
     rule_engine = create_default_rule_engine()
 
-    raw_recommendations = rule_engine.evaluate(
-        snapshot
-    )
+    raw_recommendations = rule_engine.evaluate(snapshot)
 
     recommendation_engine = RecommendationEngine()
 
-    processed_recommendations = (
-        recommendation_engine.process(
-            raw_recommendations
-        )
-    )
+    processed_recommendations = recommendation_engine.process(raw_recommendations)
 
-    displayable_recommendations = (
-        filter_displayable_recommendations(
-            processed_recommendations
-        )
+    displayable_recommendations = filter_displayable_recommendations(
+        processed_recommendations
     )
 
     if limit is not None:

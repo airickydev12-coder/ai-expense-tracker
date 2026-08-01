@@ -1,1 +1,1 @@
-"""Financial forecasting services and models.""""""Financial forecasting services and models."""
+"""Financial forecasting services and models."""

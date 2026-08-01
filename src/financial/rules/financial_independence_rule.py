@@ -1,7 +1,12 @@
+from src.core.constants import MONTHS_PER_YEAR
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
+
+FIRE_ANNUAL_EXPENSE_MULTIPLIER = 25
+FINANCIAL_INDEPENDENCE_FULL_THRESHOLD = 1.0
+FINANCIAL_INDEPENDENCE_APPROACHING_THRESHOLD = 0.75
 
 
 class FinancialIndependenceRule(FinancialRule):
@@ -15,11 +20,11 @@ class FinancialIndependenceRule(FinancialRule):
         if monthly_expenses <= 0:
             return None
 
-        annual_expenses = monthly_expenses * 12
-        target_net_worth = annual_expenses * 25
+        annual_expenses = monthly_expenses * MONTHS_PER_YEAR
+        target_net_worth = annual_expenses * FIRE_ANNUAL_EXPENSE_MULTIPLIER
         progress = net_worth / target_net_worth
 
-        if progress >= 1.0:
+        if progress >= FINANCIAL_INDEPENDENCE_FULL_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.LOW,
                 category=RecommendationCategory.WEALTH,
@@ -34,7 +39,7 @@ class FinancialIndependenceRule(FinancialRule):
                 ),
             )
 
-        if progress >= 0.75:
+        if progress >= FINANCIAL_INDEPENDENCE_APPROACHING_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.MEDIUM,
                 category=RecommendationCategory.WEALTH,

@@ -1,9 +1,9 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.budgets.models import Budget
 from src.financial.shared.categories import ExpenseCategory
-
-from decimal import Decimal
 
 
 def test_budget_creation():

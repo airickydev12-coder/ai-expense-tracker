@@ -33,13 +33,9 @@ def test_explanation_uses_rationale():
         source_rule="HighInterestDebtRule",
     )
 
-    explanation = build_explanation(
-        recommendation
-    )
+    explanation = build_explanation(recommendation)
 
-    assert explanation["why"] == (
-        "Interest compounds quickly."
-    )
+    assert explanation["why"] == ("Interest compounds quickly.")
 
 
 def test_explanation_falls_back_to_message():
@@ -51,13 +47,9 @@ def test_explanation_falls_back_to_message():
         action="Reduce spending.",
     )
 
-    explanation = build_explanation(
-        recommendation
-    )
+    explanation = build_explanation(recommendation)
 
-    assert explanation["why"] == (
-        "Budget nearly exhausted."
-    )
+    assert explanation["why"] == ("Budget nearly exhausted.")
 
 
 def test_actionable_property():

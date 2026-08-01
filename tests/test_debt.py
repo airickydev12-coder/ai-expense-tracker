@@ -1,7 +1,8 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.debt.models import Debt
-from decimal import Decimal
 
 
 def test_debt_creation():

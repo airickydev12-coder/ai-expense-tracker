@@ -56,26 +56,14 @@ class FinancialSnapshotRecord:
     ) -> "FinancialSnapshotRecord":
         """Create a snapshot from JSON."""
         return cls(
-            timestamp=datetime.fromisoformat(
-                data["timestamp"]
-            ),
+            timestamp=datetime.fromisoformat(data["timestamp"]),
             total_income=money_from_json(str(data["total_income"])),
             total_expenses=money_from_json(str(data["total_expenses"])),
             net_cash_flow=money_from_json(str(data["net_cash_flow"])),
-            total_account_balance=money_from_json(
-                str(data["total_account_balance"])
-            ),
-            total_goal_progress=money_from_json(
-                str(data["total_goal_progress"])
-            ),
-            total_debt=money_from_json(
-                str(data["total_debt"])
-            ),
-            net_worth=money_from_json(
-                str(data["net_worth"])
-            ),
-            health_score=int(
-                data["health_score"]
-            ),
+            total_account_balance=money_from_json(str(data["total_account_balance"])),
+            total_goal_progress=money_from_json(str(data["total_goal_progress"])),
+            total_debt=money_from_json(str(data["total_debt"])),
+            net_worth=money_from_json(str(data["net_worth"])),
+            health_score=int(data["health_score"]),
             health_status=data["health_status"],
         )

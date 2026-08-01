@@ -21,7 +21,9 @@ class BudgetOverrunRule(FinancialRule):
                         f"Your {budget['category']} budget is over by "
                         f"${abs(remaining):.2f}."
                     ),
-                    action="Review recent spending and reduce expenses in this category.",
+                    action=(
+                        "Review recent spending and reduce expenses in this category."
+                    ),
                 )
 
         return None

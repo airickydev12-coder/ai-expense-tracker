@@ -1,11 +1,19 @@
 from collections.abc import Callable
 from decimal import Decimal
 
+from src.core.constants import SECONDS_PER_DAY
 from src.core.exceptions import ValidationError
 from src.core.money import ZERO
 from src.financial.forecasting.models import MetricProjection
 from src.financial.history.models import FinancialSnapshotRecord
-
+from src.financial.scenarios.comparison import (
+    METRIC_ACCOUNT_BALANCE,
+    METRIC_GOAL_PROGRESS,
+    METRIC_HEALTH_SCORE,
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
+)
 
 MetricGetter = Callable[[FinancialSnapshotRecord], Decimal]
 
@@ -15,9 +23,7 @@ def validate_forecast_horizon(
 ) -> None:
     """Validate a forecast horizon."""
     if horizon_days <= 0:
-        raise ValidationError(
-            "Forecast horizon must be greater than zero."
-        )
+        raise ValidationError("Forecast horizon must be greater than zero.")
 
 
 def sort_history(
@@ -35,12 +41,9 @@ def calculate_elapsed_days(
     last_record: FinancialSnapshotRecord,
 ) -> float:
     """Return elapsed time between two records in fractional days."""
-    elapsed_seconds = (
-        last_record.timestamp
-        - first_record.timestamp
-    ).total_seconds()
+    elapsed_seconds = (last_record.timestamp - first_record.timestamp).total_seconds()
 
-    return elapsed_seconds / 86400
+    return elapsed_seconds / SECONDS_PER_DAY
 
 
 def calculate_daily_change(
@@ -66,9 +69,7 @@ def calculate_daily_change(
     first_value = value_getter(first_record)
     last_value = value_getter(last_record)
 
-    return (
-        last_value - first_value
-    ) / Decimal(str(elapsed_days))
+    return (last_value - first_value) / Decimal(str(elapsed_days))
 
 
 def project_metric(
@@ -84,24 +85,17 @@ def project_metric(
     validate_forecast_horizon(horizon_days)
 
     if not history:
-        raise ValidationError(
-            "At least one historical snapshot is required."
-        )
+        raise ValidationError("At least one historical snapshot is required.")
 
     ordered_history = sort_history(history)
-    current_value = value_getter(
-        ordered_history[-1]
-    )
+    current_value = value_getter(ordered_history[-1])
 
     daily_change = calculate_daily_change(
         ordered_history,
         value_getter,
     )
 
-    projected_value = (
-        current_value
-        + daily_change * horizon_days
-    )
+    projected_value = current_value + daily_change * horizon_days
 
     if minimum_value is not None:
         projected_value = max(
@@ -115,9 +109,7 @@ def project_metric(
             maximum_value,
         )
 
-    projected_change = (
-        projected_value - current_value
-    )
+    projected_change = projected_value - current_value
 
     return MetricProjection(
         metric=metric,
@@ -135,7 +127,7 @@ def project_net_worth(
 ) -> MetricProjection:
     """Project net worth."""
     return project_metric(
-        metric="Net Worth",
+        metric=METRIC_NET_WORTH,
         history=history,
         value_getter=lambda record: record.net_worth,
         horizon_days=horizon_days,
@@ -148,7 +140,7 @@ def project_cash_flow(
 ) -> MetricProjection:
     """Project net cash flow."""
     return project_metric(
-        metric="Cash Flow",
+        metric=METRIC_NET_CASH_FLOW,
         history=history,
         value_getter=lambda record: record.net_cash_flow,
         horizon_days=horizon_days,
@@ -161,11 +153,9 @@ def project_account_balance(
 ) -> MetricProjection:
     """Project total account balance."""
     return project_metric(
-        metric="Account Balance",
+        metric=METRIC_ACCOUNT_BALANCE,
         history=history,
-        value_getter=(
-            lambda record: record.total_account_balance
-        ),
+        value_getter=(lambda record: record.total_account_balance),
         horizon_days=horizon_days,
         minimum_value=ZERO,
     )
@@ -177,11 +167,9 @@ def project_goal_progress(
 ) -> MetricProjection:
     """Project total financial-goal progress."""
     return project_metric(
-        metric="Goal Progress",
+        metric=METRIC_GOAL_PROGRESS,
         history=history,
-        value_getter=(
-            lambda record: record.total_goal_progress
-        ),
+        value_getter=(lambda record: record.total_goal_progress),
         horizon_days=horizon_days,
         minimum_value=ZERO,
     )
@@ -193,7 +181,7 @@ def project_total_debt(
 ) -> MetricProjection:
     """Project total outstanding debt."""
     return project_metric(
-        metric="Total Debt",
+        metric=METRIC_TOTAL_DEBT,
         history=history,
         value_getter=lambda record: record.total_debt,
         horizon_days=horizon_days,
@@ -207,11 +195,9 @@ def project_health_score(
 ) -> MetricProjection:
     """Project financial health score."""
     return project_metric(
-        metric="Health Score",
+        metric=METRIC_HEALTH_SCORE,
         history=history,
-        value_getter=(
-            lambda record: Decimal(record.health_score)
-        ),
+        value_getter=(lambda record: Decimal(record.health_score)),
         horizon_days=horizon_days,
         minimum_value=ZERO,
         maximum_value=Decimal("100"),

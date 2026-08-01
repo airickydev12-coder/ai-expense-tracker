@@ -16,7 +16,6 @@ from src.financial.goals.projections import (
     build_goal_projection,
 )
 
-
 AS_OF_DATE = date(
     2026,
     7,

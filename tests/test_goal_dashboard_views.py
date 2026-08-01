@@ -16,7 +16,6 @@ from src.presentation.goal_dashboard_views import (
     render_goal_dashboard_item,
 )
 
-
 AS_OF_DATE = date(2027, 1, 1)
 
 
@@ -42,9 +41,7 @@ def test_render_goal_dashboard_item() -> None:
         as_of_date=AS_OF_DATE,
     )
 
-    output = render_goal_dashboard_item(
-        dashboard.items[0]
-    )
+    output = render_goal_dashboard_item(dashboard.items[0])
 
     assert "1. Emergency Fund" in output
     assert "$4,000.00 of $10,000.00" in output

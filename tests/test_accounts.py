@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.accounts.models import Account
-
-from decimal import Decimal
 
 
 def test_account_creation():

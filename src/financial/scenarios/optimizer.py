@@ -20,7 +20,6 @@ from src.financial.scenarios.service import (
     scenario_service,
 )
 
-
 DEFAULT_EXPENSE_REDUCTION_PERCENTAGES = (
     10.0,
     15.0,
@@ -99,7 +98,9 @@ class OptimizationFailure:
         normalized_error = self.error.strip()
 
         if not normalized_name:
-            raise ValidationError("Optimization failure candidate name cannot be empty.")
+            raise ValidationError(
+                "Optimization failure candidate name cannot be empty."
+            )
 
         if not normalized_error:
             raise ValidationError("Optimization failure error cannot be empty.")

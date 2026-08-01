@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.goals.service import (
@@ -11,8 +13,6 @@ from src.financial.goals.service import (
     load_goals,
     update_goal,
 )
-
-from decimal import Decimal
 
 
 def setup_function():

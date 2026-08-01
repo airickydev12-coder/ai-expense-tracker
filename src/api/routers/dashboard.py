@@ -5,7 +5,6 @@ from fastapi import APIRouter
 from src.api.schemas.dashboard import DashboardResponse
 from src.financial.application.dashboard_service import build_dashboard
 
-
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"],

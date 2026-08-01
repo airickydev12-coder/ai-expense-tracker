@@ -31,8 +31,7 @@ def test_generate_recommendations_returns_prioritized_results():
 
     assert recommendations
     assert all(
-        recommendations[index].priority
-        >= recommendations[index + 1].priority
+        recommendations[index].priority >= recommendations[index + 1].priority
         for index in range(len(recommendations) - 1)
     )
 

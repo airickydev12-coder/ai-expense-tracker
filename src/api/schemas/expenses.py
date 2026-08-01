@@ -1,9 +1,10 @@
 """API schemas for expense endpoints."""
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.financial.shared.categories import ExpenseCategory
-from decimal import Decimal
 
 
 class ExpenseCreateRequest(BaseModel):

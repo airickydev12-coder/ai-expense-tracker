@@ -3,6 +3,8 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+SPENDING_CONCENTRATION_HIGH_THRESHOLD = 0.50
+
 
 class SpendingConcentrationRule(FinancialRule):
     """Detect excessive spending concentration in one category."""
@@ -23,7 +25,7 @@ class SpendingConcentrationRule(FinancialRule):
         largest_amount = category_totals[largest_category]
         concentration = largest_amount / total_spending
 
-        if concentration >= 0.50:
+        if concentration >= SPENDING_CONCENTRATION_HIGH_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.MEDIUM,
                 category=RecommendationCategory.EXPENSES,

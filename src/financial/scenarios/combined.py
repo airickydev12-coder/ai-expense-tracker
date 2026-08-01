@@ -52,7 +52,7 @@ def _get_assumption_value(
 
         try:
             return to_money(assumption.value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return ZERO
 
     return ZERO

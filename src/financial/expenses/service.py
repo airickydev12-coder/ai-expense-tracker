@@ -1,13 +1,13 @@
 from decimal import Decimal
 
 from src.core.logging import get_logger
+from src.financial.events.bus import event_bus
+from src.financial.events.event_types import FinancialEvent
 from src.financial.expenses.models import Expense
 from src.financial.expenses.repository import (
     load_expenses_from_file,
     save_expenses_to_file,
 )
-from src.financial.events.bus import event_bus
-from src.financial.events.event_types import FinancialEvent
 from src.financial.shared.categories import ExpenseCategory
 
 logger = get_logger(__name__)

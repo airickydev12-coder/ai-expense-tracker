@@ -11,7 +11,8 @@ def generate_insights(snapshot: dict) -> list[str]:
 
     if snapshot["total_debt"] > snapshot["total_account_balance"]:
         insights.append(
-            "Your debt exceeds your available cash. Consider prioritizing debt repayment."
+            "Your debt exceeds your available cash. "
+            "Consider prioritizing debt repayment."
         )
 
     if snapshot["health_score"] >= 85:

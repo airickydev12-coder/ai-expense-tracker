@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.bills.models import Bill
-
-from decimal import Decimal
 
 
 def test_bill_creation():

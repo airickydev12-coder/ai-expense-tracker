@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
-from datetime import datetime
-from datetime import timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
@@ -54,7 +52,9 @@ class GoalLedgerEntry:
         try:
             UUID(self.entry_id)
         except (TypeError, ValueError) as error:
-            raise ValidationError("Goal ledger entry ID must be a valid UUID.") from error
+            raise ValidationError(
+                "Goal ledger entry ID must be a valid UUID."
+            ) from error
 
         if self.goal_id <= 0:
             raise ValidationError("Goal ledger goal ID must be greater than zero.")
@@ -116,7 +116,9 @@ class GoalLedgerEntry:
             try:
                 UUID(self.reverses_entry_id)
             except (TypeError, ValueError) as error:
-                raise ValidationError("reverses_entry_id must be a valid UUID.") from error
+                raise ValidationError(
+                    "reverses_entry_id must be a valid UUID."
+                ) from error
 
         elif self.reverses_entry_id is not None:
             raise ValidationError("Only reversal entries may set reverses_entry_id.")
@@ -205,4 +207,6 @@ class GoalLedgerEntry:
             TypeError,
             ValueError,
         ) as error:
-            raise PersistenceError("Goal ledger entry contains invalid data.") from error
+            raise PersistenceError(
+                "Goal ledger entry contains invalid data."
+            ) from error

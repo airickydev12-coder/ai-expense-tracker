@@ -15,7 +15,6 @@ from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 from src.presentation import goal_planning_cli
 
-
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 

@@ -36,19 +36,14 @@ class RecommendationLifecycleManager:
         records: list[RecommendationRecord],
     ) -> None:
         """Replace all current records with loaded records."""
-        self._records = {
-            record.recommendation_key: record
-            for record in records
-        }
+        self._records = {record.recommendation_key: record for record in records}
 
     def register(
         self,
         recommendation: Recommendation,
     ) -> RecommendationRecord:
         """Register a recommendation without creating duplicates."""
-        existing_record = self.get_record(
-            recommendation.key
-        )
+        existing_record = self.get_record(recommendation.key)
 
         if existing_record is not None:
             return existing_record

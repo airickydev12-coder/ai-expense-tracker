@@ -8,25 +8,21 @@ from src.financial.scenarios.models import (
 from src.financial.scenarios.service import (
     run_financial_scenario,
 )
-from src.presentation.views import (
-    display_scenario_management_menu,
-    display_scenario_result,
-)
-
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace,
 )
-
-from src.presentation.scenario_workspace_cli import (
-    manage_scenario_workspace,
-)
-
 from src.presentation.combined_plan_cli import (
     run_combined_plan_builder,
 )
-
 from src.presentation.optimizer_cli import (
     manage_optimizer,
+)
+from src.presentation.scenario_workspace_cli import (
+    manage_scenario_workspace,
+)
+from src.presentation.views import (
+    display_scenario_management_menu,
+    display_scenario_result,
 )
 
 

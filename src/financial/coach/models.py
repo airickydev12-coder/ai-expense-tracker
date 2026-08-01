@@ -151,7 +151,9 @@ class AdviceExplanation:
             raise ValidationError("Advice explanation summary cannot be empty.")
 
         if not normalized_why:
-            raise ValidationError("Advice explanation must state why the advice matters.")
+            raise ValidationError(
+                "Advice explanation must state why the advice matters."
+            )
 
         object.__setattr__(
             self,

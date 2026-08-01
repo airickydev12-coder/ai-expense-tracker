@@ -28,7 +28,6 @@ from src.financial.goals.projections import (
     build_goal_projection,
 )
 
-
 MoneyInput = Decimal | int | float
 
 
@@ -358,4 +357,6 @@ def _validate_unique_goal_ids(
     goal_ids = [request.goal.id for request in requests]
 
     if len(goal_ids) != len(set(goal_ids)):
-        raise ValidationError("Goal planning requests cannot contain duplicate " "goal IDs.")
+        raise ValidationError(
+            "Goal planning requests cannot contain duplicate " "goal IDs."
+        )

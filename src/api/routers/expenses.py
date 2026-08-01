@@ -1,6 +1,6 @@
 """Expense API endpoints."""
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -13,13 +13,12 @@ from src.api.schemas.expenses import (
     ExpenseResponse,
     ExpenseUpdateRequest,
 )
+from src.core.money import CURRENCY_PRECISION
 from src.financial.expenses import analytics as expense_analytics
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
-
-CURRENCY_PRECISION = Decimal("0.01")
 
 
 @router.get("/category-totals", response_model=list[CategoryTotalResponse])

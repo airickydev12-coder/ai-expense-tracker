@@ -17,7 +17,9 @@ class NetWorthRule(FinancialRule):
                 category=RecommendationCategory.WEALTH,
                 title="Negative Net Worth",
                 message="Your net worth is negative.",
-                action="Focus on reducing debt, building savings, and increasing assets.",
+                action=(
+                    "Focus on reducing debt, building savings, and increasing assets."
+                ),
             )
 
         return None

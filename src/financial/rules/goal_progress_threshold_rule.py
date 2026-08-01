@@ -26,8 +26,7 @@ class GoalProgressThresholdRule(FinancialRule):
                     category=RecommendationCategory.GOALS,
                     title="Low Goal Progress",
                     message=(
-                        f"Your goal '{goal['name']}' is "
-                        f"{progress:.0%} funded."
+                        f"Your goal '{goal['name']}' is " f"{progress:.0%} funded."
                     ),
                     action="Consider increasing contributions toward this goal.",
                 )

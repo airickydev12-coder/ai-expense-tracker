@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.scenarios.income_scenario import (
@@ -13,8 +15,6 @@ from src.financial.scenarios.service import (
     run_financial_scenario,
     scenario_service,
 )
-
-from decimal import Decimal
 
 
 def build_snapshot() -> dict:

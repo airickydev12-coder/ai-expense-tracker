@@ -20,7 +20,6 @@ from src.financial.recommendations.priority import (
     RecommendationPriority,
 )
 
-
 router = APIRouter(
     prefix="/recommendations",
     tags=["Recommendations"],

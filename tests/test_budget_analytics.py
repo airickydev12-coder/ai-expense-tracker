@@ -1,14 +1,13 @@
-from src.financial.budgets.analytics import get_budget_variance
-from src.financial.budgets.models import Budget
-from src.financial.shared.categories import ExpenseCategory
-from src.financial.expenses.models import Expense
+from decimal import Decimal
+
 from src.financial.budgets.analytics import (
     get_budget_status,
     get_budget_summary,
     get_budget_variance,
 )
-
-from decimal import Decimal
+from src.financial.budgets.models import Budget
+from src.financial.expenses.models import Expense
+from src.financial.shared.categories import ExpenseCategory
 
 
 def test_get_budget_variance_under_budget():

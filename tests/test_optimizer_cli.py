@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.scenarios.models import (
     ScenarioResult,
     ScenarioType,
@@ -10,8 +12,6 @@ from src.financial.scenarios.ranking import (
     rank_scenarios,
 )
 from src.presentation import optimizer_cli
-
-from decimal import Decimal
 
 
 def build_snapshot() -> dict:

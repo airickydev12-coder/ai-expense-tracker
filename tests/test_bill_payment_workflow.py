@@ -1,9 +1,9 @@
+from decimal import Decimal
+
 from src.financial.bills.models import Bill
 from src.financial.expenses.service import expenses
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.workflows.bill_payment import pay_bill
-
-from decimal import Decimal
 
 
 def test_pay_bill_creates_expense():

@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
 from src.core.exceptions import PersistenceError, ValidationError
 from src.core.logging import get_logger
+from src.core.money import CURRENCY_PRECISION
 from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
     MoneyInput,
@@ -18,8 +19,6 @@ from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 
 logger = get_logger(__name__)
-
-MONEY_QUANTUM = Decimal("0.01")
 
 
 def load_goal_planning_requests_from_file(
@@ -247,7 +246,7 @@ def _money_to_json(value: MoneyInput) -> str:
         raise PersistenceError("Goal-planning monetary values must be finite.")
 
     return format(
-        amount.quantize(MONEY_QUANTUM),
+        amount.quantize(CURRENCY_PRECISION),
         ".2f",
     )
 
@@ -265,7 +264,7 @@ def _money_from_json(value: object) -> Decimal:
     if not amount.is_finite():
         raise PersistenceError("Persisted monetary values must be finite.")
 
-    return amount.quantize(MONEY_QUANTUM)
+    return amount.quantize(CURRENCY_PRECISION)
 
 
 def _parse_goal_id(
@@ -280,7 +279,9 @@ def _parse_goal_id(
         ) from error
 
     if goal_id <= 0:
-        raise PersistenceError("Goal-planning request goal_id must be greater than zero.")
+        raise PersistenceError(
+            "Goal-planning request goal_id must be greater than zero."
+        )
 
     return goal_id
 

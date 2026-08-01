@@ -14,9 +14,7 @@ def select_forecast_horizon() -> int | None:
     print("3. 365 days")
     print("4. Back")
 
-    selection = input(
-        "Choose a forecast horizon: "
-    ).strip()
+    selection = input("Choose a forecast horizon: ").strip()
 
     horizons = {
         "1": 30,
@@ -30,10 +28,7 @@ def select_forecast_horizon() -> int | None:
     horizon = horizons.get(selection)
 
     if horizon is None:
-        print(
-            "Invalid forecast option. "
-            "Please choose 1, 2, 3, or 4."
-        )
+        print("Invalid forecast option. " "Please choose 1, 2, 3, or 4.")
         return None
 
     return horizon
@@ -47,9 +42,7 @@ def display_current_forecast() -> None:
         return
 
     try:
-        forecast = build_current_financial_forecast(
-            horizon_days=horizon_days
-        )
+        forecast = build_current_financial_forecast(horizon_days=horizon_days)
     except ValueError as error:
         print(f"\nUnable to build forecast: {error}")
         return

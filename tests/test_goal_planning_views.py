@@ -30,7 +30,6 @@ from src.presentation.goal_planning_views import (
     render_goal_projection,
 )
 
-
 AS_OF_DATE = date(
     2026,
     7,

@@ -4,10 +4,10 @@ from decimal import Decimal
 
 import pytest
 
+from src.financial.accounts import service as account_service
 from src.financial.application.financial_snapshot_service import (
     build_financial_snapshot,
 )
-from src.financial.accounts import service as account_service
 from src.financial.bills import service as bill_service
 from src.financial.budgets import service as budget_service
 from src.financial.budgets.models import Budget

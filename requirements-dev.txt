@@ -10,3 +10,4 @@ pluggy==1.6.0
 Pygments==2.20.0
 pytest==9.1.1
 pytokens==0.4.1
+ruff==0.16.1

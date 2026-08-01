@@ -56,12 +56,19 @@ def test_save_and_load_goal_planning_requests(tmp_path) -> None:
 
 def test_load_ignores_orphaned_goal_requests(tmp_path) -> None:
     file_path = tmp_path / "planning.json"
-    file_path.write_text(json.dumps([{
-        "goal_id": 99,
-        "target_date": "2028-12-31",
-        "planned_monthly_contribution": 500,
-        "priority": "HIGH",
-    }]), encoding="utf-8")
+    file_path.write_text(
+        json.dumps(
+            [
+                {
+                    "goal_id": 99,
+                    "target_date": "2028-12-31",
+                    "planned_monthly_contribution": 500,
+                    "priority": "HIGH",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
 
     assert load_goal_planning_requests_from_file([], file_path=file_path) == {}
 
@@ -84,15 +91,21 @@ def test_remove_goal_planning_request(tmp_path) -> None:
     )
     file_path = tmp_path / "planning.json"
 
-    save_goal_planning_requests_to_file({
-        first_goal.id: build_request(first_goal),
-        second_goal.id: build_request(second_goal),
-    }, file_path=file_path)
-
-    assert remove_goal_planning_request_from_file(
-        first_goal.id,
+    save_goal_planning_requests_to_file(
+        {
+            first_goal.id: build_request(first_goal),
+            second_goal.id: build_request(second_goal),
+        },
         file_path=file_path,
-    ) is True
+    )
+
+    assert (
+        remove_goal_planning_request_from_file(
+            first_goal.id,
+            file_path=file_path,
+        )
+        is True
+    )
 
     loaded = load_goal_planning_requests_from_file(
         [first_goal, second_goal],

@@ -1,7 +1,7 @@
-from src.financial.goals.models import Goal
 from decimal import Decimal
 
 from src.core.exceptions import ValidationError
+from src.financial.goals.models import Goal
 
 
 def apply_contribution_to_goal(

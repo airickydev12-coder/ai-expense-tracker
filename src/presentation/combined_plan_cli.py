@@ -8,9 +8,6 @@ from src.financial.scenarios.models import (
     ScenarioRequest,
     ScenarioType,
 )
-from src.financial.scenarios.workspace_service import (
-    save_result_to_workspace,
-)
 from src.presentation.views import (
     display_combined_plan_builder_menu,
     display_combined_plan_result,

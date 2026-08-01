@@ -5,10 +5,9 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.routers import recommendations as recommendations_router
-from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
-
 
 client = TestClient(app)
 

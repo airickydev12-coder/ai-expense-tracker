@@ -3,6 +3,8 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+HIGH_INTEREST_RATE_THRESHOLD = 15
+
 
 class HighInterestDebtRule(FinancialRule):
     """Warn when debt has a high interest rate."""
@@ -12,7 +14,10 @@ class HighInterestDebtRule(FinancialRule):
         debts = snapshot.get("debts", [])
 
         for debt in debts:
-            if debt["balance"] > 0 and debt["interest_rate"] >= 15:
+            if (
+                debt["balance"] > 0
+                and debt["interest_rate"] >= HIGH_INTEREST_RATE_THRESHOLD
+            ):
                 return Recommendation(
                     priority=RecommendationPriority.HIGH,
                     category=RecommendationCategory.DEBT,

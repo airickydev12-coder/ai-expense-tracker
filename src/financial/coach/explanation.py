@@ -4,6 +4,7 @@ from src.financial.coach.models import (
     AdviceExplanation,
     CoachingAdvice,
 )
+from src.financial.scenarios.comparison import METRIC_HEALTH_SCORE
 from src.financial.scenarios.models import (
     ScenarioResult,
 )
@@ -17,7 +18,7 @@ def _format_change(
     change: Decimal,
 ) -> str:
     """Format one projected financial change."""
-    if metric == "Health Score":
+    if metric == METRIC_HEALTH_SCORE:
         return f"{metric} changes by " f"{change:+.2f} points."
 
     return f"{metric} changes by " f"{change:+,.2f}."

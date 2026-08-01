@@ -28,9 +28,7 @@ def select_recommendation_key(
 
     display_recommendations(recommendations)
 
-    selection_text = input(
-        "Enter the recommendation number: "
-    ).strip()
+    selection_text = input("Enter the recommendation number: ").strip()
 
     try:
         selection = int(selection_text)
@@ -42,9 +40,7 @@ def select_recommendation_key(
         print("Recommendation selection is out of range.")
         return None
 
-    recommendation_key = recommendations[
-        selection - 1
-    ].get("key")
+    recommendation_key = recommendations[selection - 1].get("key")
 
     if not recommendation_key:
         print("The selected recommendation has no key.")
@@ -69,9 +65,7 @@ def select_history_record_key(
 
     display_recommendation_history(sorted_records)
 
-    selection_text = input(
-        "Enter the history record number: "
-    ).strip()
+    selection_text = input("Enter the history record number: ").strip()
 
     try:
         selection = int(selection_text)
@@ -83,9 +77,7 @@ def select_history_record_key(
         print("History selection is out of range.")
         return None
 
-    return sorted_records[
-        selection - 1
-    ].recommendation_key
+    return sorted_records[selection - 1].recommendation_key
 
 
 def manage_recommendations() -> None:
@@ -93,9 +85,7 @@ def manage_recommendations() -> None:
     while True:
         display_recommendation_management_menu()
 
-        recommendation_choice = input(
-            "Choose an option: "
-        ).strip()
+        recommendation_choice = input("Choose an option: ").strip()
 
         snapshot = build_current_financial_snapshot()
         active_recommendations = snapshot.get(
@@ -105,17 +95,13 @@ def manage_recommendations() -> None:
         history = get_recommendation_history()
 
         if recommendation_choice == "1":
-            display_recommendations(
-                active_recommendations
-            )
+            display_recommendations(active_recommendations)
 
         elif recommendation_choice == "2":
             display_recommendation_history(history)
 
         elif recommendation_choice == "3":
-            recommendation_key = (
-                select_history_record_key(history)
-            )
+            recommendation_key = select_history_record_key(history)
 
             if recommendation_key is None:
                 continue
@@ -130,23 +116,15 @@ def manage_recommendations() -> None:
             if record is None:
                 print("Recommendation record not found.")
             else:
-                print(
-                    "Recommendation marked as active."
-                )
+                print("Recommendation marked as active.")
 
         elif recommendation_choice == "4":
-            recommendation_key = (
-                select_recommendation_key(
-                    active_recommendations
-                )
-            )
+            recommendation_key = select_recommendation_key(active_recommendations)
 
             if recommendation_key is None:
                 continue
 
-            note = input(
-                "Optional completion note: "
-            ).strip()
+            note = input("Optional completion note: ").strip()
 
             record = complete_recommendation(
                 recommendation_key,
@@ -156,23 +134,15 @@ def manage_recommendations() -> None:
             if record is None:
                 print("Recommendation record not found.")
             else:
-                print(
-                    "Recommendation marked as completed."
-                )
+                print("Recommendation marked as completed.")
 
         elif recommendation_choice == "5":
-            recommendation_key = (
-                select_recommendation_key(
-                    active_recommendations
-                )
-            )
+            recommendation_key = select_recommendation_key(active_recommendations)
 
             if recommendation_key is None:
                 continue
 
-            note = input(
-                "Optional dismissal note: "
-            ).strip()
+            note = input("Optional dismissal note: ").strip()
 
             record = dismiss_recommendation(
                 recommendation_key,
@@ -185,18 +155,12 @@ def manage_recommendations() -> None:
                 print("Recommendation dismissed.")
 
         elif recommendation_choice == "6":
-            recommendation_key = (
-                select_recommendation_key(
-                    active_recommendations
-                )
-            )
+            recommendation_key = select_recommendation_key(active_recommendations)
 
             if recommendation_key is None:
                 continue
 
-            note = input(
-                "Optional suppression note: "
-            ).strip()
+            note = input("Optional suppression note: ").strip()
 
             record = suppress_recommendation(
                 recommendation_key,
@@ -212,7 +176,4 @@ def manage_recommendations() -> None:
             return
 
         else:
-            print(
-                "Invalid recommendation option. "
-                "Please choose 1 through 7."
-            )
+            print("Invalid recommendation option. " "Please choose 1 through 7.")

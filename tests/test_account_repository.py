@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -7,7 +8,6 @@ from src.financial.accounts.repository import (
     load_accounts_from_file,
     save_accounts_to_file,
 )
-from decimal import Decimal
 
 
 def test_save_and_load_accounts(tmp_path):

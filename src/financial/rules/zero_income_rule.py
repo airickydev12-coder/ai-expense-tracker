@@ -18,7 +18,10 @@ class ZeroIncomeRule(FinancialRule):
                 category=RecommendationCategory.INCOME,
                 title="No Income Recorded",
                 message="No income has been recorded while expenses exist.",
-                action="Add income sources so Financial Core can calculate accurate cash flow.",
+                action=(
+                    "Add income sources so Financial Core can calculate "
+                    "accurate cash flow."
+                ),
             )
 
         return None

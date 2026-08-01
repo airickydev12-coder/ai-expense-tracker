@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.accounts.service import (
     accounts,
     add_account,
@@ -8,7 +10,6 @@ from src.financial.accounts.service import (
     load_accounts,
     update_account,
 )
-from decimal import Decimal
 
 
 def setup_function():

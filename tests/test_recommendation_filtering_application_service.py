@@ -5,8 +5,8 @@ import pytest
 from src.financial.application import (
     recommendation_application_service as recommendation_service,
 )
-from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 
 

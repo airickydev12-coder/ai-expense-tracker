@@ -1,7 +1,7 @@
-from src.financial.bills.models import Bill
 from decimal import Decimal
 
 from src.core.exceptions import ValidationError
+from src.financial.bills.models import Bill
 
 
 def get_total_bill_amount(

@@ -1,9 +1,5 @@
 from decimal import Decimal
 
-from src.financial.forecasting.models import (
-    FinancialForecast,
-    MetricProjection,
-)
 from src.financial.budgets.service import get_budgets
 from src.financial.expenses.analytics import (
     get_average,
@@ -12,34 +8,40 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.service import get_expenses
+from src.financial.forecasting.models import (
+    FinancialForecast,
+    MetricProjection,
+)
 from src.financial.history.models import FinancialSnapshotRecord
+from src.financial.history.trends import analyze_financial_trends
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.reports.budget_report import build_budget_report
-from src.financial.shared.categories import ExpenseCategory
-from src.financial.history.trends import analyze_financial_trends
-from src.financial.scenarios.models import (
-    ScenarioImpact,
-    ScenarioResult,
-    ScenarioRequest,
+from src.financial.scenarios.comparison import (
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
 )
-
 from src.financial.scenarios.formatter import (
     format_metric_comparison,
+)
+from src.financial.scenarios.models import (
+    ScenarioImpact,
+    ScenarioRequest,
+    ScenarioResult,
+)
+from src.financial.scenarios.optimizer import (
+    OptimizationResult,
+)
+from src.financial.scenarios.plan import (
+    ScenarioPlanResult,
 )
 from src.financial.scenarios.report import (
     build_scenario_comparison_report,
 )
-
-from src.financial.scenarios.plan import (
-    ScenarioPlanResult,
-)
-
-from src.financial.scenarios.optimizer import (
-    OptimizationResult,
-)
 from src.financial.scenarios.scoring import (
     ScenarioScore,
 )
+from src.financial.shared.categories import ExpenseCategory
 
 
 def _format_signed_currency(value: Decimal) -> str:
@@ -446,36 +448,21 @@ def display_financial_trends(
 
     print("\nChanges")
     print("----------------------------------------")
-    print(
-        f"Net Worth Change:      "
-        f"{_format_signed_currency(
+    print(f"Net Worth Change:      " f"{_format_signed_currency(
             trend_summary.net_worth.change
-        )}"
-    )
-    print(
-        f"Cash Flow Change:      "
-        f"{_format_signed_currency(
+        )}")
+    print(f"Cash Flow Change:      " f"{_format_signed_currency(
             trend_summary.cash_flow.change
-        )}"
-    )
-    print(
-        f"Income Change:         "
-        f"{_format_signed_currency(
+        )}")
+    print(f"Income Change:         " f"{_format_signed_currency(
             trend_summary.income.change
-        )}"
-    )
-    print(
-        f"Expense Change:        "
-        f"{_format_signed_currency(
+        )}")
+    print(f"Expense Change:        " f"{_format_signed_currency(
             trend_summary.expenses.change
-        )}"
-    )
-    print(
-        f"Health Score Change:   "
-        f"{_format_signed_number(
+        )}")
+    print(f"Health Score Change:   " f"{_format_signed_number(
             int(trend_summary.health_score.change)
-        )}"
-    )
+        )}")
     print("========================================")
 
 
@@ -486,12 +473,9 @@ def _display_currency_projection(
     print(f"\n{projection.metric}")
     print(f"Current:               " f"${projection.current_value:,.2f}")
     print(f"Projected:             " f"${projection.projected_value:,.2f}")
-    print(
-        f"Change:                "
-        f"{_format_signed_currency(
+    print(f"Change:                " f"{_format_signed_currency(
             projection.projected_change
-        )}"
-    )
+        )}")
 
 
 def _display_number_projection(
@@ -501,12 +485,9 @@ def _display_number_projection(
     print(f"\n{projection.metric}")
     print(f"Current:               " f"{projection.current_value:.0f}")
     print(f"Projected:             " f"{projection.projected_value:.0f}")
-    print(
-        f"Change:                "
-        f"{_format_signed_number(
+    print(f"Change:                " f"{_format_signed_number(
             round(projection.projected_change)
-        )}"
-    )
+        )}")
 
 
 def display_financial_forecast(
@@ -724,20 +705,14 @@ def display_combined_plan_result(
 
     print("\nKey Changes")
     print("----------------------------------------")
-    print(
-        f"Net Worth Change:      "
-        f"{_format_signed_currency(
-            plan.get_metric_change('Net Worth')
-        )}"
-    )
-    print(
-        f"Cash Flow Change:      "
-        f"{_format_signed_currency(
-            plan.get_metric_change('Net Cash Flow')
-        )}"
-    )
+    print(f"Net Worth Change:      " f"{_format_signed_currency(
+            plan.get_metric_change(METRIC_NET_WORTH)
+        )}")
+    print(f"Cash Flow Change:      " f"{_format_signed_currency(
+            plan.get_metric_change(METRIC_NET_CASH_FLOW)
+        )}")
 
-    debt_change = plan.get_metric_change("Total Debt")
+    debt_change = plan.get_metric_change(METRIC_TOTAL_DEBT)
 
     debt_reduction = max(
         -debt_change,

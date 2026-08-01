@@ -11,11 +11,7 @@ class DebtPayoffPriorityRule(FinancialRule):
         """Return a recommendation for debt payoff priority."""
         debts = snapshot.get("debts", [])
 
-        active_debts = [
-            debt
-            for debt in debts
-            if debt["balance"] > 0
-        ]
+        active_debts = [debt for debt in debts if debt["balance"] > 0]
 
         if not active_debts:
             return None

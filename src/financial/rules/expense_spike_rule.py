@@ -3,6 +3,8 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+EXPENSE_SPIKE_MULTIPLIER = 3
+
 
 class ExpenseSpikeRule(FinancialRule):
     """Warn when the largest expense is much higher than average."""
@@ -18,7 +20,7 @@ class ExpenseSpikeRule(FinancialRule):
         if average_expense <= 0:
             return None
 
-        if largest_expense["amount"] >= average_expense * 3:
+        if largest_expense["amount"] >= average_expense * EXPENSE_SPIKE_MULTIPLIER:
             return Recommendation(
                 priority=RecommendationPriority.MEDIUM,
                 category=RecommendationCategory.EXPENSES,

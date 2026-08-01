@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.debt.analytics import (
     get_debt_count,
     get_highest_interest_debt,
@@ -6,8 +8,6 @@ from src.financial.debt.analytics import (
     is_debt_paid_off,
 )
 from src.financial.debt.models import Debt
-
-from decimal import Decimal
 
 
 def build_debts() -> list[Debt]:

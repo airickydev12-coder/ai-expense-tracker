@@ -46,9 +46,7 @@ def build_recommendation() -> Recommendation:
 def test_register_recommendation_is_persisted(
     tmp_path,
 ):
-    file_path = (
-        tmp_path / "recommendation_history.json"
-    )
+    file_path = tmp_path / "recommendation_history.json"
 
     load_recommendation_history(file_path)
 
@@ -64,17 +62,13 @@ def test_register_recommendation_is_persisted(
     records = get_recommendation_history()
 
     assert len(records) == 1
-    assert records[0].recommendation_key == (
-        recommendation.key
-    )
+    assert records[0].recommendation_key == (recommendation.key)
 
 
 def test_status_changes_are_persisted(
     tmp_path,
 ):
-    file_path = (
-        tmp_path / "recommendation_history.json"
-    )
+    file_path = tmp_path / "recommendation_history.json"
 
     load_recommendation_history(file_path)
 
@@ -92,17 +86,13 @@ def test_status_changes_are_persisted(
     record = get_recommendation_history()[0]
 
     assert record.status == RecommendationStatus.ACTIVE
-    assert record.note == (
-        "User opened the recommendation."
-    )
+    assert record.note == ("User opened the recommendation.")
 
 
 def test_completed_recommendation_is_filtered(
     tmp_path,
 ):
-    file_path = (
-        tmp_path / "recommendation_history.json"
-    )
+    file_path = tmp_path / "recommendation_history.json"
 
     load_recommendation_history(file_path)
 
@@ -114,9 +104,7 @@ def test_completed_recommendation_is_filtered(
         note="Debt paid off.",
     )
 
-    results = filter_displayable_recommendations(
-        [recommendation]
-    )
+    results = filter_displayable_recommendations([recommendation])
 
     assert results == []
 
@@ -124,9 +112,7 @@ def test_completed_recommendation_is_filtered(
 def test_dismissed_recommendation_stays_hidden_after_reload(
     tmp_path,
 ):
-    file_path = (
-        tmp_path / "recommendation_history.json"
-    )
+    file_path = tmp_path / "recommendation_history.json"
 
     load_recommendation_history(file_path)
 
@@ -141,9 +127,7 @@ def test_dismissed_recommendation_stays_hidden_after_reload(
     reset_recommendation_history()
     load_recommendation_history(file_path)
 
-    results = filter_displayable_recommendations(
-        [recommendation]
-    )
+    results = filter_displayable_recommendations([recommendation])
 
     assert results == []
 
@@ -151,20 +135,14 @@ def test_dismissed_recommendation_stays_hidden_after_reload(
 def test_new_recommendation_is_registered_and_displayed(
     tmp_path,
 ):
-    file_path = (
-        tmp_path / "recommendation_history.json"
-    )
+    file_path = tmp_path / "recommendation_history.json"
 
     load_recommendation_history(file_path)
 
     recommendation = build_recommendation()
 
-    results = filter_displayable_recommendations(
-        [recommendation]
-    )
+    results = filter_displayable_recommendations([recommendation])
 
     assert results == [recommendation]
     assert len(get_recommendation_history()) == 1
-    assert get_recommendation_history()[0].status == (
-        RecommendationStatus.NEW
-    )
+    assert get_recommendation_history()[0].status == (RecommendationStatus.NEW)

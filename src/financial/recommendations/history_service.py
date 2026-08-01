@@ -25,9 +25,7 @@ def load_recommendation_history(
     """Load persisted lifecycle records into memory."""
     global _loaded_file_path
 
-    records = load_recommendation_history_from_file(
-        file_path
-    )
+    records = load_recommendation_history_from_file(file_path)
 
     lifecycle_manager.replace_records(records)
     _loaded_file_path = file_path
@@ -37,11 +35,7 @@ def save_recommendation_history(
     file_path: Path | None = None,
 ) -> None:
     """Save current lifecycle records."""
-    target_path = (
-        file_path
-        if file_path is not None
-        else _loaded_file_path
-    )
+    target_path = file_path if file_path is not None else _loaded_file_path
 
     if target_path is None:
         target_path = RECOMMENDATION_HISTORY_FILE
@@ -52,8 +46,7 @@ def save_recommendation_history(
     )
 
 
-def get_recommendation_history(
-) -> list[RecommendationRecord]:
+def get_recommendation_history() -> list[RecommendationRecord]:
     """Return all lifecycle records."""
     return lifecycle_manager.get_records()
 
@@ -62,27 +55,18 @@ def get_recommendation_record(
     recommendation_key: str,
 ) -> RecommendationRecord | None:
     """Return one lifecycle record by key."""
-    return lifecycle_manager.get_record(
-        recommendation_key
-    )
+    return lifecycle_manager.get_record(recommendation_key)
 
 
 def register_recommendation(
     recommendation: Recommendation,
 ) -> RecommendationRecord:
     """Register and persist a recommendation."""
-    existing_record = lifecycle_manager.get_record(
-        recommendation.key
-    )
+    existing_record = lifecycle_manager.get_record(recommendation.key)
 
-    record = lifecycle_manager.register(
-        recommendation
-    )
+    record = lifecycle_manager.register(recommendation)
 
-    if (
-        existing_record is None
-        and _loaded_file_path is not None
-    ):
+    if existing_record is None and _loaded_file_path is not None:
         save_recommendation_history()
 
     return record
@@ -172,22 +156,13 @@ def filter_displayable_recommendations(
     recommendations: list[Recommendation],
 ) -> list[Recommendation]:
     """Filter recommendations according to persisted lifecycle state."""
-    original_count = len(
-        lifecycle_manager.get_records()
-    )
+    original_count = len(lifecycle_manager.get_records())
 
-    displayable = lifecycle_manager.filter_displayable(
-        recommendations
-    )
+    displayable = lifecycle_manager.filter_displayable(recommendations)
 
-    updated_count = len(
-        lifecycle_manager.get_records()
-    )
+    updated_count = len(lifecycle_manager.get_records())
 
-    if (
-        updated_count != original_count
-        and _loaded_file_path is not None
-    ):
+    if updated_count != original_count and _loaded_file_path is not None:
         save_recommendation_history()
 
     return displayable

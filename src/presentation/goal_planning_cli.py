@@ -7,21 +7,25 @@ from pathlib import Path
 
 from src.core.config import GOAL_PLANNING_REQUESTS_FILE
 from src.core.exceptions import ValidationError
-from src.financial.planning.repository import (
-    load_goal_planning_requests_from_file,
-    save_goal_planning_requests_to_file,
-)
+from src.core.money import CURRENCY_PRECISION
 from src.financial.application.goal_dashboard_service import (
     build_goal_dashboard,
 )
 from src.financial.application.goal_planning_service import (
     GoalPlanningRequest,
     GoalPlanningResult,
-    analyze_goals,
     MoneyInput,
+    analyze_goals,
 )
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
+from src.financial.planning.repository import (
+    load_goal_planning_requests_from_file,
+    save_goal_planning_requests_to_file,
+)
+from src.presentation.goal_dashboard_views import (
+    render_goal_dashboard,
+)
 from src.presentation.goal_planning_helpers import (
     pause,
     print_header,
@@ -32,15 +36,11 @@ from src.presentation.goal_planning_helpers import (
     prompt_for_menu_choice,
     prompt_for_priority,
 )
-from src.presentation.goal_dashboard_views import (
-    render_goal_dashboard,
-)
 from src.presentation.goal_planning_views import (
     render_goal_planning_request,
     render_goal_planning_request_list,
     render_goal_planning_result,
 )
-
 
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
@@ -549,9 +549,11 @@ def _prompt_for_updated_currency(
 ) -> Decimal:
     """Prompt for an optional nonnegative monetary replacement."""
     try:
-        current_amount = Decimal(str(current_value)).quantize(Decimal("0.01"))
+        current_amount = Decimal(str(current_value)).quantize(CURRENCY_PRECISION)
     except (InvalidOperation, ValueError) as error:
-        raise ValidationError("current_value must be a valid monetary amount.") from error
+        raise ValidationError(
+            "current_value must be a valid monetary amount."
+        ) from error
 
     if not current_amount.is_finite():
         raise ValidationError("current_value must be a finite monetary amount.")
@@ -569,7 +571,7 @@ def _prompt_for_updated_currency(
 
         try:
             updated_value = Decimal(raw_value.replace(",", "")).quantize(
-                Decimal("0.01")
+                CURRENCY_PRECISION
             )
         except InvalidOperation:
             output_fn("Enter a valid monetary amount.")
@@ -722,7 +724,7 @@ def collect_monthly_budget(
         output_fn=output_fn,
     )
 
-    return Decimal(str(value)).quantize(Decimal("0.01"))
+    return Decimal(str(value)).quantize(CURRENCY_PRECISION)
 
 
 def analyze_planning_requests(

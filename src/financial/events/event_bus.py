@@ -8,7 +8,9 @@ class EventBus:
     """Simple publish/subscribe event bus."""
 
     def __init__(self) -> None:
-        self._handlers: dict[FinancialEvent, list[Callable[..., None]]] = defaultdict(list)
+        self._handlers: dict[FinancialEvent, list[Callable[..., None]]] = defaultdict(
+            list
+        )
 
     def subscribe(self, event: FinancialEvent, handler: Callable[..., None]) -> None:
         self._handlers[event].append(handler)

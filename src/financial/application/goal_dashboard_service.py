@@ -15,7 +15,6 @@ from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 from src.financial.goals.planning_models import GoalFeasibilityStatus
 
-
 ZERO_MONEY = Decimal("0.00")
 
 

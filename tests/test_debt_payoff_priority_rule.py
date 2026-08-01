@@ -33,9 +33,7 @@ def test_debt_payoff_priority_rule_triggers():
 def test_debt_payoff_priority_rule_returns_none_without_debt():
     rule = DebtPayoffPriorityRule()
 
-    snapshot = {
-        "debts": []
-    }
+    snapshot = {"debts": []}
 
     result = rule.evaluate(snapshot)
 

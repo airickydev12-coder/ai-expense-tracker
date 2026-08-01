@@ -1,6 +1,7 @@
 """Pydantic schemas for budget API requests and responses."""
 
 from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.financial.shared.categories import ExpenseCategory

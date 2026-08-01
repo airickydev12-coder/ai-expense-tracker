@@ -53,10 +53,7 @@ class RecommendationEngine:
                 unique[recommendation.key] = recommendation
                 continue
 
-            if (
-                recommendation_score(recommendation)
-                > recommendation_score(existing)
-            ):
+            if recommendation_score(recommendation) > recommendation_score(existing):
                 unique[recommendation.key] = recommendation
 
         return list(unique.values())

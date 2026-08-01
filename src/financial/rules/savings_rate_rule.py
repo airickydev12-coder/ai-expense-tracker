@@ -3,6 +3,9 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+SAVINGS_RATE_LOW_THRESHOLD = 0.10
+SAVINGS_RATE_STRONG_THRESHOLD = 0.20
+
 
 class SavingsRateRule(FinancialRule):
     """Evaluate the user's monthly savings rate."""
@@ -16,7 +19,7 @@ class SavingsRateRule(FinancialRule):
 
         savings_rate = snapshot["net_cash_flow"] / income
 
-        if savings_rate < 0.10:
+        if savings_rate < SAVINGS_RATE_LOW_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.HIGH,
                 category=RecommendationCategory.SAVINGS,
@@ -25,7 +28,7 @@ class SavingsRateRule(FinancialRule):
                 action="Aim to save at least 10% of your income.",
             )
 
-        if savings_rate >= 0.20:
+        if savings_rate >= SAVINGS_RATE_STRONG_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.LOW,
                 category=RecommendationCategory.SAVINGS,

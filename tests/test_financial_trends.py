@@ -6,6 +6,7 @@ from src.financial.history.trend_direction import (
     FinancialMomentum,
     TrendDirection,
 )
+from src.financial.history.trend_summary import MetricTrend
 from src.financial.history.trends import (
     analyze_financial_trends,
     calculate_overall_momentum,
@@ -13,7 +14,6 @@ from src.financial.history.trends import (
     classify_financial_change,
     classify_health_score_change,
 )
-from src.financial.history.trend_summary import MetricTrend
 
 
 def build_history(
@@ -57,74 +57,41 @@ def build_history(
 
 
 def test_classify_positive_financial_change():
-    assert (
-        classify_financial_change(Decimal("100"))
-        == TrendDirection.IMPROVING
-    )
+    assert classify_financial_change(Decimal("100")) == TrendDirection.IMPROVING
 
 
 def test_classify_negative_financial_change():
-    assert (
-        classify_financial_change(Decimal("-100"))
-        == TrendDirection.DECLINING
-    )
+    assert classify_financial_change(Decimal("-100")) == TrendDirection.DECLINING
 
 
 def test_classify_small_financial_change_as_stable():
-    assert (
-        classify_financial_change(Decimal("24.99"))
-        == TrendDirection.STABLE
-    )
+    assert classify_financial_change(Decimal("24.99")) == TrendDirection.STABLE
 
 
 def test_classify_exact_currency_threshold():
-    assert (
-        classify_financial_change(Decimal("25"))
-        == TrendDirection.IMPROVING
-    )
+    assert classify_financial_change(Decimal("25")) == TrendDirection.IMPROVING
 
-    assert (
-        classify_financial_change(Decimal("-25"))
-        == TrendDirection.DECLINING
-    )
+    assert classify_financial_change(Decimal("-25")) == TrendDirection.DECLINING
 
 
 def test_classify_expense_decrease_as_improving():
-    assert (
-        classify_expense_change(Decimal("-100"))
-        == TrendDirection.IMPROVING
-    )
+    assert classify_expense_change(Decimal("-100")) == TrendDirection.IMPROVING
 
 
 def test_classify_expense_increase_as_declining():
-    assert (
-        classify_expense_change(Decimal("100"))
-        == TrendDirection.DECLINING
-    )
+    assert classify_expense_change(Decimal("100")) == TrendDirection.DECLINING
 
 
 def test_classify_small_expense_change_as_stable():
-    assert (
-        classify_expense_change(Decimal("10"))
-        == TrendDirection.STABLE
-    )
+    assert classify_expense_change(Decimal("10")) == TrendDirection.STABLE
 
 
 def test_classify_health_score_change():
-    assert (
-        classify_health_score_change(2)
-        == TrendDirection.IMPROVING
-    )
+    assert classify_health_score_change(2) == TrendDirection.IMPROVING
 
-    assert (
-        classify_health_score_change(-2)
-        == TrendDirection.DECLINING
-    )
+    assert classify_health_score_change(-2) == TrendDirection.DECLINING
 
-    assert (
-        classify_health_score_change(1)
-        == TrendDirection.STABLE
-    )
+    assert classify_health_score_change(1) == TrendDirection.STABLE
 
 
 def test_calculate_positive_momentum():
@@ -143,10 +110,7 @@ def test_calculate_positive_momentum():
         ),
     ]
 
-    assert (
-        calculate_overall_momentum(trends)
-        == FinancialMomentum.POSITIVE
-    )
+    assert calculate_overall_momentum(trends) == FinancialMomentum.POSITIVE
 
 
 def test_calculate_negative_momentum():
@@ -165,10 +129,7 @@ def test_calculate_negative_momentum():
         ),
     ]
 
-    assert (
-        calculate_overall_momentum(trends)
-        == FinancialMomentum.NEGATIVE
-    )
+    assert calculate_overall_momentum(trends) == FinancialMomentum.NEGATIVE
 
 
 def test_calculate_stable_momentum_when_tied():
@@ -187,41 +148,18 @@ def test_calculate_stable_momentum_when_tied():
         ),
     ]
 
-    assert (
-        calculate_overall_momentum(trends)
-        == FinancialMomentum.STABLE
-    )
+    assert calculate_overall_momentum(trends) == FinancialMomentum.STABLE
 
 
 def test_analyze_financial_trends():
-    summary = analyze_financial_trends(
-        build_history()
-    )
+    summary = analyze_financial_trends(build_history())
 
-    assert (
-        summary.net_worth.direction
-        == TrendDirection.IMPROVING
-    )
-    assert (
-        summary.cash_flow.direction
-        == TrendDirection.IMPROVING
-    )
-    assert (
-        summary.income.direction
-        == TrendDirection.IMPROVING
-    )
-    assert (
-        summary.expenses.direction
-        == TrendDirection.IMPROVING
-    )
-    assert (
-        summary.health_score.direction
-        == TrendDirection.IMPROVING
-    )
-    assert (
-        summary.overall_momentum
-        == FinancialMomentum.POSITIVE
-    )
+    assert summary.net_worth.direction == TrendDirection.IMPROVING
+    assert summary.cash_flow.direction == TrendDirection.IMPROVING
+    assert summary.income.direction == TrendDirection.IMPROVING
+    assert summary.expenses.direction == TrendDirection.IMPROVING
+    assert summary.health_score.direction == TrendDirection.IMPROVING
+    assert summary.overall_momentum == FinancialMomentum.POSITIVE
 
 
 def test_analyze_declining_financial_trends():
@@ -235,53 +173,24 @@ def test_analyze_declining_financial_trends():
         )
     )
 
-    assert (
-        summary.net_worth.direction
-        == TrendDirection.DECLINING
-    )
-    assert (
-        summary.cash_flow.direction
-        == TrendDirection.DECLINING
-    )
-    assert (
-        summary.income.direction
-        == TrendDirection.DECLINING
-    )
-    assert (
-        summary.expenses.direction
-        == TrendDirection.DECLINING
-    )
-    assert (
-        summary.health_score.direction
-        == TrendDirection.DECLINING
-    )
-    assert (
-        summary.overall_momentum
-        == FinancialMomentum.NEGATIVE
-    )
+    assert summary.net_worth.direction == TrendDirection.DECLINING
+    assert summary.cash_flow.direction == TrendDirection.DECLINING
+    assert summary.income.direction == TrendDirection.DECLINING
+    assert summary.expenses.direction == TrendDirection.DECLINING
+    assert summary.health_score.direction == TrendDirection.DECLINING
+    assert summary.overall_momentum == FinancialMomentum.NEGATIVE
 
 
 def test_analyze_financial_trends_with_insufficient_data():
     summary = analyze_financial_trends([])
 
-    assert (
-        summary.net_worth.direction
-        == TrendDirection.INSUFFICIENT_DATA
-    )
-    assert (
-        summary.cash_flow.direction
-        == TrendDirection.INSUFFICIENT_DATA
-    )
-    assert (
-        summary.overall_momentum
-        == FinancialMomentum.INSUFFICIENT_DATA
-    )
+    assert summary.net_worth.direction == TrendDirection.INSUFFICIENT_DATA
+    assert summary.cash_flow.direction == TrendDirection.INSUFFICIENT_DATA
+    assert summary.overall_momentum == FinancialMomentum.INSUFFICIENT_DATA
 
 
 def test_trend_summary_serialization():
-    summary = analyze_financial_trends(
-        build_history()
-    )
+    summary = analyze_financial_trends(build_history())
 
     data = summary.to_dict()
 

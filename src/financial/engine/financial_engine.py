@@ -46,26 +46,13 @@ def build_financial_snapshot(
     largest_expense = get_highest_expense(expenses)
     category_totals = get_category_totals(expenses)
 
-    total_account_balance = sum(
-        account.balance
-        for account in accounts
-    )
+    total_account_balance = sum(account.balance for account in accounts)
 
-    total_goal_progress = sum(
-        goal.current_amount
-        for goal in goals
-    )
+    total_goal_progress = sum(goal.current_amount for goal in goals)
 
-    total_debt = sum(
-        debt.balance
-        for debt in debts
-    )
+    total_debt = sum(debt.balance for debt in debts)
 
-    net_worth = (
-        total_account_balance
-        + total_goal_progress
-        - total_debt
-    )
+    net_worth = total_account_balance + total_goal_progress - total_debt
 
     budget_report = build_budget_report(
         budgets,
@@ -161,8 +148,7 @@ def build_financial_snapshot(
     recommendations = generate_recommendations(snapshot)
 
     snapshot["recommendations"] = [
-        recommendation.to_dict()
-        for recommendation in recommendations
+        recommendation.to_dict() for recommendation in recommendations
     ]
 
     return snapshot

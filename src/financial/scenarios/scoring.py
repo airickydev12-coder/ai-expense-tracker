@@ -5,6 +5,12 @@ from enum import Enum
 from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.comparison import (
+    METRIC_ACCOUNT_BALANCE,
+    METRIC_GOAL_PROGRESS,
+    METRIC_HEALTH_SCORE,
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
     MetricComparison,
 )
 from src.financial.scenarios.models import (
@@ -17,7 +23,6 @@ from src.financial.scenarios.report import (
     ScenarioComparisonReport,
     build_scenario_comparison_report,
 )
-
 
 MIN_SCORE = 0.0
 MAX_SCORE = 100.0
@@ -325,7 +330,7 @@ def score_net_worth(
     """Score projected net-worth change."""
     comparison = _get_comparison(
         report,
-        "Net Worth",
+        METRIC_NET_WORTH,
     )
 
     if comparison is None:
@@ -343,7 +348,7 @@ def score_cash_flow(
     """Score projected net cash-flow change."""
     comparison = _get_comparison(
         report,
-        "Net Cash Flow",
+        METRIC_NET_CASH_FLOW,
     )
 
     if comparison is None:
@@ -364,7 +369,7 @@ def score_debt_improvement(
     """Score projected total-debt change."""
     comparison = _get_comparison(
         report,
-        "Total Debt",
+        METRIC_TOTAL_DEBT,
     )
 
     if comparison is None:
@@ -382,11 +387,11 @@ def score_savings_growth(
     """Score growth in account balances and goal progress."""
     account_comparison = _get_comparison(
         report,
-        "Account Balance",
+        METRIC_ACCOUNT_BALANCE,
     )
     goal_comparison = _get_comparison(
         report,
-        "Goal Progress",
+        METRIC_GOAL_PROGRESS,
     )
 
     component_scores: list[float] = []
@@ -419,7 +424,7 @@ def score_financial_health(
     """Score projected financial-health improvement."""
     comparison = _get_comparison(
         report,
-        "Health Score",
+        METRIC_HEALTH_SCORE,
     )
 
     if comparison is None:

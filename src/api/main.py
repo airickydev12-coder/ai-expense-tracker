@@ -9,10 +9,10 @@ import logging
 
 from fastapi import FastAPI
 
+from src.api.routers import dashboard
 from src.api.routers.budgets import router as budgets_router
 from src.api.routers.expenses import router as expenses_router
 from src.api.routers.health import router as health_router
-from src.api.routers import dashboard
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )

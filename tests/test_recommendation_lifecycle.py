@@ -34,13 +34,9 @@ def build_recommendation() -> Recommendation:
 
 
 def test_recommendation_record_create():
-    record = RecommendationRecord.create(
-        recommendation_key="debt:high_interest_debt"
-    )
+    record = RecommendationRecord.create(recommendation_key="debt:high_interest_debt")
 
-    assert record.recommendation_key == (
-        "debt:high_interest_debt"
-    )
+    assert record.recommendation_key == ("debt:high_interest_debt")
     assert record.status == RecommendationStatus.NEW
     assert record.created_at == record.updated_at
 
@@ -66,13 +62,9 @@ def test_recommendation_record_serialization():
         note="Review monthly.",
     )
 
-    restored_record = RecommendationRecord.from_dict(
-        record.to_dict()
-    )
+    restored_record = RecommendationRecord.from_dict(record.to_dict())
 
-    assert restored_record.recommendation_key == (
-        record.recommendation_key
-    )
+    assert restored_record.recommendation_key == (record.recommendation_key)
     assert restored_record.status == record.status
     assert restored_record.note == "Review monthly."
 
@@ -128,9 +120,7 @@ def test_complete_recommendation():
 
     assert record is not None
     assert record.status == RecommendationStatus.COMPLETED
-    assert manager.should_display(
-        recommendation.key
-    ) is False
+    assert manager.should_display(recommendation.key) is False
 
 
 def test_dismiss_recommendation():
@@ -146,9 +136,7 @@ def test_dismiss_recommendation():
 
     assert record is not None
     assert record.status == RecommendationStatus.DISMISSED
-    assert manager.should_display(
-        recommendation.key
-    ) is False
+    assert manager.should_display(recommendation.key) is False
 
 
 def test_suppress_recommendation():
@@ -164,9 +152,7 @@ def test_suppress_recommendation():
 
     assert record is not None
     assert record.status == RecommendationStatus.SUPPRESSED
-    assert manager.should_display(
-        recommendation.key
-    ) is False
+    assert manager.should_display(recommendation.key) is False
 
 
 def test_status_update_returns_none_for_missing_record():
@@ -181,23 +167,17 @@ def test_status_update_returns_none_for_missing_record():
 def test_should_display_unknown_recommendation():
     manager = RecommendationLifecycleManager()
 
-    assert manager.should_display(
-        "unknown:key"
-    ) is True
+    assert manager.should_display("unknown:key") is True
 
 
 def test_filter_displayable_registers_new_recommendations():
     manager = RecommendationLifecycleManager()
     recommendation = build_recommendation()
 
-    results = manager.filter_displayable(
-        [recommendation]
-    )
+    results = manager.filter_displayable([recommendation])
 
     assert results == [recommendation]
-    assert manager.get_record(
-        recommendation.key
-    ) is not None
+    assert manager.get_record(recommendation.key) is not None
 
 
 def test_filter_displayable_excludes_completed_recommendation():
@@ -207,9 +187,7 @@ def test_filter_displayable_excludes_completed_recommendation():
     manager.register(recommendation)
     manager.complete(recommendation.key)
 
-    results = manager.filter_displayable(
-        [recommendation]
-    )
+    results = manager.filter_displayable([recommendation])
 
     assert results == []
 

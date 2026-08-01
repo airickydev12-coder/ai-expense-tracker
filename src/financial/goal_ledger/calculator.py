@@ -3,10 +3,9 @@ from decimal import Decimal
 
 from src.core.exceptions import ValidationError
 from src.core.money import (
-    add_money,
     ZERO,
+    add_money,
 )
-
 from src.financial.goal_ledger.models import (
     GoalLedgerEntry,
     GoalLedgerEntryType,

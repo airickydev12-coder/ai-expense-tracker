@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.accounts.models import Account
 from src.financial.accounts.service import accounts
 from src.financial.application.financial_state import (
@@ -17,11 +19,10 @@ from src.financial.goals.service import goals
 from src.financial.history.service import clear_history
 from src.financial.income.models import Income
 from src.financial.income.service import income_entries
-from src.financial.shared.categories import ExpenseCategory
 from src.financial.scenarios.workspace import (
     scenario_workspace,
 )
-from decimal import Decimal
+from src.financial.shared.categories import ExpenseCategory
 
 
 def setup_function():

@@ -20,7 +20,6 @@ from src.presentation.goal_planning_helpers import (
     prompt_for_priority,
 )
 
-
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 

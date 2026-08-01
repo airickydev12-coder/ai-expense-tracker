@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.accounts.models import Account
 from src.financial.bills.models import Bill
 from src.financial.budgets.models import Budget
@@ -7,8 +9,6 @@ from src.financial.expenses.models import Expense
 from src.financial.goals.models import Goal
 from src.financial.income.models import Income
 from src.financial.shared.categories import ExpenseCategory
-
-from decimal import Decimal
 
 
 def test_build_financial_snapshot():

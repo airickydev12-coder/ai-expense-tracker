@@ -23,10 +23,7 @@ def get_net_worth_change(
 
     ordered_history = _sort_history(history)
 
-    return (
-        ordered_history[-1].net_worth
-        - ordered_history[0].net_worth
-    )
+    return ordered_history[-1].net_worth - ordered_history[0].net_worth
 
 
 def get_cash_flow_change(
@@ -38,10 +35,7 @@ def get_cash_flow_change(
 
     ordered_history = _sort_history(history)
 
-    return (
-        ordered_history[-1].net_cash_flow
-        - ordered_history[0].net_cash_flow
-    )
+    return ordered_history[-1].net_cash_flow - ordered_history[0].net_cash_flow
 
 
 def get_health_score_change(
@@ -53,10 +47,7 @@ def get_health_score_change(
 
     ordered_history = _sort_history(history)
 
-    return (
-        ordered_history[-1].health_score
-        - ordered_history[0].health_score
-    )
+    return ordered_history[-1].health_score - ordered_history[0].health_score
 
 
 def get_income_change(
@@ -68,10 +59,7 @@ def get_income_change(
 
     ordered_history = _sort_history(history)
 
-    return (
-        ordered_history[-1].total_income
-        - ordered_history[0].total_income
-    )
+    return ordered_history[-1].total_income - ordered_history[0].total_income
 
 
 def get_expense_change(
@@ -83,7 +71,4 @@ def get_expense_change(
 
     ordered_history = _sort_history(history)
 
-    return (
-        ordered_history[-1].total_expenses
-        - ordered_history[0].total_expenses
-    )
+    return ordered_history[-1].total_expenses - ordered_history[0].total_expenses

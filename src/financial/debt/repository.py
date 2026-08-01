@@ -1,14 +1,12 @@
 import json
 from pathlib import Path
 
-from src.core.config import DATA_DIR
+from src.core.config import DEBTS_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.debt.models import Debt
 
 logger = get_logger(__name__)
-
-DEBTS_FILE = DATA_DIR / "debts.json"
 
 
 def load_debts_from_file(
@@ -34,10 +32,7 @@ def load_debts_from_file(
     if not isinstance(raw_data, list):
         raise PersistenceError("Debt data must be stored as a JSON list.")
 
-    debts = [
-        Debt.from_dict(debt_data)
-        for debt_data in raw_data
-    ]
+    debts = [Debt.from_dict(debt_data) for debt_data in raw_data]
 
     logger.debug(
         "Loaded %d debt(s) from %s",
@@ -58,10 +53,7 @@ def save_debts_to_file(
         exist_ok=True,
     )
 
-    debt_data = [
-        debt.to_dict()
-        for debt in debts
-    ]
+    debt_data = [debt.to_dict() for debt in debts]
 
     with file_path.open("w", encoding="utf-8") as file:
         json.dump(

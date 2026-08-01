@@ -3,6 +3,11 @@ from src.financial.coach.models import (
     CoachingCategory,
     CoachingPriority,
 )
+from src.financial.scenarios.comparison import (
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
+)
 from src.financial.scenarios.optimizer import (
     OptimizationResult,
 )
@@ -58,17 +63,17 @@ def _build_expected_impact(
     """Describe the strongest projected scenario effects."""
     effects: list[str] = []
 
-    net_worth = ranked.report.get_comparison("Net Worth")
+    net_worth = ranked.report.get_comparison(METRIC_NET_WORTH)
 
     if net_worth is not None and abs(net_worth.change) > 0.005:
         effects.append("net worth " f"{net_worth.change:+,.2f}")
 
-    cash_flow = ranked.report.get_comparison("Net Cash Flow")
+    cash_flow = ranked.report.get_comparison(METRIC_NET_CASH_FLOW)
 
     if cash_flow is not None and abs(cash_flow.change) > 0.005:
         effects.append("monthly cash flow " f"{cash_flow.change:+,.2f}")
 
-    debt = ranked.report.get_comparison("Total Debt")
+    debt = ranked.report.get_comparison(METRIC_TOTAL_DEBT)
 
     if debt is not None and debt.change < -0.005:
         effects.append("debt reduced by " f"{abs(debt.change):,.2f}")

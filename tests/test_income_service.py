@@ -1,11 +1,11 @@
+from decimal import Decimal
+
 from src.financial.income.service import (
     add_income,
     delete_income,
     get_income_entries,
     income_entries,
 )
-
-from decimal import Decimal
 
 
 def test_add_income():

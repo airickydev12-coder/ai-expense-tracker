@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.low_account_balance_rule import LowAccountBalanceRule
-
-from decimal import Decimal
 
 
 def test_low_account_balance_rule_triggers():

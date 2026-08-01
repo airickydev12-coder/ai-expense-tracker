@@ -1,6 +1,6 @@
-import pytest
-
 from decimal import Decimal
+
+import pytest
 
 from src.financial.bills.analytics import (
     get_bills_due_soon,

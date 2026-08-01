@@ -3,7 +3,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from src.core.config import DATA_DIR
+from src.core.config import SCENARIO_WORKSPACE_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.scenarios.models import (
@@ -14,8 +14,6 @@ from src.financial.scenarios.models import (
 )
 
 logger = get_logger(__name__)
-
-SCENARIO_WORKSPACE_FILE = DATA_DIR / "scenario_workspace.json"
 
 
 class _DecimalEncoder(json.JSONEncoder):

@@ -21,9 +21,7 @@ class RecommendationRecord:
         self.note = self.note.strip()
 
         if not self.recommendation_key:
-            raise ValidationError(
-                "Recommendation key cannot be empty."
-            )
+            raise ValidationError("Recommendation key cannot be empty.")
 
         if self.updated_at < self.created_at:
             raise ValidationError(
@@ -77,17 +75,9 @@ class RecommendationRecord:
     ) -> "RecommendationRecord":
         """Create a lifecycle record from a dictionary."""
         return cls(
-            recommendation_key=str(
-                data["recommendation_key"]
-            ),
-            status=RecommendationStatus[
-                str(data["status"])
-            ],
-            created_at=datetime.fromisoformat(
-                str(data["created_at"])
-            ),
-            updated_at=datetime.fromisoformat(
-                str(data["updated_at"])
-            ),
+            recommendation_key=str(data["recommendation_key"]),
+            status=RecommendationStatus[str(data["status"])],
+            created_at=datetime.fromisoformat(str(data["created_at"])),
+            updated_at=datetime.fromisoformat(str(data["updated_at"])),
             note=str(data.get("note", "")),
         )

@@ -15,11 +15,7 @@ from src.financial.application.goal_planning_service import (
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 
-
 AS_OF_DATE = date(2027, 1, 1)
-
-
-from decimal import Decimal
 
 
 def build_goal(

@@ -52,37 +52,47 @@ class MetricComparison:
         }
 
 
+METRIC_TOTAL_INCOME = "Total Income"
+METRIC_TOTAL_EXPENSES = "Total Expenses"
+METRIC_NET_CASH_FLOW = "Net Cash Flow"
+METRIC_ACCOUNT_BALANCE = "Account Balance"
+METRIC_GOAL_PROGRESS = "Goal Progress"
+METRIC_TOTAL_DEBT = "Total Debt"
+METRIC_NET_WORTH = "Net Worth"
+METRIC_HEALTH_SCORE = "Health Score"
+
+
 DEFAULT_METRIC_CONFIGURATION = {
     "total_income": {
-        "label": "Total Income",
+        "label": METRIC_TOTAL_INCOME,
         "higher_is_better": True,
     },
     "total_expenses": {
-        "label": "Total Expenses",
+        "label": METRIC_TOTAL_EXPENSES,
         "higher_is_better": False,
     },
     "net_cash_flow": {
-        "label": "Net Cash Flow",
+        "label": METRIC_NET_CASH_FLOW,
         "higher_is_better": True,
     },
     "total_account_balance": {
-        "label": "Account Balance",
+        "label": METRIC_ACCOUNT_BALANCE,
         "higher_is_better": True,
     },
     "total_goal_progress": {
-        "label": "Goal Progress",
+        "label": METRIC_GOAL_PROGRESS,
         "higher_is_better": True,
     },
     "total_debt": {
-        "label": "Total Debt",
+        "label": METRIC_TOTAL_DEBT,
         "higher_is_better": False,
     },
     "net_worth": {
-        "label": "Net Worth",
+        "label": METRIC_NET_WORTH,
         "higher_is_better": True,
     },
     "health_score": {
-        "label": "Health Score",
+        "label": METRIC_HEALTH_SCORE,
         "higher_is_better": True,
     },
 }
@@ -96,9 +106,7 @@ def calculate_percentage_change(
     if original_value == 0:
         return None
 
-    return float(
-        (projected_value - original_value) / abs(original_value) * 100
-    )
+    return float((projected_value - original_value) / abs(original_value) * 100)
 
 
 def classify_comparison_direction(

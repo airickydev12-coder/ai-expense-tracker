@@ -1,8 +1,8 @@
 """Tests for the dashboard application service."""
 
-import pytest
-
 from decimal import Decimal
+
+import pytest
 
 from src.financial.application.dashboard_service import (
     Dashboard,

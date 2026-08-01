@@ -1,13 +1,11 @@
 import json
 
-from src.core.config import DATA_DIR
+from src.core.config import BUDGET_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.budgets.models import Budget
 
 logger = get_logger(__name__)
-
-BUDGET_FILE = DATA_DIR / "budgets.json"
 
 
 def load_budgets_from_file() -> list[Budget]:

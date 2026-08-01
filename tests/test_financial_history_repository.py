@@ -44,9 +44,7 @@ def test_save_and_load_financial_history(tmp_path):
         file_path,
     )
 
-    loaded_history = load_history_from_file(
-        file_path
-    )
+    loaded_history = load_history_from_file(file_path)
 
     assert loaded_history == original_history
 
@@ -62,12 +60,7 @@ def test_load_history_returns_empty_when_file_missing(
 def test_save_history_creates_parent_directory(
     tmp_path,
 ):
-    file_path = (
-        tmp_path
-        / "nested"
-        / "data"
-        / "financial_history.json"
-    )
+    file_path = tmp_path / "nested" / "data" / "financial_history.json"
 
     save_history_to_file(
         [build_record()],

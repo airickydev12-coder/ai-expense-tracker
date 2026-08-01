@@ -2,8 +2,30 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
+from src.financial.scenarios.comparison import (
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
+)
+
+SAVINGS_RATE_LOW_THRESHOLD = 10
+SAVINGS_RATE_STRONG_THRESHOLD = 20
+
+EMERGENCY_FUND_MINIMAL_MONTHS_THRESHOLD = 1
+EMERGENCY_FUND_TARGET_MONTHS_THRESHOLD = 3
+EMERGENCY_FUND_STRONG_MONTHS_THRESHOLD = 6
+
+DEBT_TO_INCOME_CRITICAL_THRESHOLD = 50
+DEBT_TO_INCOME_ELEVATED_THRESHOLD = 30
+
+SPENDING_CONCENTRATION_WARNING_THRESHOLD = 50
+
+HEALTH_SCORE_CRITICAL_THRESHOLD = 40
+HEALTH_SCORE_WARNING_THRESHOLD = 60
+HEALTH_SCORE_INFORMATIONAL_THRESHOLD = 80
 
 
 class InsightSeverity(Enum):
@@ -108,7 +130,7 @@ def _to_money(
 
     try:
         return to_money(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
@@ -175,7 +197,7 @@ def calculate_debt_to_income_ratio(
         )
     )
 
-    annual_income = monthly_income * 12
+    annual_income = monthly_income * MONTHS_PER_YEAR
 
     return float(total_debt / annual_income * 100)
 
@@ -266,7 +288,7 @@ def build_cash_flow_insights(
                 message=("Monthly expenses currently exceed " "monthly income."),
                 category=InsightCategory.CASH_FLOW,
                 severity=InsightSeverity.CRITICAL,
-                metric="Net Cash Flow",
+                metric=METRIC_NET_CASH_FLOW,
                 current_value=float(net_cash_flow),
                 benchmark_value=0.0,
                 action=(
@@ -287,7 +309,7 @@ def build_cash_flow_insights(
                 ),
                 category=InsightCategory.CASH_FLOW,
                 severity=InsightSeverity.WARNING,
-                metric="Net Cash Flow",
+                metric=METRIC_NET_CASH_FLOW,
                 current_value=float(net_cash_flow),
                 benchmark_value=1.0,
                 action=(
@@ -304,7 +326,7 @@ def build_cash_flow_insights(
             message=(f"The current monthly surplus is " f"${net_cash_flow:,.2f}."),
             category=InsightCategory.CASH_FLOW,
             severity=InsightSeverity.POSITIVE,
-            metric="Net Cash Flow",
+            metric=METRIC_NET_CASH_FLOW,
             current_value=float(net_cash_flow),
             benchmark_value=0.0,
             action=(
@@ -336,13 +358,13 @@ def build_savings_rate_insights(
             "increasing savings commitments."
         )
 
-    elif savings_rate < 10:
+    elif savings_rate < SAVINGS_RATE_LOW_THRESHOLD:
         severity = InsightSeverity.WARNING
         title = "Low Savings Capacity"
         message = f"The estimated savings rate is " f"{savings_rate:.1f}%."
         action = "Work toward saving at least 10% of monthly income."
 
-    elif savings_rate < 20:
+    elif savings_rate < SAVINGS_RATE_STRONG_THRESHOLD:
         severity = InsightSeverity.INFORMATIONAL
         title = "Moderate Savings Capacity"
         message = f"The estimated savings rate is " f"{savings_rate:.1f}%."
@@ -369,7 +391,7 @@ def build_savings_rate_insights(
             severity=severity,
             metric="Savings Rate",
             current_value=savings_rate,
-            benchmark_value=20.0,
+            benchmark_value=float(SAVINGS_RATE_STRONG_THRESHOLD),
             action=action,
         )
     ]
@@ -384,19 +406,19 @@ def build_emergency_fund_insights(
     if coverage_months is None:
         return []
 
-    if coverage_months < 1:
+    if coverage_months < EMERGENCY_FUND_MINIMAL_MONTHS_THRESHOLD:
         severity = InsightSeverity.CRITICAL
         title = "Minimal Emergency Coverage"
         action = "Prioritize building at least one month of " "essential expenses."
 
-    elif coverage_months < 3:
+    elif coverage_months < EMERGENCY_FUND_TARGET_MONTHS_THRESHOLD:
         severity = InsightSeverity.WARNING
         title = "Emergency Fund Below Target"
         action = (
             "Continue building reserves toward at least " "three months of expenses."
         )
 
-    elif coverage_months < 6:
+    elif coverage_months < EMERGENCY_FUND_STRONG_MONTHS_THRESHOLD:
         severity = InsightSeverity.INFORMATIONAL
         title = "Emergency Fund Is Developing"
         action = (
@@ -424,7 +446,7 @@ def build_emergency_fund_insights(
             severity=severity,
             metric="Emergency Fund Months",
             current_value=coverage_months,
-            benchmark_value=6.0,
+            benchmark_value=float(EMERGENCY_FUND_STRONG_MONTHS_THRESHOLD),
             action=action,
         )
     ]
@@ -452,7 +474,7 @@ def build_debt_insights(
                 ),
                 category=InsightCategory.DEBT,
                 severity=InsightSeverity.POSITIVE,
-                metric="Total Debt",
+                metric=METRIC_TOTAL_DEBT,
                 current_value=0.0,
                 benchmark_value=0.0,
                 action=(
@@ -471,7 +493,7 @@ def build_debt_insights(
             message=(f"Total recorded debt is " f"${total_debt:,.2f}."),
             category=InsightCategory.DEBT,
             severity=InsightSeverity.INFORMATIONAL,
-            metric="Total Debt",
+            metric=METRIC_TOTAL_DEBT,
             current_value=float(total_debt),
             benchmark_value=0.0,
             action=(
@@ -484,14 +506,14 @@ def build_debt_insights(
     if debt_ratio is None:
         return insights
 
-    if debt_ratio > 50:
+    if debt_ratio > DEBT_TO_INCOME_CRITICAL_THRESHOLD:
         severity = InsightSeverity.CRITICAL
         title = "High Debt-to-Income Burden"
         action = (
             "Avoid new debt and prioritize aggressive " "repayment of costly balances."
         )
 
-    elif debt_ratio > 30:
+    elif debt_ratio > DEBT_TO_INCOME_ELEVATED_THRESHOLD:
         severity = InsightSeverity.WARNING
         title = "Elevated Debt-to-Income Burden"
         action = (
@@ -517,7 +539,7 @@ def build_debt_insights(
             severity=severity,
             metric="Debt-to-Income Ratio",
             current_value=debt_ratio,
-            benchmark_value=30.0,
+            benchmark_value=float(DEBT_TO_INCOME_ELEVATED_THRESHOLD),
             action=action,
         )
     )
@@ -543,13 +565,11 @@ def build_spending_insights(
         )
     )
 
-    concentration = (
-        float(amount / total_expenses * 100) if total_expenses > 0 else 0.0
-    )
+    concentration = float(amount / total_expenses * 100) if total_expenses > 0 else 0.0
 
     severity = (
         InsightSeverity.WARNING
-        if concentration >= 50
+        if concentration >= SPENDING_CONCENTRATION_WARNING_THRESHOLD
         else InsightSeverity.INFORMATIONAL
     )
 
@@ -566,7 +586,7 @@ def build_spending_insights(
             severity=severity,
             metric="Spending Concentration",
             current_value=concentration,
-            benchmark_value=50.0,
+            benchmark_value=float(SPENDING_CONCENTRATION_WARNING_THRESHOLD),
             action=(
                 f"Review {category} spending for realistic "
                 "opportunities to reduce or optimize costs."
@@ -596,7 +616,7 @@ def build_net_worth_insights(
                 ),
                 category=InsightCategory.NET_WORTH,
                 severity=InsightSeverity.WARNING,
-                metric="Net Worth",
+                metric=METRIC_NET_WORTH,
                 current_value=float(net_worth),
                 benchmark_value=0.0,
                 action=(
@@ -612,7 +632,7 @@ def build_net_worth_insights(
             message=(f"Current estimated net worth is " f"${net_worth:,.2f}."),
             category=InsightCategory.NET_WORTH,
             severity=InsightSeverity.POSITIVE,
-            metric="Net Worth",
+            metric=METRIC_NET_WORTH,
             current_value=float(net_worth),
             benchmark_value=0.0,
             action=(
@@ -640,18 +660,18 @@ def build_health_score_insights(
         )
     ).strip()
 
-    if health_score < 40:
+    if health_score < HEALTH_SCORE_CRITICAL_THRESHOLD:
         severity = InsightSeverity.CRITICAL
         action = (
             "Address negative cash flow, debt pressure, "
             "and insufficient reserves immediately."
         )
 
-    elif health_score < 60:
+    elif health_score < HEALTH_SCORE_WARNING_THRESHOLD:
         severity = InsightSeverity.WARNING
         action = "Focus on the highest-priority weakness in the " "financial snapshot."
 
-    elif health_score < 80:
+    elif health_score < HEALTH_SCORE_INFORMATIONAL_THRESHOLD:
         severity = InsightSeverity.INFORMATIONAL
         action = "Continue improving savings, debt, and cash-flow " "metrics."
 
@@ -674,7 +694,7 @@ def build_health_score_insights(
             severity=severity,
             metric="Financial Health Score",
             current_value=health_score,
-            benchmark_value=80.0,
+            benchmark_value=float(HEALTH_SCORE_INFORMATIONAL_THRESHOLD),
             action=action,
         )
     ]

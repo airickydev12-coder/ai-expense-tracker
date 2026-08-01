@@ -37,7 +37,6 @@ from src.financial.income.service import (
 from src.financial.recommendations.history_service import (
     load_recommendation_history,
 )
-
 from src.financial.scenarios.workspace_service import (
     load_scenario_workspace,
 )

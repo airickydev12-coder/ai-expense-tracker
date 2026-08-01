@@ -2,16 +2,13 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from src.financial.budgets.models import Budget
-from src.financial.history.models import FinancialSnapshotRecord
-from src.financial.recommendations.history import RecommendationRecord
-from src.financial.recommendations.status import RecommendationStatus
-from src.financial.shared.categories import ExpenseCategory
-from src.presentation import views
 from src.financial.forecasting.models import (
     FinancialForecast,
     MetricProjection,
 )
-
+from src.financial.history.models import FinancialSnapshotRecord
+from src.financial.recommendations.history import RecommendationRecord
+from src.financial.recommendations.status import RecommendationStatus
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -23,14 +20,16 @@ from src.financial.scenarios.optimizer import (
     OptimizationFailure,
     OptimizationResult,
 )
-from src.financial.scenarios.ranking import (
-    ScenarioRankingMetric,
-    rank_scenarios,
-)
 from src.financial.scenarios.plan import (
     ScenarioPlanResult,
     build_cumulative_scenario_report,
 )
+from src.financial.scenarios.ranking import (
+    ScenarioRankingMetric,
+    rank_scenarios,
+)
+from src.financial.shared.categories import ExpenseCategory
+from src.presentation import views
 
 
 def build_history() -> list[FinancialSnapshotRecord]:

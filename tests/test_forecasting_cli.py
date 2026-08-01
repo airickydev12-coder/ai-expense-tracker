@@ -112,9 +112,7 @@ def test_display_current_forecast_handles_missing_history(
     def fake_build_forecast(
         horizon_days: int,
     ) -> FinancialForecast:
-        raise ValueError(
-            "At least one historical snapshot is required."
-        )
+        raise ValueError("At least one historical snapshot is required.")
 
     monkeypatch.setattr(
         cli,

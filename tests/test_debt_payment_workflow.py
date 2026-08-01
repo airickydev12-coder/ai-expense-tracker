@@ -1,10 +1,9 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.debt.models import Debt
 from src.financial.workflows.debt_payment import apply_debt_payment
-
-
-from decimal import Decimal
 
 
 def test_apply_debt_payment():

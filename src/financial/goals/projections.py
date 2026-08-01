@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TypeAlias
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import (
     ZERO,
@@ -19,7 +20,6 @@ from src.financial.goals.models import Goal
 from src.financial.goals.planning_models import (
     GoalProjection,
 )
-
 
 MoneyInput: TypeAlias = Decimal | int | float | str
 
@@ -37,7 +37,9 @@ def calculate_months_remaining(
         return 0
 
     month_difference = (
-        (target_date.year - as_of_date.year) * 12 + target_date.month - as_of_date.month
+        (target_date.year - as_of_date.year) * MONTHS_PER_YEAR
+        + target_date.month
+        - as_of_date.month
     )
 
     if target_date.day > as_of_date.day:
@@ -79,10 +81,12 @@ def add_months(
     if months < 0:
         raise ValidationError("Months to add cannot be negative.")
 
-    target_month_index = starting_date.year * 12 + starting_date.month - 1 + months
+    target_month_index = (
+        starting_date.year * MONTHS_PER_YEAR + starting_date.month - 1 + months
+    )
 
-    target_year = target_month_index // 12
-    target_month = target_month_index % 12 + 1
+    target_year = target_month_index // MONTHS_PER_YEAR
+    target_month = target_month_index % MONTHS_PER_YEAR + 1
 
     target_day = min(
         starting_date.day,

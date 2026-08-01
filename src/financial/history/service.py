@@ -23,9 +23,7 @@ def load_history(
     global _loaded_file_path
 
     _history.clear()
-    _history.extend(
-        load_history_from_file(file_path)
-    )
+    _history.extend(load_history_from_file(file_path))
 
     _loaded_file_path = file_path
 
@@ -34,11 +32,7 @@ def save_history(
     file_path: Path | None = None,
 ) -> None:
     """Save all historical snapshots."""
-    target_path = (
-        file_path
-        if file_path is not None
-        else _loaded_file_path
-    )
+    target_path = file_path if file_path is not None else _loaded_file_path
 
     save_history_to_file(
         _history,
@@ -69,20 +63,12 @@ def record_snapshot(
 ) -> FinancialSnapshotRecord:
     """Create and persist a historical snapshot record."""
     record = FinancialSnapshotRecord(
-        timestamp=(
-            timestamp
-            if timestamp is not None
-            else datetime.now(timezone.utc)
-        ),
+        timestamp=(timestamp if timestamp is not None else datetime.now(timezone.utc)),
         total_income=to_money(snapshot["total_income"]),
         total_expenses=to_money(snapshot["total_expenses"]),
         net_cash_flow=to_money(snapshot["net_cash_flow"]),
-        total_account_balance=to_money(
-            snapshot["total_account_balance"]
-        ),
-        total_goal_progress=to_money(
-            snapshot["total_goal_progress"]
-        ),
+        total_account_balance=to_money(snapshot["total_account_balance"]),
+        total_goal_progress=to_money(snapshot["total_goal_progress"]),
         total_debt=to_money(snapshot["total_debt"]),
         net_worth=to_money(snapshot["net_worth"]),
         health_score=int(snapshot["health_score"]),

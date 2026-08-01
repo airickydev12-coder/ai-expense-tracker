@@ -1,6 +1,6 @@
-from src.financial.insights.insight_engine import generate_insights
-
 from decimal import Decimal
+
+from src.financial.insights.insight_engine import generate_insights
 
 
 def test_generate_positive_insight():

@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -7,8 +8,6 @@ from src.financial.goals.repository import (
     load_goals_from_file,
     save_goals_to_file,
 )
-
-from decimal import Decimal
 
 
 def test_save_and_load_goals(tmp_path):

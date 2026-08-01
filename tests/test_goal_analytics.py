@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from src.financial.goals.analytics import (
     get_goal_progress_percentage,
     get_remaining_goal_amount,
@@ -6,8 +8,6 @@ from src.financial.goals.analytics import (
     is_goal_complete,
 )
 from src.financial.goals.models import Goal
-
-from decimal import Decimal
 
 
 def test_get_goal_progress_percentage():

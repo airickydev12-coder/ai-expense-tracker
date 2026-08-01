@@ -42,7 +42,6 @@ from src.presentation.views import (
     display_saved_budget_summaries,
 )
 
-
 EXIT_OPTION = "16"
 
 

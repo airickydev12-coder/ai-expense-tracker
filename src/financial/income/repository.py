@@ -1,13 +1,11 @@
 import json
 
-from src.core.config import DATA_DIR
+from src.core.config import INCOME_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.income.models import Income
 
 logger = get_logger(__name__)
-
-INCOME_FILE = DATA_DIR / "income.json"
 
 
 def load_income_from_file() -> list[Income]:

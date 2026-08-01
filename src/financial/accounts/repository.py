@@ -1,14 +1,12 @@
 import json
 from pathlib import Path
 
-from src.core.config import DATA_DIR
+from src.core.config import ACCOUNTS_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.accounts.models import Account
 
 logger = get_logger(__name__)
-
-ACCOUNTS_FILE = DATA_DIR / "accounts.json"
 
 
 def load_accounts_from_file(
@@ -34,10 +32,7 @@ def load_accounts_from_file(
     if not isinstance(raw_data, list):
         raise PersistenceError("Account data must be stored as a JSON list.")
 
-    accounts = [
-        Account.from_dict(account_data)
-        for account_data in raw_data
-    ]
+    accounts = [Account.from_dict(account_data) for account_data in raw_data]
 
     logger.debug(
         "Loaded %d account(s) from %s",
@@ -58,10 +53,7 @@ def save_accounts_to_file(
         exist_ok=True,
     )
 
-    account_data = [
-        account.to_dict()
-        for account in accounts
-    ]
+    account_data = [account.to_dict() for account in accounts]
 
     with file_path.open("w", encoding="utf-8") as file:
         json.dump(

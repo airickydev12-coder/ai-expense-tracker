@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
 from src.presentation import expense_cli
-
-from decimal import Decimal
 
 
 def build_expense() -> Expense:

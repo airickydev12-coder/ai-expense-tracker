@@ -36,7 +36,6 @@ from src.financial.goals.repository import (
     save_goals_to_file,
 )
 
-
 logger = get_logger(__name__)
 
 MoneyInput: TypeAlias = Decimal | int | float | str
@@ -215,7 +214,9 @@ def record_withdrawal(
     )
 
     if normalized_amount > goal.current_amount:
-        raise ValidationError("Goal withdrawal cannot exceed the " "current goal balance.")
+        raise ValidationError(
+            "Goal withdrawal cannot exceed the " "current goal balance."
+        )
 
     entry = create_ledger_entry(
         goal_id=goal.id,
@@ -331,7 +332,9 @@ def reverse_entry(
         raise NotFoundError("Goal ledger entry was not found.")
 
     if original.goal_id != goal.id:
-        raise ValidationError("The ledger entry does not belong " "to the selected goal.")
+        raise ValidationError(
+            "The ledger entry does not belong " "to the selected goal."
+        )
 
     if original.entry_type is GoalLedgerEntryType.REVERSAL:
         raise ValidationError("A reversal entry cannot be reversed.")

@@ -1,8 +1,15 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import to_money
+from src.financial.scenarios.comparison import (
+    METRIC_ACCOUNT_BALANCE,
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_INCOME,
+)
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -66,7 +73,7 @@ def run_income_increase_scenario(
 
     monthly_income_increase = original_total_income * increase_percentage / 100
 
-    annual_income_increase = monthly_income_increase * 12
+    annual_income_increase = monthly_income_increase * MONTHS_PER_YEAR
 
     horizon_income_increase = monthly_income_increase * horizon_months
 
@@ -157,22 +164,22 @@ def run_income_increase_scenario(
         projected_snapshot=projected_snapshot,
         impacts=[
             ScenarioImpact.create(
-                metric="Total Income",
+                metric=METRIC_TOTAL_INCOME,
                 original_value=original_total_income,
                 projected_value=projected_total_income,
             ),
             ScenarioImpact.create(
-                metric="Net Cash Flow",
+                metric=METRIC_NET_CASH_FLOW,
                 original_value=original_net_cash_flow,
                 projected_value=projected_net_cash_flow,
             ),
             ScenarioImpact.create(
-                metric="Account Balance",
+                metric=METRIC_ACCOUNT_BALANCE,
                 original_value=original_account_balance,
                 projected_value=projected_account_balance,
             ),
             ScenarioImpact.create(
-                metric="Net Worth",
+                metric=METRIC_NET_WORTH,
                 original_value=original_net_worth,
                 projected_value=projected_net_worth,
             ),

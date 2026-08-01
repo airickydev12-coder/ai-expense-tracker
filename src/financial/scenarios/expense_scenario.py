@@ -1,8 +1,15 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import NotFoundError, ValidationError
 from src.core.money import ZERO, to_money
+from src.financial.scenarios.comparison import (
+    METRIC_ACCOUNT_BALANCE,
+    METRIC_NET_CASH_FLOW,
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_EXPENSES,
+)
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -94,7 +101,7 @@ def run_expense_reduction_scenario(
 
     monthly_savings = category_spending * reduction_percentage / 100
 
-    annual_savings = monthly_savings * 12
+    annual_savings = monthly_savings * MONTHS_PER_YEAR
     horizon_savings = monthly_savings * horizon_months
 
     original_total_expenses = to_money(snapshot["total_expenses"])
@@ -218,22 +225,22 @@ def run_expense_reduction_scenario(
                 projected_value=(category_spending - monthly_savings),
             ),
             ScenarioImpact.create(
-                metric="Total Expenses",
+                metric=METRIC_TOTAL_EXPENSES,
                 original_value=original_total_expenses,
                 projected_value=projected_total_expenses,
             ),
             ScenarioImpact.create(
-                metric="Net Cash Flow",
+                metric=METRIC_NET_CASH_FLOW,
                 original_value=original_net_cash_flow,
                 projected_value=projected_net_cash_flow,
             ),
             ScenarioImpact.create(
-                metric="Account Balance",
+                metric=METRIC_ACCOUNT_BALANCE,
                 original_value=original_account_balance,
                 projected_value=projected_account_balance,
             ),
             ScenarioImpact.create(
-                metric="Net Worth",
+                metric=METRIC_NET_WORTH,
                 original_value=original_net_worth,
                 projected_value=projected_net_worth,
             ),

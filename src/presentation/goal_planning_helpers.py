@@ -7,7 +7,6 @@ from src.core.exceptions import ValidationError
 from src.financial.goals.allocation import GoalPriority
 from src.financial.goals.models import Goal
 
-
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 

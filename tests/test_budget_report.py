@@ -1,9 +1,9 @@
+from decimal import Decimal
+
 from src.financial.budgets.models import Budget
 from src.financial.expenses.models import Expense
 from src.financial.reports.budget_report import build_budget_report
 from src.financial.shared.categories import ExpenseCategory
-
-from decimal import Decimal
 
 
 def test_build_budget_report():

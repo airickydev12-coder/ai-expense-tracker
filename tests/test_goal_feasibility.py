@@ -4,10 +4,10 @@ from decimal import Decimal
 from src.financial.goals.feasibility import (
     assess_goal_feasibility,
 )
+from src.financial.goals.models import Goal
 from src.financial.goals.planning_models import (
     GoalFeasibilityStatus,
 )
-from src.financial.goals.models import Goal
 from src.financial.goals.projections import (
     build_goal_projection,
 )

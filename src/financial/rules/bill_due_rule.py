@@ -3,6 +3,9 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+BILL_DUE_WINDOW_MIN_DAYS = 0
+BILL_DUE_WINDOW_MAX_DAYS = 7
+
 
 class BillDueSoonRule(FinancialRule):
     """Warn when bills are due soon."""
@@ -21,7 +24,7 @@ class BillDueSoonRule(FinancialRule):
 
             days_until_due = bill["due_day"] - current_day
 
-            if 0 <= days_until_due <= 7:
+            if BILL_DUE_WINDOW_MIN_DAYS <= days_until_due <= BILL_DUE_WINDOW_MAX_DAYS:
                 return Recommendation(
                     priority=RecommendationPriority.HIGH,
                     category=RecommendationCategory.BILLS,

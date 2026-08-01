@@ -1,3 +1,7 @@
+from src.financial.engine.health_status import (
+    HEALTH_SCORE_EXCELLENT_THRESHOLD,
+    HEALTH_SCORE_FAIR_THRESHOLD,
+)
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
@@ -12,7 +16,7 @@ class HealthScoreRule(FinancialRule):
         health_score = snapshot["health_score"]
         health_status = snapshot["health_status"]
 
-        if health_score < 50:
+        if health_score < HEALTH_SCORE_FAIR_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.CRITICAL,
                 category=RecommendationCategory.HEALTH,
@@ -21,7 +25,7 @@ class HealthScoreRule(FinancialRule):
                 action="Review your cash flow, debt, savings, and budget priorities.",
             )
 
-        if health_score >= 85:
+        if health_score >= HEALTH_SCORE_EXCELLENT_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.LOW,
                 category=RecommendationCategory.HEALTH,

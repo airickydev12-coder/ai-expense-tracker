@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from src.financial.expenses.service import (
     add_expense,
     delete_expense,
@@ -5,7 +7,6 @@ from src.financial.expenses.service import (
 )
 from src.presentation.input_handlers import select_category
 from src.presentation.views import display_expenses
-from decimal import Decimal, InvalidOperation
 
 
 def add_expense_flow() -> None:
@@ -20,7 +21,7 @@ def add_expense_flow() -> None:
 
     try:
         amount = Decimal(amount_text)
-    except (ValueError, InvalidOperation):
+    except ValueError, InvalidOperation:
         print("Invalid amount. Please enter a number.")
         return
 
@@ -45,7 +46,7 @@ def delete_expense_flow() -> None:
 
     try:
         expense_id = int(expense_id_text)
-    except (ValueError, InvalidOperation):
+    except ValueError, InvalidOperation:
         print("Invalid input. Please enter a number.")
         return
 
@@ -66,7 +67,7 @@ def update_expense_flow() -> None:
 
     try:
         expense_id = int(expense_id_text)
-    except (ValueError, InvalidOperation):
+    except ValueError, InvalidOperation:
         print("Invalid input. Please enter a number.")
         return
 
@@ -90,7 +91,7 @@ def update_expense_flow() -> None:
     if new_amount_text:
         try:
             amount = Decimal(new_amount_text)
-        except (ValueError, InvalidOperation):
+        except ValueError, InvalidOperation:
             print("Invalid amount. Please enter a number.")
             return
 

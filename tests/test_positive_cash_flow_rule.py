@@ -1,10 +1,10 @@
+from decimal import Decimal
+
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.positive_cash_flow_rule import (
     PositiveCashFlowAllocationRule,
 )
-
-from decimal import Decimal
 
 
 def test_positive_cash_flow_with_debt():

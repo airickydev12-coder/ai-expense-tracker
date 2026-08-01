@@ -1,8 +1,14 @@
 from decimal import Decimal
 from typing import Any
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import to_money
+from src.financial.scenarios.comparison import (
+    METRIC_ACCOUNT_BALANCE,
+    METRIC_GOAL_PROGRESS,
+    METRIC_NET_WORTH,
+)
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -61,7 +67,7 @@ def run_additional_savings_scenario(
     original_goal_progress = to_money(snapshot["total_goal_progress"])
     original_net_worth = to_money(snapshot["net_worth"])
 
-    annual_additional_savings = additional_monthly_savings * 12
+    annual_additional_savings = additional_monthly_savings * MONTHS_PER_YEAR
 
     horizon_additional_savings = additional_monthly_savings * horizon_months
 
@@ -165,17 +171,17 @@ def run_additional_savings_scenario(
                 projected_value=projected_net_cash_flow,
             ),
             ScenarioImpact.create(
-                metric="Account Balance",
+                metric=METRIC_ACCOUNT_BALANCE,
                 original_value=original_account_balance,
                 projected_value=projected_account_balance,
             ),
             ScenarioImpact.create(
-                metric="Goal Progress",
+                metric=METRIC_GOAL_PROGRESS,
                 original_value=original_goal_progress,
                 projected_value=projected_goal_progress,
             ),
             ScenarioImpact.create(
-                metric="Net Worth",
+                metric=METRIC_NET_WORTH,
                 original_value=original_net_worth,
                 projected_value=projected_net_worth,
             ),

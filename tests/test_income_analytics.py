@@ -1,11 +1,11 @@
+from decimal import Decimal
+
 from src.financial.income.analytics import (
     get_average_income,
     get_highest_income,
     get_total_income,
 )
 from src.financial.income.models import Income
-
-from decimal import Decimal
 
 
 def test_get_total_income():

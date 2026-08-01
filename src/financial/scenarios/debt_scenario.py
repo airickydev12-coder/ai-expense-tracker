@@ -2,8 +2,13 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import BusinessRuleError, NotFoundError, ValidationError
 from src.core.money import ZERO, to_money
+from src.financial.scenarios.comparison import (
+    METRIC_NET_WORTH,
+    METRIC_TOTAL_DEBT,
+)
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioImpact,
@@ -13,7 +18,6 @@ from src.financial.scenarios.models import (
 from src.financial.scenarios.service import (
     register_scenario_handler,
 )
-
 
 MAX_PAYOFF_MONTHS = 1200
 BALANCE_TOLERANCE = Decimal("0.005")
@@ -55,7 +59,7 @@ def _get_debt(
     for debt in debts:
         try:
             current_debt_id = int(debt["id"])
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             continue
 
         if current_debt_id == debt_id:
@@ -79,7 +83,7 @@ def _validate_debt_values(
     if minimum_payment <= 0:
         raise ValidationError("Debt minimum payment must be greater than zero.")
 
-    monthly_interest = balance * interest_rate / 100 / 12
+    monthly_interest = balance * interest_rate / 100 / MONTHS_PER_YEAR
 
     if minimum_payment <= monthly_interest:
         raise ValidationError(
@@ -110,12 +114,14 @@ def calculate_debt_payoff(
 
     _validate_horizon_months(horizon_months)
 
-    monthly_rate = annual_interest_rate / 100 / 12
+    monthly_rate = annual_interest_rate / 100 / MONTHS_PER_YEAR
 
     first_month_interest = balance * monthly_rate
 
     if monthly_payment <= first_month_interest:
-        raise BusinessRuleError("Monthly payment is not sufficient " "to amortize the debt.")
+        raise BusinessRuleError(
+            "Monthly payment is not sufficient " "to amortize the debt."
+        )
 
     remaining_balance = to_money(balance)
     total_interest = ZERO
@@ -278,7 +284,7 @@ def run_extra_debt_payment_scenario(
 
         try:
             current_debt_id = int(projected_debt["id"])
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             projected_debts.append(projected_debt)
             continue
 
@@ -389,7 +395,7 @@ def run_extra_debt_payment_scenario(
                 projected_value=(accelerated_projection.remaining_balance_at_horizon),
             ),
             ScenarioImpact.create(
-                metric="Total Debt",
+                metric=METRIC_TOTAL_DEBT,
                 original_value=original_total_debt,
                 projected_value=projected_total_debt,
             ),
@@ -399,7 +405,7 @@ def run_extra_debt_payment_scenario(
                 projected_value=projected_net_cash_flow,
             ),
             ScenarioImpact.create(
-                metric="Net Worth",
+                metric=METRIC_NET_WORTH,
                 original_value=original_net_worth,
                 projected_value=projected_net_worth,
             ),

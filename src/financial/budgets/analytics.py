@@ -3,7 +3,6 @@ from decimal import Decimal
 from src.financial.budgets.models import Budget
 from src.financial.expenses.models import Expense
 
-
 ZERO_MONEY = Decimal("0")
 
 

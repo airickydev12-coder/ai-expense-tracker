@@ -44,12 +44,9 @@ def format_metric_comparison(
             ("  Current:    " f"${comparison.original_value:,.2f}"),
             ("  Projected:  " f"${comparison.projected_value:,.2f}"),
             ("  Change:     " f"{format_signed_currency(comparison.change)}"),
-            (
-                "  Percentage: "
-                f"{format_percentage(
+            ("  Percentage: " f"{format_percentage(
                     comparison.percentage_change
-                )}"
-            ),
+                )}"),
             ("  Direction:  " f"{comparison.direction.value}"),
         ]
     )

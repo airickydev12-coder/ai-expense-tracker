@@ -1,5 +1,4 @@
 from src.financial.recommendations.models import Recommendation
-
 from src.financial.rules.base_rule import FinancialRule
 from src.financial.rules.bill_due_rule import BillDueSoonRule
 from src.financial.rules.budget_overrun_rule import BudgetOverrunRule

@@ -1,17 +1,17 @@
+from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 
-
 CATEGORY_WEIGHTS = {
-    "Cash Flow": 40,
-    "Income": 35,
-    "Debt": 30,
-    "Bills": 25,
-    "Budget": 20,
-    "Savings": 15,
-    "Health": 15,
-    "Expenses": 10,
-    "Goals": 5,
-    "Wealth": 0,
+    RecommendationCategory.CASH_FLOW.value: 40,
+    RecommendationCategory.INCOME.value: 35,
+    RecommendationCategory.DEBT.value: 30,
+    RecommendationCategory.BILLS.value: 25,
+    RecommendationCategory.BUDGET.value: 20,
+    RecommendationCategory.SAVINGS.value: 15,
+    RecommendationCategory.HEALTH.value: 15,
+    RecommendationCategory.EXPENSES.value: 10,
+    RecommendationCategory.GOALS.value: 5,
+    RecommendationCategory.WEALTH.value: 0,
 }
 
 

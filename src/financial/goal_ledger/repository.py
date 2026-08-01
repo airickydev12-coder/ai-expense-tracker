@@ -36,7 +36,9 @@ def load_goal_ledger_from_file(
             file_path,
             error,
         )
-        raise PersistenceError(f"Goal ledger contains invalid JSON: {file_path}") from error
+        raise PersistenceError(
+            f"Goal ledger contains invalid JSON: {file_path}"
+        ) from error
     except OSError as error:
         logger.error(
             "Failed to read goal ledger file %s: %s",
@@ -162,10 +164,14 @@ def _validate_ledger(
         original_entry = entries_by_id.get(original_entry_id)
 
         if original_entry is None:
-            raise ValidationError("Goal ledger reversal references " "an unknown entry.")
+            raise ValidationError(
+                "Goal ledger reversal references " "an unknown entry."
+            )
 
         if original_entry.goal_id != entry.goal_id:
-            raise ValidationError("A reversal must reference an entry " "for the same goal.")
+            raise ValidationError(
+                "A reversal must reference an entry " "for the same goal."
+            )
 
         if original_entry.entry_type is GoalLedgerEntryType.REVERSAL:
             raise ValidationError("A reversal cannot reverse another reversal.")

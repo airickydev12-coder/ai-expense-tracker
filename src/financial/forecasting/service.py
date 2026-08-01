@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.core.constants import STANDARD_FORECAST_HORIZONS_DAYS
 from src.core.exceptions import ValidationError
 from src.financial.forecasting.models import FinancialForecast
 from src.financial.forecasting.projections import (
@@ -24,8 +25,7 @@ def build_financial_forecast(
 
     if not history:
         raise ValidationError(
-            "At least one historical snapshot is required "
-            "to build a forecast."
+            "At least one historical snapshot is required " "to build a forecast."
         )
 
     return FinancialForecast(
@@ -75,16 +75,12 @@ def build_standard_forecasts(
     history: list[FinancialSnapshotRecord] | None = None,
 ) -> dict[int, FinancialForecast]:
     """Build standard 30-, 90-, and 365-day forecasts."""
-    forecast_history = (
-        history
-        if history is not None
-        else get_history()
-    )
+    forecast_history = history if history is not None else get_history()
 
     return {
         horizon: build_financial_forecast(
             history=forecast_history,
             horizon_days=horizon,
         )
-        for horizon in (30, 90, 365)
+        for horizon in STANDARD_FORECAST_HORIZONS_DAYS
     }

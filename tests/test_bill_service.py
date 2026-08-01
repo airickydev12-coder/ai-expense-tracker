@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-
 from src.financial.bills.service import (
     add_bill,
     bills,

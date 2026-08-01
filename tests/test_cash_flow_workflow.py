@@ -1,9 +1,9 @@
+from decimal import Decimal
+
 from src.financial.expenses.models import Expense
 from src.financial.income.models import Income
 from src.financial.shared.categories import ExpenseCategory
 from src.financial.workflows.cash_flow import calculate_cash_flow
-
-from decimal import Decimal
 
 
 def test_calculate_cash_flow():

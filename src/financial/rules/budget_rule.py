@@ -1,7 +1,9 @@
-from src.financial.rules.base_rule import FinancialRule
-from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
+from src.financial.rules.base_rule import FinancialRule
+
+BUDGET_UTILIZATION_CRITICAL_THRESHOLD = 0.90
 
 
 class BudgetUtilizationRule(FinancialRule):
@@ -18,7 +20,7 @@ class BudgetUtilizationRule(FinancialRule):
 
             utilization = spent / limit
 
-            if utilization >= 0.90:
+            if utilization >= BUDGET_UTILIZATION_CRITICAL_THRESHOLD:
                 return Recommendation(
                     priority=RecommendationPriority.HIGH,
                     category=RecommendationCategory.BUDGET,

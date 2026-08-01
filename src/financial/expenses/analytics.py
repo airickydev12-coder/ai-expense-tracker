@@ -1,8 +1,7 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
+from src.core.money import CURRENCY_PRECISION
 from src.financial.expenses.models import Expense
-
-CURRENCY_PRECISION = Decimal("0.01")
 
 
 def get_total(expenses: list[Expense]) -> Decimal:

@@ -1,16 +1,16 @@
 """Application service for building the current financial snapshot."""
 
+from src.financial.accounts import service as account_service
 from src.financial.application.financial_snapshot import FinancialSnapshot
+from src.financial.bills import service as bill_service
 from src.financial.budgets import service as budget_service
+from src.financial.debt import service as debt_service
 from src.financial.engine.financial_snapshot_builder import (
     build_financial_snapshot as build_snapshot,
 )
 from src.financial.expenses import service as expense_service
 from src.financial.goals import service as goal_service
 from src.financial.income import service as income_service
-from src.financial.accounts import service as account_service
-from src.financial.debt import service as debt_service
-from src.financial.bills import service as bill_service
 
 
 def build_financial_snapshot() -> FinancialSnapshot:

@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import (
     add_budget,
@@ -9,7 +11,6 @@ from src.presentation.views import (
     display_budget_summary,
     display_current_budgets,
 )
-from decimal import Decimal, InvalidOperation
 
 
 def create_or_update_budgets() -> None:

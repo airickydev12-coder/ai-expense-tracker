@@ -1,5 +1,7 @@
 """Tests for the financial dashboard API."""
 
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,8 +11,6 @@ from src.financial.budgets.models import Budget
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
-from decimal import Decimal
-
 
 client = TestClient(app)
 

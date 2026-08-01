@@ -15,13 +15,12 @@ Using one module guarantees:
 from __future__ import annotations
 
 from decimal import (
+    ROUND_HALF_UP,
     Decimal,
     InvalidOperation,
-    ROUND_HALF_UP,
 )
 
 from src.core.exceptions import ValidationError
-
 
 # ----------------------------------------------------------------------
 # Constants

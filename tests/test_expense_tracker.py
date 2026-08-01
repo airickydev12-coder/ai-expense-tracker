@@ -1,6 +1,5 @@
-from src.financial.shared.categories import ExpenseCategory
-from src.financial.expenses.models import Expense
-from src.financial.expenses.service import expenses
+from decimal import Decimal
+
 from src.financial.expenses.analytics import (
     get_average,
     get_category_totals,
@@ -8,8 +7,9 @@ from src.financial.expenses.analytics import (
     get_lowest_expense,
     get_total,
 )
-
-from decimal import Decimal
+from src.financial.expenses.models import Expense
+from src.financial.expenses.service import expenses
+from src.financial.shared.categories import ExpenseCategory
 
 
 def test_get_total():

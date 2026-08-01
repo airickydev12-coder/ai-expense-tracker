@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 import pytest
 
 from src.financial.income.models import Income
-
-from decimal import Decimal
 
 
 def test_income_creation():

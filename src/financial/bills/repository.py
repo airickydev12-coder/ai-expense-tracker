@@ -1,14 +1,12 @@
 import json
 from pathlib import Path
 
-from src.core.config import DATA_DIR
+from src.core.config import BILLS_FILE
 from src.core.exceptions import PersistenceError
 from src.core.logging import get_logger
 from src.financial.bills.models import Bill
 
 logger = get_logger(__name__)
-
-BILLS_FILE = DATA_DIR / "bills.json"
 
 
 def load_bills_from_file(
@@ -34,10 +32,7 @@ def load_bills_from_file(
     if not isinstance(raw_data, list):
         raise PersistenceError("Bill data must be stored as a JSON list.")
 
-    bills = [
-        Bill.from_dict(bill_data)
-        for bill_data in raw_data
-    ]
+    bills = [Bill.from_dict(bill_data) for bill_data in raw_data]
 
     logger.debug(
         "Loaded %d bill(s) from %s",
@@ -58,10 +53,7 @@ def save_bills_to_file(
         exist_ok=True,
     )
 
-    bill_data = [
-        bill.to_dict()
-        for bill in bills
-    ]
+    bill_data = [bill.to_dict() for bill in bills]
 
     with file_path.open("w", encoding="utf-8") as file:
         json.dump(

@@ -3,6 +3,8 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
 
+INCOME_COVERAGE_RATIO_THRESHOLD = 1
+
 
 class IncomeCoverageRule(FinancialRule):
     """Evaluate whether income covers expenses."""
@@ -17,7 +19,7 @@ class IncomeCoverageRule(FinancialRule):
 
         coverage_ratio = income / expenses
 
-        if coverage_ratio < 1:
+        if coverage_ratio < INCOME_COVERAGE_RATIO_THRESHOLD:
             return Recommendation(
                 priority=RecommendationPriority.CRITICAL,
                 category=RecommendationCategory.INCOME,

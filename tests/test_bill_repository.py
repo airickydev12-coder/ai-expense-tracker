@@ -1,8 +1,7 @@
 import json
+from decimal import Decimal
 
 import pytest
-
-from decimal import Decimal
 
 from src.financial.bills.models import Bill
 from src.financial.bills.repository import (

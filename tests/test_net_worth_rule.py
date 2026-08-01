@@ -1,7 +1,8 @@
+from decimal import Decimal
+
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.net_worth_rule import NetWorthRule
-from decimal import Decimal
 
 
 def test_net_worth_rule_triggers():

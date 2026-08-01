@@ -1,5 +1,6 @@
-from src.financial.debt.models import Debt
 from decimal import Decimal
+
+from src.financial.debt.models import Debt
 
 
 def get_total_debt(

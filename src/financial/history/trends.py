@@ -17,7 +17,6 @@ from src.financial.history.trend_summary import (
     MetricTrend,
 )
 
-
 CURRENCY_TREND_THRESHOLD = Decimal("25.00")
 HEALTH_SCORE_TREND_THRESHOLD = 2
 
@@ -79,15 +78,11 @@ def calculate_overall_momentum(
 ) -> FinancialMomentum:
     """Calculate overall momentum from individual metric trends."""
     improving_count = sum(
-        1
-        for trend in trends
-        if trend.direction == TrendDirection.IMPROVING
+        1 for trend in trends if trend.direction == TrendDirection.IMPROVING
     )
 
     declining_count = sum(
-        1
-        for trend in trends
-        if trend.direction == TrendDirection.DECLINING
+        1 for trend in trends if trend.direction == TrendDirection.DECLINING
     )
 
     if improving_count > declining_count:
@@ -112,9 +107,7 @@ def build_insufficient_data_summary() -> FinancialTrendSummary:
         income=unavailable_trend,
         expenses=unavailable_trend,
         health_score=unavailable_trend,
-        overall_momentum=(
-            FinancialMomentum.INSUFFICIENT_DATA
-        ),
+        overall_momentum=(FinancialMomentum.INSUFFICIENT_DATA),
     )
 
 
@@ -132,37 +125,27 @@ def analyze_financial_trends(
     health_score_change = get_health_score_change(history)
 
     net_worth_trend = MetricTrend(
-        direction=classify_financial_change(
-            net_worth_change
-        ),
+        direction=classify_financial_change(net_worth_change),
         change=net_worth_change,
     )
 
     cash_flow_trend = MetricTrend(
-        direction=classify_financial_change(
-            cash_flow_change
-        ),
+        direction=classify_financial_change(cash_flow_change),
         change=cash_flow_change,
     )
 
     income_trend = MetricTrend(
-        direction=classify_financial_change(
-            income_change
-        ),
+        direction=classify_financial_change(income_change),
         change=income_change,
     )
 
     expense_trend = MetricTrend(
-        direction=classify_expense_change(
-            expense_change
-        ),
+        direction=classify_expense_change(expense_change),
         change=expense_change,
     )
 
     health_score_trend = MetricTrend(
-        direction=classify_health_score_change(
-            health_score_change
-        ),
+        direction=classify_health_score_change(health_score_change),
         change=Decimal(health_score_change),
     )
 

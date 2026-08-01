@@ -37,7 +37,9 @@ class PositiveCashFlowAllocationRule(FinancialRule):
                     f"You have ${net_cash_flow:.2f} in positive cash flow "
                     "and no recorded goal progress."
                 ),
-                action="Direct part of your positive cash flow toward a financial goal.",
+                action=(
+                    "Direct part of your positive cash flow toward a financial goal."
+                ),
             )
 
         return Recommendation(

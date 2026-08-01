@@ -122,9 +122,7 @@ def test_build_financial_forecast_rejects_empty_history():
 
 
 def test_build_standard_forecasts():
-    forecasts = build_standard_forecasts(
-        build_history()
-    )
+    forecasts = build_standard_forecasts(build_history())
 
     assert set(forecasts) == {
         30,
@@ -144,10 +142,7 @@ def test_build_current_financial_forecast(
 
     load_history(file_path)
 
-    earlier_timestamp = (
-        datetime.now(timezone.utc)
-        - timedelta(days=30)
-    )
+    earlier_timestamp = datetime.now(timezone.utc) - timedelta(days=30)
 
     record_snapshot(
         {
@@ -170,12 +165,8 @@ def test_build_current_financial_forecast(
         timestamp=datetime.now(timezone.utc),
     )
 
-    forecast = build_current_financial_forecast(
-        horizon_days=30
-    )
+    forecast = build_current_financial_forecast(horizon_days=30)
 
     assert forecast.history_points == 2
     assert forecast.horizon_days == 30
-    assert forecast.net_worth.projected_value > (
-        forecast.net_worth.current_value
-    )
+    assert forecast.net_worth.projected_value > (forecast.net_worth.current_value)
