@@ -1,6 +1,3 @@
-from src.financial.events.event_types import FinancialEvent
-
-
 def log_expense_added(expense) -> None:
     print(f"[EVENT] Expense added: {expense.name}")
 
