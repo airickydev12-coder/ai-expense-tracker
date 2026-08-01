@@ -55,7 +55,6 @@ def run_additional_savings_scenario(
     _validate_horizon_months(horizon_months)
 
     original_total_income = to_money(snapshot["total_income"])
-    original_total_expenses = to_money(snapshot["total_expenses"])
     original_net_cash_flow = to_money(snapshot["net_cash_flow"])
     original_account_balance = to_money(snapshot["total_account_balance"])
     original_goal_progress = to_money(snapshot["total_goal_progress"])

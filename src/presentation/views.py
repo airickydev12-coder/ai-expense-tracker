@@ -12,13 +12,6 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.service import get_expenses
-from src.financial.history.analytics import (
-    get_cash_flow_change,
-    get_expense_change,
-    get_health_score_change,
-    get_income_change,
-    get_net_worth_change,
-)
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.recommendations.history import RecommendationRecord
 from src.financial.reports.budget_report import build_budget_report

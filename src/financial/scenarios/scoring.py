@@ -4,7 +4,6 @@ from enum import Enum
 
 from src.core.money import ZERO, to_money
 from src.financial.scenarios.comparison import (
-    ComparisonDirection,
     MetricComparison,
 )
 from src.financial.scenarios.models import (

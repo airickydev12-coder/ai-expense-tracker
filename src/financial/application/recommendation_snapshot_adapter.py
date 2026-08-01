@@ -3,9 +3,6 @@
 from src.financial.application.financial_snapshot_service import (
     FinancialSnapshot,
 )
-from src.financial.application.financial_snapshot_service import (
-    FinancialSnapshot,
-)
 
 
 def build_rule_snapshot(
