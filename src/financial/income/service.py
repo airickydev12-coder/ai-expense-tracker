@@ -30,6 +30,15 @@ def get_income_entries() -> list[Income]:
     return income_entries.copy()
 
 
+def get_income_by_id(income_id: int) -> Income | None:
+    """Return an income entry by ID."""
+    for income in income_entries:
+        if income.id == income_id:
+            return income
+
+    return None
+
+
 def get_next_income_id() -> int:
     """Return the next available income ID."""
     if not income_entries:
@@ -57,6 +66,36 @@ def add_income(source: str, amount: Decimal) -> Income:
     )
 
     return income
+
+
+def update_income(
+    income_id: int,
+    source: str | None = None,
+    amount: Decimal | None = None,
+) -> Income | None:
+    """Update an existing income entry."""
+    income = get_income_by_id(income_id)
+
+    if income is None:
+        return None
+
+    updated_income = Income(
+        id=income.id,
+        source=(source.strip() if source is not None else income.source),
+        amount=(amount if amount is not None else income.amount),
+    )
+
+    income_index = income_entries.index(income)
+    income_entries[income_index] = updated_income
+
+    save_income()
+
+    logger.info(
+        "Updated income %d",
+        income_id,
+    )
+
+    return updated_income
 
 
 def delete_income(income_id: int) -> Income | None:
