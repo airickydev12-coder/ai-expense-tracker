@@ -5,6 +5,11 @@ from enum import Enum
 from src.core.constants import MONTHS_PER_YEAR
 from src.core.exceptions import ValidationError
 from src.core.money import ZERO, to_money
+from src.financial.engine.health_status import (
+    HEALTH_SCORE_EXCELLENT_THRESHOLD,
+    HEALTH_SCORE_FAIR_THRESHOLD,
+    HEALTH_SCORE_GOOD_THRESHOLD,
+)
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.scenarios.comparison import (
     METRIC_NET_CASH_FLOW,
@@ -29,10 +34,6 @@ DEBT_TO_INCOME_CRITICAL_THRESHOLD = _DEBT_TO_INCOME_CRITICAL_FRACTION * 100
 DEBT_TO_INCOME_ELEVATED_THRESHOLD = 30
 
 SPENDING_CONCENTRATION_WARNING_THRESHOLD = _SPENDING_CONCENTRATION_FRACTION * 100
-
-HEALTH_SCORE_CRITICAL_THRESHOLD = 40
-HEALTH_SCORE_WARNING_THRESHOLD = 60
-HEALTH_SCORE_INFORMATIONAL_THRESHOLD = 80
 
 
 class InsightSeverity(Enum):
@@ -654,18 +655,18 @@ def build_health_score_insights(
         )
     ).strip()
 
-    if health_score < HEALTH_SCORE_CRITICAL_THRESHOLD:
+    if health_score < HEALTH_SCORE_FAIR_THRESHOLD:
         severity = InsightSeverity.CRITICAL
         action = (
             "Address negative cash flow, debt pressure, "
             "and insufficient reserves immediately."
         )
 
-    elif health_score < HEALTH_SCORE_WARNING_THRESHOLD:
+    elif health_score < HEALTH_SCORE_GOOD_THRESHOLD:
         severity = InsightSeverity.WARNING
         action = "Focus on the highest-priority weakness in the " "financial snapshot."
 
-    elif health_score < HEALTH_SCORE_INFORMATIONAL_THRESHOLD:
+    elif health_score < HEALTH_SCORE_EXCELLENT_THRESHOLD:
         severity = InsightSeverity.INFORMATIONAL
         action = "Continue improving savings, debt, and cash-flow " "metrics."
 
@@ -688,7 +689,7 @@ def build_health_score_insights(
             severity=severity,
             metric="Financial Health Score",
             current_value=health_score,
-            benchmark_value=float(HEALTH_SCORE_INFORMATIONAL_THRESHOLD),
+            benchmark_value=float(HEALTH_SCORE_EXCELLENT_THRESHOLD),
             action=action,
         )
     ]

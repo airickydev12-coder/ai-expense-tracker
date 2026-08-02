@@ -3,6 +3,7 @@ import pytest
 from src.financial.coach.insights import (
     FinancialCoachInsight,
     InsightSeverity,
+    build_health_score_insights,
     calculate_debt_to_income_ratio,
     calculate_emergency_fund_months,
     calculate_savings_rate,
@@ -143,3 +144,33 @@ def test_spending_concentration_warning():
     )
 
     assert spending_insight.severity == InsightSeverity.WARNING
+
+
+@pytest.mark.parametrize(
+    "health_score,expected_severity",
+    [
+        (0, InsightSeverity.CRITICAL),
+        (49, InsightSeverity.CRITICAL),
+        (50, InsightSeverity.WARNING),
+        (69, InsightSeverity.WARNING),
+        (70, InsightSeverity.INFORMATIONAL),
+        (84, InsightSeverity.INFORMATIONAL),
+        (85, InsightSeverity.POSITIVE),
+        (100, InsightSeverity.POSITIVE),
+    ],
+)
+def test_health_score_insight_matches_canonical_thresholds(
+    health_score,
+    expected_severity,
+):
+    """
+    Severity boundaries must match health_status.py's canonical
+    30/50/70/85 grid (Critical/Needs Attention collapsed into one
+    CRITICAL severity below 50), not an independently invented scale.
+    """
+    snapshot = build_snapshot()
+    snapshot["health_score"] = health_score
+
+    insight = build_health_score_insights(snapshot)[0]
+
+    assert insight.severity == expected_severity
