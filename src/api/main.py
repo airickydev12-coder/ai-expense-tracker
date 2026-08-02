@@ -16,13 +16,18 @@ from src.api.routers import dashboard
 from src.api.routers.accounts import router as accounts_router
 from src.api.routers.bills import router as bills_router
 from src.api.routers.budgets import router as budgets_router
+from src.api.routers.coach import router as coach_router
 from src.api.routers.debt import router as debt_router
 from src.api.routers.expenses import router as expenses_router
+from src.api.routers.forecasting import router as forecasting_router
+from src.api.routers.goals import router as goals_router
 from src.api.routers.health import router as health_router
+from src.api.routers.history import router as history_router
 from src.api.routers.income import router as income_router
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )
+from src.api.routers.scenarios import router as scenarios_router
 from src.core.db import initialize_database
 from src.core.exceptions import (
     BusinessRuleError,
@@ -32,6 +37,7 @@ from src.core.exceptions import (
 )
 from src.core.logging import configure_logging
 from src.financial.application.financial_state import load_financial_state
+from src.financial.scenarios.factory import register_default_scenario_handlers
 
 configure_logging(console_level=logging.INFO)
 
@@ -41,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize the database and hydrate in-memory state on startup."""
     initialize_database()
     load_financial_state()
+    register_default_scenario_handlers()
     yield
 
 
@@ -85,5 +92,10 @@ app.include_router(accounts_router)
 app.include_router(bills_router)
 app.include_router(debt_router)
 app.include_router(income_router)
+app.include_router(goals_router)
+app.include_router(history_router)
+app.include_router(forecasting_router)
+app.include_router(scenarios_router)
+app.include_router(coach_router)
 app.include_router(dashboard.router)
 app.include_router(recommendations_router)

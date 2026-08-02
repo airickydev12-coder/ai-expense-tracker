@@ -111,6 +111,27 @@ CREATE TABLE IF NOT EXISTS goal_ledger_entries (
 """
 
 
+_test_db_path_override: Path | None = None
+
+
+def set_test_database(db_path: Path) -> None:
+    """
+    Redirect every caller relying on the default DB_PATH to a test database.
+
+    Only takes effect for callers that didn't explicitly choose a different
+    path (e.g. repository unit tests passing their own tmp_path) — those are
+    never affected, since this only substitutes the *default* value.
+    """
+    global _test_db_path_override
+    _test_db_path_override = db_path
+
+
+def clear_test_database() -> None:
+    """Stop redirecting the default DB_PATH to a test database."""
+    global _test_db_path_override
+    _test_db_path_override = None
+
+
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     """
     Open a SQLite connection configured for the application's needs.
@@ -118,6 +139,9 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     Ensures the schema exists on every connection so repositories never see
     a "no such table" error on a fresh or missing database file.
     """
+    if _test_db_path_override is not None and db_path == DB_PATH:
+        db_path = _test_db_path_override
+
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     connection = sqlite3.connect(db_path)

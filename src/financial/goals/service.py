@@ -12,9 +12,15 @@ from src.core.money import (
     ZERO,
     to_money,
 )
+from src.financial.goal_ledger.models import GoalLedgerEntry
+from src.financial.goal_ledger.repository import load_goal_ledger_from_file
 from src.financial.goal_ledger.service import (
     migrate_existing_goal_balances,
+    reconcile_goal_balance,
+    record_adjustment,
     record_contribution,
+    record_withdrawal,
+    reverse_entry,
 )
 from src.financial.goals.models import Goal
 from src.financial.goals.repository import (
@@ -218,6 +224,155 @@ def contribute_to_goal(
     )
 
     return get_goal_by_id(goal_id)
+
+
+def withdraw_from_goal(
+    goal_id: int,
+    amount: MoneyInput,
+    file_path: Path = DB_PATH,
+    ledger_file_path: Path | None = None,
+    effective_date: date | None = None,
+    source: str = "MANUAL",
+    note: str = "",
+    correlation_id: str | None = None,
+) -> Goal | None:
+    """Record a withdrawal through the goal ledger."""
+    goal = get_goal_by_id(goal_id)
+
+    if goal is None:
+        return None
+
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
+    )
+
+    record_withdrawal(
+        goal,
+        to_money(amount),
+        goals=goals,
+        effective_date=effective_date,
+        source=source,
+        note=note,
+        correlation_id=correlation_id,
+        ledger_file_path=resolved_ledger_path,
+        goals_file_path=file_path,
+    )
+
+    logger.info(
+        "Recorded withdrawal of %s from goal %d",
+        amount,
+        goal_id,
+    )
+
+    return get_goal_by_id(goal_id)
+
+
+def adjust_goal_balance(
+    goal_id: int,
+    amount: MoneyInput,
+    file_path: Path = DB_PATH,
+    ledger_file_path: Path | None = None,
+    effective_date: date | None = None,
+    source: str = "MANUAL",
+    note: str = "",
+    correlation_id: str | None = None,
+) -> Goal | None:
+    """Record a signed balance correction through the goal ledger."""
+    goal = get_goal_by_id(goal_id)
+
+    if goal is None:
+        return None
+
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
+    )
+
+    record_adjustment(
+        goal,
+        to_money(amount),
+        goals=goals,
+        effective_date=effective_date,
+        source=source,
+        note=note,
+        correlation_id=correlation_id,
+        ledger_file_path=resolved_ledger_path,
+        goals_file_path=file_path,
+    )
+
+    logger.info(
+        "Recorded adjustment of %s to goal %d",
+        amount,
+        goal_id,
+    )
+
+    return get_goal_by_id(goal_id)
+
+
+def reverse_goal_ledger_entry(
+    goal_id: int,
+    entry_id: str,
+    file_path: Path = DB_PATH,
+    ledger_file_path: Path | None = None,
+    effective_date: date | None = None,
+    source: str = "MANUAL",
+    note: str = "",
+    correlation_id: str | None = None,
+) -> Goal | None:
+    """Reverse a ledger entry belonging to a goal."""
+    goal = get_goal_by_id(goal_id)
+
+    if goal is None:
+        return None
+
+    resolved_ledger_path = _resolve_ledger_file_path(
+        goals_file_path=file_path,
+        ledger_file_path=ledger_file_path,
+    )
+
+    reverse_entry(
+        entry_id,
+        goal=goal,
+        goals=goals,
+        effective_date=effective_date,
+        source=source,
+        note=note,
+        correlation_id=correlation_id,
+        ledger_file_path=resolved_ledger_path,
+        goals_file_path=file_path,
+    )
+
+    logger.info(
+        "Reversed ledger entry %s for goal %d",
+        entry_id,
+        goal_id,
+    )
+
+    return get_goal_by_id(goal_id)
+
+
+def get_goal_ledger_entries(
+    goal_id: int,
+    ledger_file_path: Path = DB_PATH,
+) -> list[GoalLedgerEntry]:
+    """Return all ledger entries recorded for a goal."""
+    entries = load_goal_ledger_from_file(ledger_file_path)
+
+    return [entry for entry in entries if entry.goal_id == goal_id]
+
+
+def reconcile_goal(
+    goal_id: int,
+    ledger_file_path: Path = DB_PATH,
+) -> tuple[bool, Decimal] | None:
+    """Compare a goal's cached balance against its ledger-derived balance."""
+    goal = get_goal_by_id(goal_id)
+
+    if goal is None:
+        return None
+
+    return reconcile_goal_balance(goal, ledger_file_path=ledger_file_path)
 
 
 def delete_goal(
