@@ -19,7 +19,11 @@ from src.financial.bills.analytics import (
 from src.financial.bills.service import get_bills
 from src.financial.budgets.analytics import get_budget_summary
 from src.financial.budgets.service import get_budgets
+from src.financial.application.recommendation_application_service import (
+    build_recommendations,
+)
 from src.financial.coach.coaching import build_coaching_session
+from src.financial.coach.recommendation_explainer import get_recommendation_evidence
 from src.financial.debt.analytics import (
     get_highest_interest_debt,
     get_total_debt,
@@ -38,7 +42,9 @@ from src.financial.goals.analytics import get_goal_progress_percentage, get_tota
 from src.financial.goals.service import get_goals
 from src.financial.income.analytics import get_average_income, get_total_income
 from src.financial.income.service import get_income_entries
+from src.financial.scenarios.models import ScenarioRequest, ScenarioType
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
+from src.financial.scenarios.service import run_financial_scenario
 
 logger = get_logger(__name__)
 
@@ -47,14 +53,28 @@ MAX_TOOL_USE_ITERATIONS = 5
 _SYSTEM_PROMPT = (
     "You are a personal financial coach embedded in this app. You answer "
     "questions about the user's own finances using the tools provided — "
-    "every tool reads real data from the user's account. Never guess a "
-    "number; call a tool to get it. If no tool covers what's being asked, "
-    "say so rather than inventing data.\n\n"
-    "You are strictly read-only: you cannot create, modify, or delete any "
-    "expense, budget, debt, goal, bill, income entry, or account, and you "
-    "cannot run a scenario. If the user wants to model a \"what if\" "
-    "(e.g. \"what if I cut dining out by 20%\"), tell them to use the "
-    "Scenarios page instead of attempting to build or estimate one yourself.\n\n"
+    "every tool reads real data from the user's account, runs a real "
+    "calculation, or simulates a real scenario. Never guess a number or "
+    "invent an outcome; call a tool to get it. If no tool covers what's "
+    "being asked, say so rather than inventing data.\n\n"
+    "You are strictly read-only over the user's stored data: you cannot "
+    "create, modify, or delete any expense, budget, debt, goal, bill, "
+    "income entry, or account. Running a scenario is different — it is a "
+    "pure, non-persisted calculation, not a data mutation, so you CAN and "
+    "should run one whenever the user asks a \"what if\" question (e.g. "
+    "\"what if I cut dining out by 20%\" or \"what if I paid an extra $100 "
+    "toward my credit card\"), using the run_scenario tool. For a debt "
+    "scenario, call get_debt_details first to find the real debt_id before "
+    "calling run_scenario — never guess an id. After running a scenario, "
+    "present the real calculated result to the user and compare it against "
+    "their current numbers rather than restating the raw tool output "
+    "verbatim.\n\n"
+    "When asked what to prioritize or which recommendations matter most, "
+    "call list_recommendations rather than inventing a priority order. "
+    "When asked why a specific recommendation matters or what impact acting "
+    "on it would have, call recommendation_evidence and cite the real "
+    "numbers it returns — never fabricate a dollar amount, a timeline, or a "
+    "percentage.\n\n"
     "Be warm but direct, like a knowledgeable friend, not a salesperson. "
     "Keep answers focused and concise — lead with the answer, then the "
     "supporting numbers. Avoid disclaimers about not being a licensed "
@@ -147,7 +167,78 @@ def _tool_coach_analysis() -> dict:
     return session.to_dict()
 
 
-_TOOL_FUNCTIONS: dict[str, Callable[[], dict]] = {
+# --- tool implementations that take parameters -----------------------------
+
+_SCENARIO_PARAM_KEYS: dict[ScenarioType, tuple[str, ...]] = {
+    ScenarioType.EXPENSE_REDUCTION: ("category", "reduction_percentage", "horizon_months"),
+    ScenarioType.INCOME_INCREASE: ("increase_percentage", "horizon_months"),
+    ScenarioType.EXTRA_DEBT_PAYMENT: ("debt_id", "extra_monthly_payment", "horizon_months"),
+    ScenarioType.ADDITIONAL_SAVINGS: ("additional_monthly_savings", "horizon_months"),
+}
+
+
+def _tool_run_scenario(
+    scenario_type: str,
+    name: str,
+    description: str = "",
+    category: str | None = None,
+    reduction_percentage: float | None = None,
+    increase_percentage: float | None = None,
+    debt_id: int | None = None,
+    extra_monthly_payment: float | None = None,
+    additional_monthly_savings: float | None = None,
+    horizon_months: int | None = None,
+) -> dict:
+    """Simulate a real financial scenario and return the calculated result."""
+    scenario_type_enum = ScenarioType(scenario_type)
+
+    all_fields = {
+        "category": category,
+        "reduction_percentage": reduction_percentage,
+        "increase_percentage": increase_percentage,
+        "debt_id": debt_id,
+        "extra_monthly_payment": extra_monthly_payment,
+        "additional_monthly_savings": additional_monthly_savings,
+        "horizon_months": horizon_months,
+    }
+
+    relevant_keys = _SCENARIO_PARAM_KEYS[scenario_type_enum]
+    parameters = {
+        key: all_fields[key] for key in relevant_keys if all_fields[key] is not None
+    }
+
+    snapshot = build_current_financial_snapshot()
+
+    request = ScenarioRequest(
+        scenario_type=scenario_type_enum,
+        name=name,
+        description=description,
+        parameters=parameters,
+    )
+
+    result = run_financial_scenario(request, snapshot)
+
+    return result.to_dict()
+
+
+def _tool_list_recommendations(
+    category: str | None = None,
+    priority: str | None = None,
+    limit: int | None = None,
+) -> dict:
+    recommendations = build_recommendations(
+        priority=priority,
+        category=category,
+        limit=limit if limit is not None else 5,
+    )
+    return {"recommendations": [recommendation.to_dict() for recommendation in recommendations]}
+
+
+def _tool_recommendation_evidence(recommendation_key: str) -> dict:
+    return get_recommendation_evidence(recommendation_key)
+
+
+_TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_financial_snapshot": _tool_financial_snapshot,
     "get_expense_details": _tool_expense_details,
     "get_budget_status": _tool_budget_status,
@@ -157,9 +248,112 @@ _TOOL_FUNCTIONS: dict[str, Callable[[], dict]] = {
     "get_income_details": _tool_income_details,
     "get_account_details": _tool_account_details,
     "get_coach_analysis": _tool_coach_analysis,
+    "run_scenario": _tool_run_scenario,
+    "list_recommendations": _tool_list_recommendations,
+    "recommendation_evidence": _tool_recommendation_evidence,
 }
 
 _EMPTY_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
+
+_RUN_SCENARIO_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "scenario_type": {
+            "type": "string",
+            "enum": [scenario_type.value for scenario_type in ScenarioType],
+            "description": "Which kind of financial scenario to simulate.",
+        },
+        "name": {
+            "type": "string",
+            "description": "A short name for this scenario.",
+        },
+        "description": {
+            "type": "string",
+            "description": "A one-sentence description of what this scenario models.",
+        },
+        "category": {
+            "type": "string",
+            "description": "Expense category name -- required for Expense Reduction.",
+        },
+        "reduction_percentage": {
+            "type": "number",
+            "description": (
+                "Percent to reduce spending by, 0-100 -- required for "
+                "Expense Reduction."
+            ),
+        },
+        "increase_percentage": {
+            "type": "number",
+            "description": "Percent to increase income by -- required for Income Increase.",
+        },
+        "debt_id": {
+            "type": "integer",
+            "description": (
+                "The real debt ID from get_debt_details -- required for "
+                "Extra Debt Payment. Never guess this value."
+            ),
+        },
+        "extra_monthly_payment": {
+            "type": "number",
+            "description": (
+                "Additional monthly payment amount -- required for Extra "
+                "Debt Payment."
+            ),
+        },
+        "additional_monthly_savings": {
+            "type": "number",
+            "description": (
+                "Additional monthly savings amount -- required for "
+                "Additional Savings."
+            ),
+        },
+        "horizon_months": {
+            "type": "integer",
+            "description": "Projection horizon in months. Defaults to 12 if omitted.",
+        },
+    },
+    "required": ["scenario_type", "name"],
+    "additionalProperties": False,
+}
+
+_LIST_RECOMMENDATIONS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "category": {
+            "type": "string",
+            "description": (
+                "Filter to one category, e.g. 'Debt', 'Savings', 'Cash Flow'. "
+                "Omit for all categories."
+            ),
+        },
+        "priority": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+            "description": "Filter to one priority level. Omit for all.",
+        },
+        "limit": {
+            "type": "integer",
+            "description": "Maximum number of recommendations to return. Defaults to 5.",
+        },
+    },
+    "required": [],
+    "additionalProperties": False,
+}
+
+_RECOMMENDATION_EVIDENCE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "recommendation_key": {
+            "type": "string",
+            "description": (
+                "The key of a debt-category recommendation, from "
+                "list_recommendations or get_coach_analysis."
+            ),
+        },
+    },
+    "required": ["recommendation_key"],
+    "additionalProperties": False,
+}
 
 _TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
@@ -230,6 +424,42 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
         ),
         "input_schema": _EMPTY_SCHEMA,
     },
+    {
+        "name": "run_scenario",
+        "description": (
+            "Call this to simulate a hypothetical financial change (a 'what "
+            "if' question) — reducing a spending category, increasing "
+            "income, paying extra toward a debt, or saving more each month. "
+            "Returns the real calculated result, including the projected "
+            "impact compared to the current baseline. This is a pure "
+            "calculation, not a data mutation — nothing is saved. For a "
+            "debt scenario, call get_debt_details first to find the real "
+            "debt_id; never guess it."
+        ),
+        "input_schema": _RUN_SCENARIO_SCHEMA,
+    },
+    {
+        "name": "list_recommendations",
+        "description": (
+            "Call this when asked what to prioritize, which recommendations "
+            "matter most, or for a ranked list of action items. Returns "
+            "recommendations already sorted by priority, optionally filtered "
+            "by category or priority level."
+        ),
+        "input_schema": _LIST_RECOMMENDATIONS_SCHEMA,
+    },
+    {
+        "name": "recommendation_evidence",
+        "description": (
+            "Call this when asked why a specific debt-related recommendation "
+            "matters or what impact acting on it would have. Returns real, "
+            "precomputed evidence (the recommendation plus supporting "
+            "numbers, e.g. a debt's balance/rate and a real payoff "
+            "projection) for you to cite directly — never invent these "
+            "numbers yourself."
+        ),
+        "input_schema": _RECOMMENDATION_EVIDENCE_SCHEMA,
+    },
 ]
 
 
@@ -239,7 +469,7 @@ def _execute_tool(name: str, tool_input: dict) -> tuple[str, bool]:
     if func is None:
         return f"Unknown tool: {name!r}", True
     try:
-        result = func()
+        result = func(**tool_input)
     except Exception as exc:  # noqa: BLE001 - tool-dispatch boundary, must never crash the loop
         logger.warning("Coach chat tool %r failed: %s", name, exc)
         return str(exc), True

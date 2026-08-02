@@ -174,6 +174,16 @@ def _build_aggregate_evidence(snapshot: dict) -> dict:
     }
 
 
+def _gather_evidence(recommendation: Recommendation, snapshot: dict) -> dict:
+    """Resolve the target debt (if any) and build real, precomputed evidence."""
+    debt = _resolve_target_debt(recommendation, snapshot)
+    return (
+        _build_debt_evidence(debt, snapshot)
+        if debt is not None
+        else _build_aggregate_evidence(snapshot)
+    )
+
+
 def _build_prompt(recommendation: Recommendation, evidence: dict) -> str:
     """Build the recommendation-explanation prompt from real evidence."""
     evidence_lines = "\n".join(f"{key}: {value}" for key, value in evidence.items())
@@ -226,8 +236,8 @@ def _request_explanation(prompt: str) -> dict:
     return json.loads(text)
 
 
-def explain_debt_recommendation(recommendation_key: str) -> dict:
-    """Generate a structured, evidence-grounded explanation for a DEBT recommendation."""
+def _get_debt_recommendation(recommendation_key: str) -> Recommendation:
+    """Look up a recommendation and validate it's DEBT-category."""
     recommendation = get_recommendation_by_key(recommendation_key)
     if recommendation is None:
         raise NotFoundError(
@@ -240,19 +250,40 @@ def explain_debt_recommendation(recommendation_key: str) -> dict:
             "for debt-category recommendations."
         )
 
+    return recommendation
+
+
+def get_recommendation_evidence(recommendation_key: str) -> dict:
+    """
+    Return a DEBT recommendation plus real, precomputed evidence -- no AI call.
+
+    Shares lookup/validation/evidence-gathering with
+    explain_debt_recommendation(), but stops short of generating an AI
+    narrative -- used by the coach chat's evidence-lookup tool, which lets
+    the already-running chat model write its own grounded explanation
+    instead of triggering a second, nested Claude call.
+    """
+    recommendation = _get_debt_recommendation(recommendation_key)
+    snapshot = build_current_financial_snapshot()
+    evidence = _gather_evidence(recommendation, snapshot)
+
+    return {
+        "recommendation": recommendation.to_dict(),
+        "evidence": evidence,
+    }
+
+
+def explain_debt_recommendation(recommendation_key: str) -> dict:
+    """Generate a structured, evidence-grounded explanation for a DEBT recommendation."""
+    recommendation = _get_debt_recommendation(recommendation_key)
+
     logger.info(
         "Requesting explanation for recommendation key=%r",
         recommendation_key,
     )
 
     snapshot = build_current_financial_snapshot()
-
-    debt = _resolve_target_debt(recommendation, snapshot)
-    evidence = (
-        _build_debt_evidence(debt, snapshot)
-        if debt is not None
-        else _build_aggregate_evidence(snapshot)
-    )
+    evidence = _gather_evidence(recommendation, snapshot)
 
     prompt = _build_prompt(recommendation, evidence)
     explanation = _request_explanation(prompt)

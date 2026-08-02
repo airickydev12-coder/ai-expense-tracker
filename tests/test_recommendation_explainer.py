@@ -121,6 +121,77 @@ def test_explain_debt_recommendation_returns_structured_result(
     assert result["evidence"]["payoff_months_saved"] is not None
 
 
+def test_get_recommendation_evidence_returns_no_ai_call_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Evidence lookup should return real data without any AI call."""
+    recommendation = build_debt_recommendation()
+    snapshot = build_snapshot()
+
+    monkeypatch.setattr(
+        recommendation_explainer,
+        "get_recommendation_by_key",
+        lambda key: recommendation,
+    )
+    monkeypatch.setattr(
+        recommendation_explainer,
+        "build_current_financial_snapshot",
+        lambda: snapshot,
+    )
+
+    def fail_if_called(prompt: str) -> dict:
+        raise AssertionError("get_recommendation_evidence must not call the AI.")
+
+    monkeypatch.setattr(
+        recommendation_explainer,
+        "_request_explanation",
+        fail_if_called,
+    )
+
+    result = recommendation_explainer.get_recommendation_evidence(recommendation.key)
+
+    assert result["recommendation"]["key"] == recommendation.key
+    assert result["evidence"]["type"] == "debt"
+    assert result["evidence"]["debt_name"] == "Card A"
+
+
+def test_get_recommendation_evidence_rejects_non_debt_category(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-DEBT recommendation should be rejected."""
+    recommendation = Recommendation(
+        priority=RecommendationPriority.HIGH,
+        category=RecommendationCategory.CASH_FLOW,
+        title="Negative Cash Flow",
+        message="Your expenses exceed your income.",
+        action="Reduce spending or increase income.",
+        source_rule="NegativeCashFlowRule",
+    )
+
+    monkeypatch.setattr(
+        recommendation_explainer,
+        "get_recommendation_by_key",
+        lambda key: recommendation,
+    )
+
+    with pytest.raises(ValidationError):
+        recommendation_explainer.get_recommendation_evidence("cash_flow:negative")
+
+
+def test_get_recommendation_evidence_raises_not_found_for_unknown_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unknown recommendation key should raise NotFoundError."""
+    monkeypatch.setattr(
+        recommendation_explainer,
+        "get_recommendation_by_key",
+        lambda key: None,
+    )
+
+    with pytest.raises(NotFoundError):
+        recommendation_explainer.get_recommendation_evidence("debt:unknown")
+
+
 def test_resolve_target_debt_for_high_interest_rule() -> None:
     """The selector should mirror HighInterestDebtRule and match by name."""
     recommendation = build_debt_recommendation()
