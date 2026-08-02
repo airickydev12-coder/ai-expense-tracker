@@ -603,7 +603,7 @@ def build_net_worth_insights(
                     f"Current liabilities exceed assets by " f"${abs(net_worth):,.2f}."
                 ),
                 category=CoachingCategory.NET_WORTH,
-                severity=InsightSeverity.WARNING,
+                severity=InsightSeverity.CRITICAL,
                 metric=METRIC_NET_WORTH,
                 current_value=float(net_worth),
                 benchmark_value=0.0,
