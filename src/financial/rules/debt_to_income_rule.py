@@ -1,3 +1,4 @@
+from src.core.constants import MONTHS_PER_YEAR
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
@@ -7,17 +8,19 @@ DEBT_TO_INCOME_HIGH_THRESHOLD = 0.50
 
 
 class DebtToIncomeRule(FinancialRule):
-    """Warn when debt is high compared to income."""
+    """Warn when debt is high compared to annualized income."""
 
     def evaluate(self, snapshot: dict) -> Recommendation | None:
         """Return a recommendation when debt-to-income is high."""
-        total_income = snapshot["total_income"]
+        monthly_income = snapshot["total_income"]
         total_debt = snapshot["total_debt"]
 
-        if total_income <= 0:
+        if monthly_income <= 0:
             return None
 
-        debt_to_income = total_debt / total_income
+        annual_income = monthly_income * MONTHS_PER_YEAR
+
+        debt_to_income = total_debt / annual_income
 
         if debt_to_income >= DEBT_TO_INCOME_HIGH_THRESHOLD:
             return Recommendation(

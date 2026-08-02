@@ -8,7 +8,7 @@ def test_debt_to_income_rule_triggers():
 
     snapshot = {
         "total_income": 5000,
-        "total_debt": 3000,
+        "total_debt": 36000,
     }
 
     result = rule.evaluate(snapshot)
