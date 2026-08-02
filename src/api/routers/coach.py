@@ -4,9 +4,12 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from src.api.schemas.coach import CoachChatRequest, CoachChatResponse
+from src.core.exceptions import ValidationError
 from src.financial.application.financial_state import (
     build_current_financial_snapshot,
 )
+from src.financial.coach import chat as coach_chat
 from src.financial.coach.coaching import build_coaching_session
 from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
@@ -32,3 +35,13 @@ def get_coaching_session() -> dict[str, Any]:
     )
     session = build_coaching_session(snapshot, optimization_result)
     return session.to_dict()
+
+
+@router.post("/chat")
+def send_chat_message(request: CoachChatRequest) -> CoachChatResponse:
+    """Send a message, with full history, to the AI financial coach chat."""
+    if request.messages[-1].role != "user":
+        raise ValidationError("The last message in the conversation must be from the user.")
+    history = [{"role": message.role, "content": message.content} for message in request.messages]
+    reply = coach_chat.run_coach_chat(history)
+    return CoachChatResponse(reply=reply)

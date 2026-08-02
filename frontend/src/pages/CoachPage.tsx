@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCoachingSession, listInsights } from '../api/coach'
+import { CoachChat } from '../components/coach/CoachChat'
 import { SeverityBadge } from '../components/coach/SeverityBadge'
 import type { CoachingSessionDict, FinancialCoachInsightDict } from '../types/coach'
 
@@ -175,6 +176,10 @@ export function CoachPage() {
             )}
           </div>
         )}
+      </div>
+
+      <div>
+        <CoachChat />
       </div>
     </div>
   )

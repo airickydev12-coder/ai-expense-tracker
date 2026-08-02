@@ -44,3 +44,16 @@ export interface CoachingSessionDict {
   next_steps: string[]
   warnings: string[]
 }
+
+export interface CoachChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface CoachChatRequest {
+  messages: CoachChatMessage[]
+}
+
+export interface CoachChatResponse {
+  reply: string
+}
