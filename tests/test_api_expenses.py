@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.schemas.expenses import ExpenseCreateRequest, ExpenseUpdateRequest
+from src.core.exceptions import ExternalServiceError
+from src.financial.expenses import categorization as expense_categorization
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
@@ -243,3 +245,46 @@ def test_delete_expense_returns_404_when_not_found(
     response = client.delete("/expenses/999")
     assert response.status_code == 404
     assert response.json() == {"detail": "Expense with ID 999 was not found."}
+
+
+def test_suggest_expense_category_returns_suggested_category(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A valid name should return the suggested category."""
+
+    def fake_suggest_category(name: str) -> ExpenseCategory:
+        assert name == "Trader Joe's"
+        return ExpenseCategory.FOOD
+
+    monkeypatch.setattr(
+        expense_categorization, "suggest_category", fake_suggest_category
+    )
+    response = client.post(
+        "/expenses/suggest-category", json={"name": "Trader Joe's"}
+    )
+    assert response.status_code == 200
+    assert response.json() == {"category": "Food"}
+
+
+def test_suggest_expense_category_rejects_empty_name() -> None:
+    """An empty name should fail validation before the service is called."""
+    response = client.post("/expenses/suggest-category", json={"name": ""})
+    assert response.status_code == 422
+
+
+def test_suggest_expense_category_returns_502_on_external_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An external-service failure should surface as HTTP 502."""
+
+    def fake_suggest_category(name: str) -> ExpenseCategory:
+        raise ExternalServiceError("Category suggestion is unavailable: boom")
+
+    monkeypatch.setattr(
+        expense_categorization, "suggest_category", fake_suggest_category
+    )
+    response = client.post("/expenses/suggest-category", json={"name": "Coffee"})
+    assert response.status_code == 502
+    assert response.json() == {
+        "detail": "Category suggestion is unavailable: boom"
+    }

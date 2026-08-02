@@ -1,7 +1,14 @@
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 APP_NAME = "Financial Core"
 VERSION = "0.7.0"
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"

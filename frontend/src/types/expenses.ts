@@ -33,3 +33,7 @@ export interface ExpenseUpdateRequest {
   category?: ExpenseCategory
   amount?: number
 }
+
+export interface ExpenseCategorySuggestionResponse {
+  category: ExpenseCategory
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { suggestExpenseCategory } from '../../api/expenses'
 import { EXPENSE_CATEGORIES } from '../../types/expenses'
 import type { ExpenseCategory, ExpenseResponse } from '../../types/expenses'
 
@@ -21,6 +22,19 @@ export function ExpenseForm({ initial, submitting, onSubmit, onCancel }: Expense
   const [category, setCategory] = useState<ExpenseCategory>(initial?.category ?? EXPENSE_CATEGORIES[0])
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [formError, setFormError] = useState<string | null>(null)
+  const [suggesting, setSuggesting] = useState(false)
+
+  function handleSuggestCategory() {
+    if (!name.trim()) return
+    setSuggesting(true)
+    setFormError(null)
+    suggestExpenseCategory(name.trim())
+      .then((result) => setCategory(result.category))
+      .catch((err: unknown) => {
+        setFormError(err instanceof Error ? err.message : 'Failed to suggest a category')
+      })
+      .finally(() => setSuggesting(false))
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -48,13 +62,23 @@ export function ExpenseForm({ initial, submitting, onSubmit, onCancel }: Expense
         <label htmlFor="expense-name" className="text-xs text-gray-500">
           Name
         </label>
-        <input
-          id="expense-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-1 text-sm"
-        />
+        <div className="flex gap-2">
+          <input
+            id="expense-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSuggestCategory}
+            disabled={!name.trim() || suggesting}
+            className="rounded border border-gray-300 px-2 py-1 text-sm text-gray-700 disabled:opacity-50"
+          >
+            {suggesting ? 'Suggesting...' : 'Suggest Category'}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">

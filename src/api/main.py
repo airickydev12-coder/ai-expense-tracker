@@ -32,6 +32,7 @@ from src.api.routers.scenarios import router as scenarios_router
 from src.core.db import initialize_database
 from src.core.exceptions import (
     BusinessRuleError,
+    ExternalServiceError,
     NotFoundError,
     PersistenceError,
     ValidationError,
@@ -92,6 +93,14 @@ def handle_business_rule_error(
 def handle_persistence_error(request: Request, exc: PersistenceError) -> JSONResponse:
     """Map storage-layer errors to a 500 response."""
     return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+
+@app.exception_handler(ExternalServiceError)
+def handle_external_service_error(
+    request: Request, exc: ExternalServiceError
+) -> JSONResponse:
+    """Map external-service failures (e.g. the Claude API) to a 502 response."""
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 app.include_router(health_router)

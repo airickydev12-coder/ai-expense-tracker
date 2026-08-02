@@ -26,3 +26,7 @@ class BusinessRuleError(AppError):
 
 class PersistenceError(AppError):
     """Raised when stored data is missing, malformed, or cannot be loaded."""
+
+
+class ExternalServiceError(AppError):
+    """Raised when a call to an external service fails or is unavailable."""

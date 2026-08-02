@@ -32,3 +32,15 @@ class ExpenseResponse(BaseModel):
     name: str
     category: ExpenseCategory
     amount: float
+
+
+class ExpenseCategorySuggestionRequest(BaseModel):
+    """Request body for suggesting an expense category."""
+
+    name: str = Field(min_length=1)
+
+
+class ExpenseCategorySuggestionResponse(BaseModel):
+    """Suggested category for an expense name."""
+
+    category: ExpenseCategory

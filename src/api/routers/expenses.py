@@ -9,12 +9,15 @@ from src.api.schemas.analytics import (
     ExpenseStatisticsResponse,
 )
 from src.api.schemas.expenses import (
+    ExpenseCategorySuggestionRequest,
+    ExpenseCategorySuggestionResponse,
     ExpenseCreateRequest,
     ExpenseResponse,
     ExpenseUpdateRequest,
 )
 from src.core.money import CURRENCY_PRECISION
 from src.financial.expenses import analytics as expense_analytics
+from src.financial.expenses import categorization as expense_categorization
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
 
@@ -49,6 +52,18 @@ def get_expense_statistics() -> ExpenseStatisticsResponse:
         ),
         lowest=(ExpenseResponse.model_validate(lowest) if lowest is not None else None),
     )
+
+
+@router.post(
+    "/suggest-category",
+    response_model=ExpenseCategorySuggestionResponse,
+)
+def suggest_expense_category(
+    request: ExpenseCategorySuggestionRequest,
+) -> ExpenseCategorySuggestionResponse:
+    """Suggest an expense category for the given name using Claude."""
+    category = expense_categorization.suggest_category(request.name)
+    return ExpenseCategorySuggestionResponse(category=category)
 
 
 @router.get("", response_model=list[ExpenseResponse])

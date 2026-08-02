@@ -69,4 +69,40 @@ describe('ExpensesPage', () => {
 
     expect(await screen.findByText(/Failed to load expenses/i)).toBeInTheDocument()
   })
+
+  it('suggests a category from the typed name and updates the select', async () => {
+    vi.mocked(expensesApi.listExpenses).mockResolvedValue([])
+    vi.mocked(expensesApi.suggestExpenseCategory).mockResolvedValue({
+      category: 'Housing',
+    })
+
+    render(<ExpensesPage />)
+
+    await screen.findByText('No expenses yet.')
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Rent' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Suggest Category' }))
+
+    expect(expensesApi.suggestExpenseCategory).toHaveBeenCalledWith('Rent')
+    await screen.findByRole('button', { name: 'Suggest Category' })
+    expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('Housing')
+  })
+
+  it('shows an inline error when category suggestion fails, without blocking the form', async () => {
+    vi.mocked(expensesApi.listExpenses).mockResolvedValue([])
+    vi.mocked(expensesApi.suggestExpenseCategory).mockRejectedValue(
+      new Error('Category suggestion is unavailable'),
+    )
+
+    render(<ExpensesPage />)
+
+    await screen.findByText('No expenses yet.')
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Rent' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Suggest Category' }))
+
+    expect(await screen.findByText('Category suggestion is unavailable')).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Rent')
+    expect(screen.getByRole('button', { name: 'Add Expense' })).toBeEnabled()
+  })
 })

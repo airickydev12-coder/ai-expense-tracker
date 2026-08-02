@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './client'
 import type {
+  ExpenseCategorySuggestionResponse,
   ExpenseCreateRequest,
   ExpenseResponse,
   ExpenseUpdateRequest,
@@ -22,4 +23,10 @@ export function updateExpense(
 
 export function deleteExpense(id: number): Promise<ExpenseResponse> {
   return apiDelete<ExpenseResponse>(`/expenses/${id}`)
+}
+
+export function suggestExpenseCategory(
+  name: string,
+): Promise<ExpenseCategorySuggestionResponse> {
+  return apiPost<ExpenseCategorySuggestionResponse>('/expenses/suggest-category', { name })
 }
