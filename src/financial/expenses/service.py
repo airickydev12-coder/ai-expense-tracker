@@ -136,17 +136,3 @@ def get_total() -> Decimal:
         (expense.amount for expense in expenses),
         start=Decimal("0"),
     )
-
-
-def calculate_total() -> None:
-    """
-    Display the total amount of all recorded expenses.
-
-    Retrieves the total spending by calling the get_total()
-    function and prints the result formatted as currency.
-
-    Returns:
-        None
-    """
-    total = get_total()
-    print(f"Total spending: ${total:.2f}")

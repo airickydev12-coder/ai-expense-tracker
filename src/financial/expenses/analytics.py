@@ -28,7 +28,6 @@ def get_average(expenses: list[Expense]) -> Decimal:
         CURRENCY_PRECISION,
         rounding=ROUND_HALF_UP,
     )
-    print(f"Average before return: {average}")
 
 
 def get_highest_expense(expenses: list[Expense]) -> Expense | None:
