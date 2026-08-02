@@ -1,5 +1,5 @@
 # AI Expense Tracker (Financial Core)
-A layered Python financial platform (CLI + FastAPI backend) that tracks expenses, budgets, debt, goals, and scenario planning, currently backed by JSON files and migrating toward SQLite.
+A layered Python financial platform (CLI + FastAPI backend) that tracks expenses, budgets, debt, goals, and scenario planning, currently backed by JSON files and migrating toward SQLite. A React frontend lives under `frontend/`, consuming the FastAPI backend over HTTP.
 
 ## Build, Test & Lint Commands
 This project uses a `.venv` virtual environment — the global `python`/`pip` on PATH do **not** have project dependencies installed. Always invoke tools through the venv.
@@ -13,6 +13,17 @@ This project uses a `.venv` virtual environment — the global `python`/`pip` on
 - Type-check (lint): `npx pyright` (config: `pyrightconfig.json`; must report 0 errors/0 warnings)
 - No build step — pure Python, no compilation/bundling.
 - **Before reporting any change done**: run the full test suite AND `npx pyright`. Both must be clean (955+ passing, 0 pyright errors) — this project has zero tolerance for regressions introduced silently.
+
+## Frontend (`frontend/`)
+A Vite + React + TypeScript + Tailwind SPA, added in Phase 5, consuming the FastAPI backend over HTTP (CORS-enabled in `src/api/main.py` for the Vite dev server). All commands below run from inside `frontend/`.
+
+- Install deps: `npm install`
+- Run dev server: `npm run dev` (defaults to `http://localhost:5173`)
+- Build for production: `npm run build`
+- Run tests: `npm run test`
+- Type-check: `npx tsc -b` (matches the `build` script's type-check step)
+- Expects the backend running at `http://127.0.0.1:8000` (see `frontend/.env.development`, `VITE_API_BASE_URL`) — start the backend first (`.venv/Scripts/uvicorn.exe src.api.main:app --reload`), or dashboard data will show the error state rather than crash.
+- Not held to the backend's "955+ tests / 0 pyright errors" bar yet — but `npm run test` should pass before reporting a frontend change done.
 
 ## Architecture Decision Records
 Detailed rationale lives in `docs/Architecture/`. Load the relevant one before making a change in its area rather than re-deriving the reasoning from scratch.
