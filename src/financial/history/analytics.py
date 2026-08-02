@@ -1,7 +1,23 @@
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from src.core.money import ZERO
 from src.financial.history.models import FinancialSnapshotRecord
+
+
+def filter_history_within_days(
+    history: list[FinancialSnapshotRecord],
+    days: int,
+    *,
+    now: datetime | None = None,
+) -> list[FinancialSnapshotRecord]:
+    """Return snapshots with timestamp >= now - days, ordered oldest to newest."""
+    reference = now if now is not None else datetime.now(timezone.utc)
+    cutoff = reference - timedelta(days=days)
+
+    return _sort_history(
+        [record for record in history if record.timestamp >= cutoff]
+    )
 
 
 def _sort_history(

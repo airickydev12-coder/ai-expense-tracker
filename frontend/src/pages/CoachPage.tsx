@@ -1,8 +1,21 @@
 import { useEffect, useState } from 'react'
-import { getCoachingSession, listInsights } from '../api/coach'
+import {
+  explainRecommendation,
+  getCoachingSession,
+  getFinancialNarrative,
+  getMonthlyReview,
+  listInsights,
+} from '../api/coach'
+import { listRecommendationsByCategory } from '../api/recommendations'
 import { CoachChat } from '../components/coach/CoachChat'
 import { SeverityBadge } from '../components/coach/SeverityBadge'
-import type { CoachingSessionDict, FinancialCoachInsightDict } from '../types/coach'
+import type {
+  CoachingSessionDict,
+  FinancialCoachInsightDict,
+  MonthlyReviewDict,
+  RecommendationExplanationDict,
+} from '../types/coach'
+import type { RecommendationResponse } from '../types/recommendations'
 
 type InsightsState =
   | { status: 'loading' }
@@ -13,6 +26,26 @@ type SessionState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; session: CoachingSessionDict }
+
+type NarrativeState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; narrative: string }
+
+type DebtRecommendationsState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; recommendations: RecommendationResponse[] }
+
+type ExplanationState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; explanation: RecommendationExplanationDict }
+
+type MonthlyReviewState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; review: MonthlyReviewDict }
 
 function InsightCard({ insight }: { insight: FinancialCoachInsightDict }) {
   return (
@@ -27,10 +60,90 @@ function InsightCard({ insight }: { insight: FinancialCoachInsightDict }) {
   )
 }
 
+function DebtRecommendationCard({
+  recommendation,
+  explanationState,
+  onExplain,
+}: {
+  recommendation: RecommendationResponse
+  explanationState: ExplanationState | undefined
+  onExplain: () => void
+}) {
+  return (
+    <div className="rounded border border-gray-200 p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-gray-900">{recommendation.title}</span>
+        <SeverityBadge value={recommendation.priority} />
+      </div>
+      <p className="mt-1 text-gray-700">{recommendation.message}</p>
+      <p className="mt-1 text-xs text-gray-500">Action: {recommendation.action}</p>
+
+      {!explanationState && (
+        <button
+          type="button"
+          onClick={onExplain}
+          className="mt-2 text-xs text-blue-600 hover:underline"
+        >
+          Explain
+        </button>
+      )}
+
+      {explanationState?.status === 'loading' && (
+        <p className="mt-2 text-xs text-gray-500">Loading explanation...</p>
+      )}
+      {explanationState?.status === 'error' && (
+        <p className="mt-2 text-xs text-red-600">Failed to load explanation: {explanationState.message}</p>
+      )}
+      {explanationState?.status === 'success' && (
+        <div className="mt-2 space-y-1 rounded bg-gray-50 p-2 text-xs text-gray-700">
+          <p>Reason: {explanationState.explanation.reason}</p>
+          <p>Expected impact: {explanationState.explanation.expected_impact}</p>
+          <p>Confidence: {explanationState.explanation.confidence}</p>
+          {explanationState.explanation.assumptions.length > 0 && (
+            <div>
+              <span>Assumptions:</span>
+              <ul className="list-disc pl-5">
+                {explanationState.explanation.assumptions.map((assumption, idx) => (
+                  <li key={idx}>{assumption}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CoachPage() {
+  const [narrativeState, setNarrativeState] = useState<NarrativeState>({ status: 'loading' })
   const [insightsState, setInsightsState] = useState<InsightsState>({ status: 'loading' })
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'loading' })
+  const [debtRecommendationsState, setDebtRecommendationsState] = useState<DebtRecommendationsState>({
+    status: 'loading',
+  })
+  const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({})
+  const [monthlyReviewState, setMonthlyReviewState] = useState<MonthlyReviewState>({ status: 'loading' })
   const [expandedAdviceKey, setExpandedAdviceKey] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    getFinancialNarrative()
+      .then((result) => {
+        if (!cancelled) setNarrativeState({ status: 'success', narrative: result.narrative })
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          setNarrativeState({ status: 'error', message })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -62,9 +175,77 @@ export function CoachPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    listRecommendationsByCategory('Debt')
+      .then((recommendations) => {
+        if (!cancelled) setDebtRecommendationsState({ status: 'success', recommendations })
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          setDebtRecommendationsState({ status: 'error', message })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    getMonthlyReview()
+      .then((review) => {
+        if (!cancelled) setMonthlyReviewState({ status: 'success', review })
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          setMonthlyReviewState({ status: 'error', message })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function handleExplain(recommendationKey: string) {
+    setExplanations((prev) => ({ ...prev, [recommendationKey]: { status: 'loading' } }))
+
+    explainRecommendation(recommendationKey)
+      .then((explanation) => {
+        setExplanations((prev) => ({
+          ...prev,
+          [recommendationKey]: { status: 'success', explanation },
+        }))
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        setExplanations((prev) => ({
+          ...prev,
+          [recommendationKey]: { status: 'error', message },
+        }))
+      })
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4">
       <h1 className="text-2xl font-semibold text-gray-900">Coach</h1>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Financial Narrative</h2>
+        {narrativeState.status === 'loading' && <p className="text-gray-600">Loading narrative...</p>}
+        {narrativeState.status === 'error' && (
+          <p className="text-red-600">Failed to load narrative: {narrativeState.message}</p>
+        )}
+        {narrativeState.status === 'success' && (
+          <p className="text-sm text-gray-700">{narrativeState.narrative}</p>
+        )}
+      </div>
 
       <div>
         <h2 className="mb-2 text-lg font-medium text-gray-900">Insights</h2>
@@ -173,6 +354,88 @@ export function CoachPage() {
                   ))}
                 </ul>
               </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Debt Recommendations</h2>
+        {debtRecommendationsState.status === 'loading' && (
+          <p className="text-gray-600">Loading debt recommendations...</p>
+        )}
+        {debtRecommendationsState.status === 'error' && (
+          <p className="text-red-600">
+            Failed to load debt recommendations: {debtRecommendationsState.message}
+          </p>
+        )}
+        {debtRecommendationsState.status === 'success' && (
+          <div className="space-y-2">
+            {debtRecommendationsState.recommendations.length === 0 ? (
+              <p className="text-sm text-gray-500">No debt recommendations right now.</p>
+            ) : (
+              debtRecommendationsState.recommendations.map((recommendation) => (
+                <DebtRecommendationCard
+                  key={recommendation.key}
+                  recommendation={recommendation}
+                  explanationState={explanations[recommendation.key]}
+                  onExplain={() => handleExplain(recommendation.key)}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Monthly Review</h2>
+        {monthlyReviewState.status === 'loading' && <p className="text-gray-600">Loading monthly review...</p>}
+        {monthlyReviewState.status === 'error' && (
+          <p className="text-red-600">Failed to load monthly review: {monthlyReviewState.message}</p>
+        )}
+        {monthlyReviewState.status === 'success' && (
+          <div className="space-y-3 text-sm">
+            {monthlyReviewState.review.status !== 'ok' ? (
+              <p className="text-gray-600">{monthlyReviewState.review.message}</p>
+            ) : (
+              <>
+                <p className="text-gray-700">{monthlyReviewState.review.overall_summary}</p>
+                {monthlyReviewState.review.income_vs_expenses && (
+                  <p className="text-gray-700">{monthlyReviewState.review.income_vs_expenses.narrative}</p>
+                )}
+                {monthlyReviewState.review.cash_flow && (
+                  <p className="text-gray-700">{monthlyReviewState.review.cash_flow.narrative}</p>
+                )}
+                {monthlyReviewState.review.debt_progress && (
+                  <p className="text-gray-700">{monthlyReviewState.review.debt_progress.narrative}</p>
+                )}
+                {monthlyReviewState.review.savings_progress && (
+                  <p className="text-gray-700">{monthlyReviewState.review.savings_progress.narrative}</p>
+                )}
+                {monthlyReviewState.review.goal_status && (
+                  <p className="text-gray-700">{monthlyReviewState.review.goal_status.narrative}</p>
+                )}
+                {monthlyReviewState.review.health_score && (
+                  <p className="text-gray-700">{monthlyReviewState.review.health_score.narrative}</p>
+                )}
+                {monthlyReviewState.review.top_actions && monthlyReviewState.review.top_actions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">Top Actions</h3>
+                    <ul className="list-disc pl-5 text-gray-700">
+                      {monthlyReviewState.review.top_actions.map((action) => (
+                        <li key={action.key}>{action.title}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {monthlyReviewState.review.known_gaps && monthlyReviewState.review.known_gaps.length > 0 && (
+                  <ul className="list-disc pl-5 text-xs text-gray-500">
+                    {monthlyReviewState.review.known_gaps.map((gap, idx) => (
+                      <li key={idx}>{gap}</li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
           </div>
         )}

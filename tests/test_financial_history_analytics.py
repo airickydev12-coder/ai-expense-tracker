@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from src.financial.history.analytics import (
+    filter_history_within_days,
     get_cash_flow_change,
     get_expense_change,
     get_health_score_change,
@@ -80,3 +81,33 @@ def test_analytics_return_zero_with_empty_history():
     assert get_health_score_change([]) == 0
     assert get_income_change([]) == 0
     assert get_expense_change([]) == 0
+
+
+def test_filter_history_within_days_excludes_older_records():
+    now = datetime.now(timezone.utc)
+    newer, older = build_history()
+
+    filtered = filter_history_within_days([newer, older], 31, now=now)
+
+    assert filtered == [older, newer]
+
+    filtered_narrow = filter_history_within_days([newer, older], 10, now=now)
+
+    assert filtered_narrow == [newer]
+
+
+def test_filter_history_within_days_uses_now_parameter():
+    now = datetime.now(timezone.utc)
+    newer, older = build_history()
+
+    filtered_future = filter_history_within_days(
+        [newer, older],
+        31,
+        now=now + timedelta(days=40),
+    )
+
+    assert filtered_future == []
+
+
+def test_filter_history_within_days_returns_empty_for_empty_history():
+    assert filter_history_within_days([], 31) == []

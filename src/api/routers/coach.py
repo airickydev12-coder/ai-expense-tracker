@@ -4,17 +4,51 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from src.api.schemas.coach import CoachChatRequest, CoachChatResponse
+from src.api.schemas.coach import (
+    CoachChatRequest,
+    CoachChatResponse,
+    CoachNarrativeResponse,
+    MonthlyReviewResponse,
+    RecommendationExplanationResponse,
+)
 from src.core.exceptions import ValidationError
 from src.financial.application.financial_state import (
     build_current_financial_snapshot,
 )
 from src.financial.coach import chat as coach_chat
+from src.financial.coach import monthly_review as coach_monthly_review
+from src.financial.coach import narrative as coach_narrative
+from src.financial.coach import recommendation_explainer
 from src.financial.coach.coaching import build_coaching_session
 from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 
 router = APIRouter(prefix="/coach", tags=["Coach"])
+
+
+@router.get("/narrative")
+def get_financial_narrative() -> CoachNarrativeResponse:
+    """Return an AI-generated narrative explanation of the current snapshot."""
+    snapshot = build_current_financial_snapshot()
+    narrative = coach_narrative.generate_financial_narrative(snapshot)
+    return CoachNarrativeResponse(narrative=narrative)
+
+
+@router.get("/recommendations/{recommendation_key}/explanation")
+def get_recommendation_explanation(
+    recommendation_key: str,
+) -> RecommendationExplanationResponse:
+    """Return an AI-generated, evidence-grounded explanation for a recommendation."""
+    result = recommendation_explainer.explain_debt_recommendation(recommendation_key)
+    return RecommendationExplanationResponse.model_validate(result)
+
+
+@router.get("/monthly-review")
+def get_monthly_review() -> MonthlyReviewResponse:
+    """Return an AI-generated monthly financial review."""
+    snapshot = build_current_financial_snapshot()
+    result = coach_monthly_review.generate_monthly_review(snapshot)
+    return MonthlyReviewResponse.model_validate(result)
 
 
 @router.get("/insights")
