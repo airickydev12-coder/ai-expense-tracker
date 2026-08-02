@@ -10,9 +10,9 @@ from src.financial.coach.insights import (
 from src.financial.coach.models import (
     AdviceExplanation,
     CoachingAdvice,
-    CoachingCategory,
     CoachingPriority,
 )
+from src.financial.recommendations.category import RecommendationCategory
 from src.presentation import coach_views
 
 
@@ -25,7 +25,7 @@ def build_session() -> CoachingSession:
         action=("Direct part of the additional " "income to savings."),
         reason=("It improves cash flow and net worth."),
         priority=CoachingPriority.HIGH,
-        category=CoachingCategory.INCOME,
+        category=RecommendationCategory.INCOME,
         expected_impact=("Projected effects include net worth " "+6,000.00."),
         source_scenario="Increase Income by 10%",
         score=92,
@@ -50,7 +50,7 @@ def build_session() -> CoachingSession:
             key="cash_flow:positive",
             title="Positive Monthly Cash Flow",
             message=("The current monthly surplus is " "$2,000.00."),
-            category=CoachingCategory.CASH_FLOW,
+            category=RecommendationCategory.CASH_FLOW,
             severity=InsightSeverity.POSITIVE,
             action=("Assign the surplus deliberately."),
         ),
@@ -58,7 +58,7 @@ def build_session() -> CoachingSession:
             key="savings:emergency_fund",
             title="Emergency Fund Below Target",
             message=("Available balances cover two months " "of expenses."),
-            category=CoachingCategory.SAVINGS,
+            category=RecommendationCategory.SAVINGS,
             severity=InsightSeverity.WARNING,
             action=("Build reserves toward three months."),
         ),

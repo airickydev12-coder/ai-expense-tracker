@@ -1,8 +1,8 @@
 from src.financial.coach.models import (
     CoachingAdvice,
-    CoachingCategory,
     CoachingPriority,
 )
+from src.financial.recommendations.category import RecommendationCategory
 from src.financial.scenarios.comparison import (
     METRIC_NET_CASH_FLOW,
     METRIC_NET_WORTH,
@@ -40,20 +40,23 @@ def _priority_for_ranked_scenario(
 
 def _category_for_scenario(
     ranked: RankedScenario,
-) -> CoachingCategory:
+) -> RecommendationCategory:
     """Map a scenario type to a coaching category."""
     scenario_type = ranked.result.scenario_type.name
 
     category_map = {
-        "EXPENSE_REDUCTION": (CoachingCategory.SPENDING),
-        "INCOME_INCREASE": (CoachingCategory.INCOME),
-        "ADDITIONAL_SAVINGS": (CoachingCategory.SAVINGS),
-        "EXTRA_DEBT_PAYMENT": (CoachingCategory.DEBT),
+        "EXPENSE_REDUCTION": (RecommendationCategory.EXPENSES),
+        "INCOME_INCREASE": (RecommendationCategory.INCOME),
+        "ADDITIONAL_SAVINGS": (RecommendationCategory.SAVINGS),
+        "EXTRA_DEBT_PAYMENT": (RecommendationCategory.DEBT),
     }
 
+    # Every current ScenarioType member is mapped above; this fallback is
+    # unreachable today but kept so a future ScenarioType addition fails
+    # safe instead of raising.
     return category_map.get(
         scenario_type,
-        CoachingCategory.GENERAL,
+        RecommendationCategory.CASH_FLOW,
     )
 
 

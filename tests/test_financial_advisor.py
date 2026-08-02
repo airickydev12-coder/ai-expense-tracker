@@ -4,9 +4,9 @@ from src.financial.coach.advisor import (
     get_top_optimizer_advice,
 )
 from src.financial.coach.models import (
-    CoachingCategory,
     CoachingPriority,
 )
+from src.financial.recommendations.category import RecommendationCategory
 from src.financial.scenarios.models import (
     ScenarioResult,
     ScenarioType,
@@ -83,7 +83,7 @@ def test_build_advice_from_ranked_scenario():
     advice = build_advice_from_ranked_scenario(ranked)
 
     assert advice.title == "Increase Income by 10%"
-    assert advice.category == CoachingCategory.INCOME
+    assert advice.category == RecommendationCategory.INCOME
     assert advice.priority in {
         CoachingPriority.HIGH,
         CoachingPriority.MEDIUM,

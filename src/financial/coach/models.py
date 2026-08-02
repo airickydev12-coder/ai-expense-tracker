@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from src.core.exceptions import ValidationError
+from src.financial.recommendations.category import RecommendationCategory
 
 
 class CoachingPriority(Enum):
@@ -11,24 +12,6 @@ class CoachingPriority(Enum):
     HIGH = "High"
     MEDIUM = "Medium"
     LOW = "Low"
-
-
-class CoachingCategory(Enum):
-    """
-    Financial category shared by coaching advice and coaching insights.
-
-    Kept as a single enum so advice (coach/models.py) and deterministic
-    insights (coach/insights.py) use one consistent category vocabulary.
-    """
-
-    CASH_FLOW = "Cash Flow"
-    DEBT = "Debt"
-    SAVINGS = "Savings"
-    SPENDING = "Spending"
-    INCOME = "Income"
-    NET_WORTH = "Net Worth"
-    FINANCIAL_HEALTH = "Financial Health"
-    GENERAL = "General"
 
 
 @dataclass(frozen=True)
@@ -41,7 +24,7 @@ class CoachingAdvice:
     action: str
     reason: str
     priority: CoachingPriority
-    category: CoachingCategory
+    category: RecommendationCategory
     expected_impact: str = ""
     source_scenario: str = ""
     score: float | None = None

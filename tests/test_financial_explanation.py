@@ -7,9 +7,9 @@ from src.financial.coach.explanation import (
 )
 from src.financial.coach.models import (
     CoachingAdvice,
-    CoachingCategory,
     CoachingPriority,
 )
+from src.financial.recommendations.category import RecommendationCategory
 from src.financial.scenarios.models import (
     ScenarioAssumption,
     ScenarioResult,
@@ -99,7 +99,7 @@ def test_plain_language_explanation_includes_warnings():
         action="Reduce discretionary spending.",
         reason="Projected cash flow is negative.",
         priority=CoachingPriority.CRITICAL,
-        category=CoachingCategory.CASH_FLOW,
+        category=RecommendationCategory.CASH_FLOW,
         warnings=["The current plan is not sustainable."],
     )
 

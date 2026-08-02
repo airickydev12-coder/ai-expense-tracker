@@ -9,7 +9,7 @@ from src.financial.coach.insights import (
     find_top_spending_category,
     generate_financial_coach_insights,
 )
-from src.financial.coach.models import CoachingCategory
+from src.financial.recommendations.category import RecommendationCategory
 
 
 def build_snapshot() -> dict:
@@ -37,7 +37,7 @@ def test_financial_coach_insight():
         key="cash_flow:test",
         title="Positive Cash Flow",
         message="Cash flow is positive.",
-        category=CoachingCategory.CASH_FLOW,
+        category=RecommendationCategory.CASH_FLOW,
         severity=InsightSeverity.POSITIVE,
         metric="Net Cash Flow",
         current_value=1000,
@@ -58,7 +58,7 @@ def test_insight_rejects_empty_key():
             key=" ",
             title="Title",
             message="Message",
-            category=CoachingCategory.GENERAL,
+            category=RecommendationCategory.CASH_FLOW,
             severity=InsightSeverity.INFORMATIONAL,
         )
 
@@ -139,7 +139,7 @@ def test_spending_concentration_warning():
     insights = generate_financial_coach_insights(snapshot)
 
     spending_insight = next(
-        insight for insight in insights if insight.category == CoachingCategory.SPENDING
+        insight for insight in insights if insight.category == RecommendationCategory.EXPENSES
     )
 
     assert spending_insight.severity == InsightSeverity.WARNING
