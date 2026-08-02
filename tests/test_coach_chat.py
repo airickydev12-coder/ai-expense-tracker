@@ -9,8 +9,20 @@ import pytest
 
 from src.core.exceptions import ExternalServiceError, ValidationError
 from src.financial.coach import chat
+from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.history_service import (
+    get_recommendation_record,
+    register_recommendation,
+    reset_recommendation_history,
+)
+from src.financial.recommendations.models import Recommendation
+from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.scenarios.factory import register_default_scenario_handlers
 from src.financial.scenarios.service import reset_scenario_handlers
+from src.financial.scenarios.workspace import scenario_workspace
+from src.financial.scenarios.workspace_service import (
+    save_result_to_workspace as _real_save_result_to_workspace,
+)
 
 
 def _text_message(text: str) -> SimpleNamespace:
@@ -361,3 +373,209 @@ def test_run_coach_chat_executes_search_saved_content_tool(
     )
 
     assert reply == "Last month we discussed your emergency fund."
+
+
+# --- dismiss_recommendation: confirmed flag gate ----------------------------
+
+
+def _build_test_recommendation() -> Recommendation:
+    return Recommendation(
+        priority=RecommendationPriority.HIGH,
+        category=RecommendationCategory.DEBT,
+        title="High Interest Debt",
+        message="You have high-interest debt.",
+        action="Prioritize repayment.",
+    )
+
+
+def test_tool_dismiss_recommendation_refuses_when_not_confirmed() -> None:
+    reset_recommendation_history()
+    recommendation = _build_test_recommendation()
+    register_recommendation(recommendation)
+    try:
+        result = chat._tool_dismiss_recommendation(
+            recommendation_key=recommendation.key, confirmed=False
+        )
+
+        assert result["dismissed"] is False
+        record = get_recommendation_record(recommendation.key)
+        assert record is not None
+        assert record.status.value != "Dismissed"
+    finally:
+        reset_recommendation_history()
+
+
+def test_tool_dismiss_recommendation_dismisses_real_recommendation_when_confirmed() -> None:
+    reset_recommendation_history()
+    recommendation = _build_test_recommendation()
+    register_recommendation(recommendation)
+    try:
+        result = chat._tool_dismiss_recommendation(
+            recommendation_key=recommendation.key,
+            confirmed=True,
+            note="Already addressed.",
+        )
+
+        assert result == {
+            "dismissed": True,
+            "recommendation_key": recommendation.key,
+            "status": "Dismissed",
+        }
+        record = get_recommendation_record(recommendation.key)
+        assert record is not None
+        assert record.status.value == "Dismissed"
+    finally:
+        reset_recommendation_history()
+
+
+def test_tool_dismiss_recommendation_rejects_unregistered_key() -> None:
+    reset_recommendation_history()
+    try:
+        result = chat._tool_dismiss_recommendation(
+            recommendation_key="debt:not_real", confirmed=True
+        )
+
+        assert result["dismissed"] is False
+        assert "list_recommendations" in result["reason"]
+    finally:
+        reset_recommendation_history()
+
+
+def test_run_coach_chat_executes_dismiss_recommendation_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "dismiss_recommendation",
+                input={
+                    "recommendation_key": "debt:high_interest_debt",
+                    "confirmed": True,
+                },
+            ),
+            _text_message("Done -- I've dismissed that recommendation."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_dismiss(recommendation_key: str, confirmed: bool = False, note: str = "") -> dict:
+        received["recommendation_key"] = recommendation_key
+        received["confirmed"] = confirmed
+        return {
+            "dismissed": True,
+            "recommendation_key": recommendation_key,
+            "status": "Dismissed",
+        }
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "dismiss_recommendation", fake_dismiss)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, dismiss that recommendation."}]
+    )
+
+    assert reply == "Done -- I've dismissed that recommendation."
+    assert received == {"recommendation_key": "debt:high_interest_debt", "confirmed": True}
+
+
+# --- save_scenario: confirmed flag gate -------------------------------------
+
+
+def test_tool_save_scenario_refuses_when_not_confirmed() -> None:
+    scenario_workspace.clear()
+    try:
+        result = chat._tool_save_scenario(
+            scenario_type="Additional Savings",
+            name="Save More Each Month",
+            confirmed=False,
+            additional_monthly_savings=300.0,
+        )
+
+        assert result["saved"] is False
+        assert scenario_workspace.is_empty()
+    finally:
+        scenario_workspace.clear()
+
+
+def test_tool_save_scenario_saves_real_scenario_when_confirmed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Prove confirmed=True re-runs the scenario for real and persists it."""
+    reset_scenario_handlers()
+    register_default_scenario_handlers()
+    scenario_workspace.clear()
+
+    file_path = tmp_path / "scenario_workspace.json"
+    monkeypatch.setattr(
+        chat,
+        "save_result_to_workspace",
+        lambda result: _real_save_result_to_workspace(result, file_path),
+    )
+
+    snapshot = {
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("3000.00"),
+        "net_cash_flow": Decimal("2000.00"),
+        "total_account_balance": Decimal("9000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("0"),
+        "net_worth": Decimal("11500.00"),
+        "health_score": 85,
+        "health_status": "Excellent",
+    }
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+
+    try:
+        result = chat._tool_save_scenario(
+            scenario_type="Additional Savings",
+            name="Save More Each Month",
+            confirmed=True,
+            additional_monthly_savings=300.0,
+        )
+
+        assert result["saved"] is True
+        assert result["name"]
+        assert len(scenario_workspace.get_results()) == 1
+    finally:
+        scenario_workspace.clear()
+
+
+def test_run_coach_chat_executes_save_scenario_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "save_scenario",
+                input={
+                    "scenario_type": "Additional Savings",
+                    "name": "Save More Each Month",
+                    "confirmed": True,
+                    "additional_monthly_savings": 300.0,
+                },
+            ),
+            _text_message("Saved that scenario for you."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_save_scenario(
+        scenario_type: str, name: str, confirmed: bool = False, **kwargs: object
+    ) -> dict:
+        received["scenario_type"] = scenario_type
+        received["confirmed"] = confirmed
+        return {"saved": True, "name": name, "description": ""}
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "save_scenario", fake_save_scenario)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, save that scenario."}]
+    )
+
+    assert reply == "Saved that scenario for you."
+    assert received == {"scenario_type": "Additional Savings", "confirmed": True}

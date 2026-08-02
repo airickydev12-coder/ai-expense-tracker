@@ -43,9 +43,11 @@ from src.financial.goals.analytics import get_goal_progress_percentage, get_tota
 from src.financial.goals.service import get_goals
 from src.financial.income.analytics import get_average_income, get_total_income
 from src.financial.income.service import get_income_entries
-from src.financial.scenarios.models import ScenarioRequest, ScenarioType
+from src.financial.recommendations.history_service import dismiss_recommendation
+from src.financial.scenarios.models import ScenarioRequest, ScenarioResult, ScenarioType
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 from src.financial.scenarios.service import run_financial_scenario
+from src.financial.scenarios.workspace_service import save_result_to_workspace
 
 logger = get_logger(__name__)
 
@@ -58,18 +60,27 @@ _SYSTEM_PROMPT = (
     "calculation, or simulates a real scenario. Never guess a number or "
     "invent an outcome; call a tool to get it. If no tool covers what's "
     "being asked, say so rather than inventing data.\n\n"
-    "You are strictly read-only over the user's stored data: you cannot "
-    "create, modify, or delete any expense, budget, debt, goal, bill, "
-    "income entry, or account. Running a scenario is different — it is a "
-    "pure, non-persisted calculation, not a data mutation, so you CAN and "
-    "should run one whenever the user asks a \"what if\" question (e.g. "
-    "\"what if I cut dining out by 20%\" or \"what if I paid an extra $100 "
-    "toward my credit card\"), using the run_scenario tool. For a debt "
-    "scenario, call get_debt_details first to find the real debt_id before "
-    "calling run_scenario — never guess an id. After running a scenario, "
-    "present the real calculated result to the user and compare it against "
-    "their current numbers rather than restating the raw tool output "
-    "verbatim.\n\n"
+    "You are read-only over the user's core stored data: you cannot create, "
+    "modify, or delete any expense, budget, debt, goal, bill, income entry, "
+    "or account. Running a scenario is different — it is a pure, "
+    "non-persisted calculation, not a data mutation, so you CAN and should "
+    "run one whenever the user asks a \"what if\" question (e.g. \"what if "
+    "I cut dining out by 20%\" or \"what if I paid an extra $100 toward my "
+    "credit card\"), using the run_scenario tool. For a debt scenario, call "
+    "get_debt_details first to find the real debt_id before calling "
+    "run_scenario — never guess an id. After running a scenario, present "
+    "the real calculated result to the user and compare it against their "
+    "current numbers rather than restating the raw tool output verbatim.\n\n"
+    "Two actions ARE allowed to write: dismissing a recommendation "
+    "(dismiss_recommendation) and saving a scenario you already ran "
+    "(save_scenario). Both require explicit approval first: describe the "
+    "specific action in plain language and wait for the user's explicit "
+    "'yes' or equivalent approval in a later message before calling the "
+    "tool with confirmed: true. Never set confirmed: true unless the "
+    "user's most recent message clearly approves that specific action — if "
+    "it's ambiguous, ask for clarification instead of guessing. For "
+    "dismiss_recommendation, call list_recommendations first so you have a "
+    "real recommendation_key — never guess one.\n\n"
     "When asked what to prioritize or which recommendations matter most, "
     "call list_recommendations rather than inventing a priority order. "
     "When asked why a specific recommendation matters or what impact acting "
@@ -183,7 +194,7 @@ _SCENARIO_PARAM_KEYS: dict[ScenarioType, tuple[str, ...]] = {
 }
 
 
-def _tool_run_scenario(
+def _build_and_run_scenario(
     scenario_type: str,
     name: str,
     description: str = "",
@@ -194,8 +205,8 @@ def _tool_run_scenario(
     extra_monthly_payment: float | None = None,
     additional_monthly_savings: float | None = None,
     horizon_months: int | None = None,
-) -> dict:
-    """Simulate a real financial scenario and return the calculated result."""
+) -> ScenarioResult:
+    """Build a ScenarioRequest from tool arguments and run it for real."""
     scenario_type_enum = ScenarioType(scenario_type)
 
     all_fields = {
@@ -222,8 +233,34 @@ def _tool_run_scenario(
         parameters=parameters,
     )
 
-    result = run_financial_scenario(request, snapshot)
+    return run_financial_scenario(request, snapshot)
 
+
+def _tool_run_scenario(
+    scenario_type: str,
+    name: str,
+    description: str = "",
+    category: str | None = None,
+    reduction_percentage: float | None = None,
+    increase_percentage: float | None = None,
+    debt_id: int | None = None,
+    extra_monthly_payment: float | None = None,
+    additional_monthly_savings: float | None = None,
+    horizon_months: int | None = None,
+) -> dict:
+    """Simulate a real financial scenario and return the calculated result."""
+    result = _build_and_run_scenario(
+        scenario_type,
+        name,
+        description,
+        category,
+        reduction_percentage,
+        increase_percentage,
+        debt_id,
+        extra_monthly_payment,
+        additional_monthly_savings,
+        horizon_months,
+    )
     return result.to_dict()
 
 
@@ -251,6 +288,77 @@ def _tool_search_saved_content(
     return search_saved_content(query, limit if limit is not None else 5)
 
 
+# --- write tools: gated by an explicit confirmed flag ----------------------
+
+
+def _tool_dismiss_recommendation(
+    recommendation_key: str,
+    confirmed: bool = False,
+    note: str = "",
+) -> dict:
+    if not confirmed:
+        return {
+            "dismissed": False,
+            "reason": (
+                "Not dismissed -- confirmed must be true, and should only "
+                "be set once the user has explicitly approved dismissing "
+                "this specific recommendation in their most recent message."
+            ),
+        }
+    record = dismiss_recommendation(recommendation_key, note)
+    if record is None:
+        return {
+            "dismissed": False,
+            "reason": (
+                "That recommendation hasn't been seen yet this session -- "
+                "call list_recommendations first to get a valid key."
+            ),
+        }
+    return {
+        "dismissed": True,
+        "recommendation_key": recommendation_key,
+        "status": record.status.value,
+    }
+
+
+def _tool_save_scenario(
+    scenario_type: str,
+    name: str,
+    confirmed: bool = False,
+    description: str = "",
+    category: str | None = None,
+    reduction_percentage: float | None = None,
+    increase_percentage: float | None = None,
+    debt_id: int | None = None,
+    extra_monthly_payment: float | None = None,
+    additional_monthly_savings: float | None = None,
+    horizon_months: int | None = None,
+) -> dict:
+    if not confirmed:
+        return {
+            "saved": False,
+            "reason": (
+                "Not saved -- confirmed must be true, and should only be "
+                "set once the user has explicitly approved saving this "
+                "exact scenario in their most recent message."
+            ),
+        }
+    result = _build_and_run_scenario(
+        scenario_type,
+        name,
+        description,
+        category,
+        reduction_percentage,
+        increase_percentage,
+        debt_id,
+        extra_monthly_payment,
+        additional_monthly_savings,
+        horizon_months,
+    )
+    save_result_to_workspace(result)
+    return {"saved": True, "name": result.name, "description": result.description}
+
+
 _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_financial_snapshot": _tool_financial_snapshot,
     "get_expense_details": _tool_expense_details,
@@ -265,6 +373,8 @@ _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "list_recommendations": _tool_list_recommendations,
     "recommendation_evidence": _tool_recommendation_evidence,
     "search_saved_content": _tool_search_saved_content,
+    "dismiss_recommendation": _tool_dismiss_recommendation,
+    "save_scenario": _tool_save_scenario,
 }
 
 _EMPTY_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -388,6 +498,50 @@ _SEARCH_SAVED_CONTENT_SCHEMA = {
     "additionalProperties": False,
 }
 
+_DISMISS_RECOMMENDATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "recommendation_key": {
+            "type": "string",
+            "description": (
+                "The key of the recommendation to dismiss, from "
+                "list_recommendations. Never guess this value."
+            ),
+        },
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved dismissing this specific recommendation in their "
+                "most recent message."
+            ),
+        },
+        "note": {
+            "type": "string",
+            "description": "Optional short note explaining why it was dismissed.",
+        },
+    },
+    "required": ["recommendation_key", "confirmed"],
+    "additionalProperties": False,
+}
+
+_SAVE_SCENARIO_SCHEMA = {
+    "type": "object",
+    "properties": {
+        **_RUN_SCENARIO_SCHEMA["properties"],
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved saving this exact scenario in their most recent "
+                "message."
+            ),
+        },
+    },
+    "required": ["scenario_type", "name", "confirmed"],
+    "additionalProperties": False,
+}
+
 _TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "get_financial_snapshot",
@@ -505,6 +659,28 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "past decision."
         ),
         "input_schema": _SEARCH_SAVED_CONTENT_SCHEMA,
+    },
+    {
+        "name": "dismiss_recommendation",
+        "description": (
+            "Call this to dismiss a specific recommendation, but ONLY after "
+            "the user has explicitly approved dismissing it in their most "
+            "recent message -- first describe which recommendation you'd "
+            "dismiss and wait for their approval. Call list_recommendations "
+            "first to get a real recommendation_key; never guess one."
+        ),
+        "input_schema": _DISMISS_RECOMMENDATION_SCHEMA,
+    },
+    {
+        "name": "save_scenario",
+        "description": (
+            "Call this to save a scenario you already ran with run_scenario, "
+            "but ONLY after the user has explicitly approved saving it in "
+            "their most recent message -- first describe the scenario and "
+            "wait for their approval. Re-runs the scenario fresh against "
+            "current data and stores the result."
+        ),
+        "input_schema": _SAVE_SCENARIO_SCHEMA,
     },
 ]
 
