@@ -3,7 +3,11 @@ import type { FormEvent } from 'react'
 import { SCENARIO_TYPES } from '../../types/scenarios'
 import type { ScenarioRunRequest, ScenarioType } from '../../types/scenarios'
 import type { DebtResponse } from '../../types/debt'
-import { EMPTY_PARAMS_FORM_STATE, buildScenarioParameters } from './scenarioParams'
+import {
+  EMPTY_PARAMS_FORM_STATE,
+  buildScenarioParameters,
+  paramsFormStateFromParameters,
+} from './scenarioParams'
 import { ScenarioParamsFields } from './ScenarioParamsFields'
 
 interface ScenarioRunFormProps {
@@ -13,6 +17,7 @@ interface ScenarioRunFormProps {
   secondaryLabel?: string
   onSecondarySubmit?: (request: ScenarioRunRequest) => void
   submitting?: boolean
+  initial?: ScenarioRunRequest | null
 }
 
 export function ScenarioRunForm({
@@ -22,11 +27,16 @@ export function ScenarioRunForm({
   secondaryLabel,
   onSecondarySubmit,
   submitting,
+  initial,
 }: ScenarioRunFormProps) {
-  const [scenarioType, setScenarioType] = useState<ScenarioType>(SCENARIO_TYPES[0])
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [paramsValues, setParamsValues] = useState(EMPTY_PARAMS_FORM_STATE)
+  const [scenarioType, setScenarioType] = useState<ScenarioType>(
+    initial?.scenario_type ?? SCENARIO_TYPES[0],
+  )
+  const [name, setName] = useState(initial?.name ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [paramsValues, setParamsValues] = useState(
+    initial ? paramsFormStateFromParameters(initial.parameters) : EMPTY_PARAMS_FORM_STATE,
+  )
   const [formError, setFormError] = useState<string | null>(null)
 
   function buildRequest(): ScenarioRunRequest | null {

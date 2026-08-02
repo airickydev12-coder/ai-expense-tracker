@@ -36,6 +36,10 @@ export interface ScenarioCombinedRequest {
   requests: ScenarioRunRequest[]
 }
 
+export interface ScenarioParseRequest {
+  text: string
+}
+
 export interface ScenarioImpact {
   metric: string
   original_value: string

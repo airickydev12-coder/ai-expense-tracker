@@ -31,3 +31,9 @@ class ScenarioCombinedRequest(BaseModel):
     name: str = Field(min_length=1)
     description: str = ""
     requests: list[ScenarioRunRequest] = Field(min_length=1)
+
+
+class ScenarioParseRequest(BaseModel):
+    """Request body for parsing free text into a scenario draft."""
+
+    text: str = Field(min_length=1)

@@ -24,6 +24,22 @@ export type BuildScenarioParametersResult =
   | { parameters: Record<string, unknown> }
   | { error: string }
 
+export function paramsFormStateFromParameters(
+  parameters: Record<string, unknown>,
+): ScenarioParamsFormState {
+  const str = (v: unknown) => (v === undefined || v === null ? '' : String(v))
+  return {
+    ...EMPTY_PARAMS_FORM_STATE,
+    category: str(parameters.category),
+    reductionPercentage: str(parameters.reduction_percentage),
+    increasePercentage: str(parameters.increase_percentage),
+    additionalMonthlySavings: str(parameters.additional_monthly_savings),
+    debtId: str(parameters.debt_id),
+    extraMonthlyPayment: str(parameters.extra_monthly_payment),
+    horizonMonths: str(parameters.horizon_months),
+  }
+}
+
 export function buildScenarioParameters(
   scenarioType: ScenarioType,
   v: ScenarioParamsFormState,

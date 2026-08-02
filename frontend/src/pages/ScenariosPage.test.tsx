@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ScenariosPage } from './ScenariosPage'
 import * as scenariosApi from '../api/scenarios'
 import * as debtApi from '../api/debt'
-import type { OptimizationResultDict, ScenarioPlanResultDict, ScenarioResultDict } from '../types/scenarios'
+import type {
+  OptimizationResultDict,
+  ScenarioPlanResultDict,
+  ScenarioResultDict,
+  ScenarioRunRequest,
+} from '../types/scenarios'
 
 vi.mock('../api/scenarios')
 vi.mock('../api/debt')
@@ -99,6 +104,54 @@ describe('ScenariosPage', () => {
       description: undefined,
       parameters: { additional_monthly_savings: 200 },
     })
+  })
+
+  it('parses free text and prefills the run form without auto-running', async () => {
+    vi.mocked(debtApi.listDebts).mockResolvedValue([])
+    vi.mocked(scenariosApi.listWorkspace).mockResolvedValue([])
+    const draft: ScenarioRunRequest = {
+      scenario_type: 'Additional Savings',
+      name: 'Save More',
+      description: 'Save an extra $100 per month.',
+      parameters: { additional_monthly_savings: 100 },
+    }
+    vi.mocked(scenariosApi.parseScenario).mockResolvedValue(draft)
+
+    render(<ScenariosPage />)
+
+    fireEvent.change(screen.getByLabelText('Describe a scenario in your own words'), {
+      target: { value: 'save an extra $100 a month' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Suggest from text' }))
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Save More')
+    })
+    expect((screen.getByLabelText('Scenario Type') as HTMLSelectElement).value).toBe(
+      'Additional Savings',
+    )
+    expect((screen.getByLabelText('Additional Monthly Savings') as HTMLInputElement).value).toBe(
+      '100',
+    )
+    expect(scenariosApi.parseScenario).toHaveBeenCalledWith({ text: 'save an extra $100 a month' })
+    expect(scenariosApi.runScenario).not.toHaveBeenCalled()
+  })
+
+  it('shows an inline error when parsing fails, without touching the form', async () => {
+    vi.mocked(debtApi.listDebts).mockResolvedValue([])
+    vi.mocked(scenariosApi.listWorkspace).mockResolvedValue([])
+    vi.mocked(scenariosApi.parseScenario).mockRejectedValue(new Error('Scenario parsing is unavailable.'))
+
+    render(<ScenariosPage />)
+
+    fireEvent.change(screen.getByLabelText('Describe a scenario in your own words'), {
+      target: { value: 'cut dining out by 20%' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Suggest from text' }))
+
+    expect(await screen.findByText('Scenario parsing is unavailable.')).toBeInTheDocument()
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('')
+    expect(scenariosApi.runScenario).not.toHaveBeenCalled()
   })
 
   it('calls saveToWorkspace (not runScenario) via the secondary button', async () => {

@@ -7,11 +7,14 @@ from fastapi import APIRouter, HTTPException, status
 from src.api.schemas.scenarios import (
     ScenarioCombinedRequest,
     ScenarioOptimizeRequest,
+    ScenarioParseRequest,
     ScenarioRunRequest,
 )
 from src.financial.application.financial_state import (
     build_current_financial_snapshot,
 )
+from src.financial.debt.service import get_debts
+from src.financial.scenarios import nl_builder
 from src.financial.scenarios.combined import run_combined_scenario_plan
 from src.financial.scenarios.models import ScenarioRequest
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
@@ -22,6 +25,7 @@ from src.financial.scenarios.workspace_service import (
     remove_result_from_workspace,
     save_result_to_workspace,
 )
+from src.financial.shared.categories import ExpenseCategory
 
 router = APIRouter(prefix="/scenarios", tags=["Scenarios"])
 
@@ -41,6 +45,15 @@ def run_scenario(request: ScenarioRunRequest) -> dict[str, Any]:
     snapshot = build_current_financial_snapshot()
     result = run_financial_scenario(_build_request(request), snapshot)
     return result.to_dict()
+
+
+@router.post("/parse")
+def parse_scenario(request: ScenarioParseRequest) -> ScenarioRunRequest:
+    """Parse free text into a scenario draft to prefill the Run form."""
+    categories = [category.value for category in ExpenseCategory]
+    debts = get_debts()
+    draft = nl_builder.parse_scenario_text(request.text, categories, debts)
+    return ScenarioRunRequest(**draft)
 
 
 @router.post("/optimize")

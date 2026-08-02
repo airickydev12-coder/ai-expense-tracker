@@ -5,6 +5,7 @@ import {
   deleteWorkspaceScenario,
   listWorkspace,
   optimizeScenarios,
+  parseScenario,
   runCombinedPlan,
   runScenario,
   saveToWorkspace,
@@ -20,6 +21,7 @@ import type {
   OptimizationResultDict,
   ScenarioPlanResultDict,
   ScenarioResultDict,
+  ScenarioRunRequest,
 } from '../types/scenarios'
 
 type ActiveTab = 'run' | 'optimize' | 'combined' | 'workspace'
@@ -49,6 +51,12 @@ export function ScenariosPage() {
   })
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>({ status: 'loading' })
 
+  const [parseText, setParseText] = useState('')
+  const [parsing, setParsing] = useState(false)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<ScenarioRunRequest | null>(null)
+  const [draftNonce, setDraftNonce] = useState(0)
+
   useEffect(() => {
     let cancelled = false
     listDebts()
@@ -76,6 +84,21 @@ export function ScenariosPage() {
   useEffect(() => {
     refetchWorkspace()
   }, [])
+
+  function handleParse() {
+    if (!parseText.trim()) return
+    setParsing(true)
+    setParseError(null)
+    parseScenario({ text: parseText.trim() })
+      .then((result) => {
+        setDraft(result)
+        setDraftNonce((n) => n + 1)
+      })
+      .catch((err: unknown) => {
+        setParseError(err instanceof Error ? err.message : 'Failed to parse scenario text')
+      })
+      .finally(() => setParsing(false))
+  }
 
   function handleRun(request: Parameters<typeof runScenario>[0]) {
     setMutationError(null)
@@ -185,7 +208,33 @@ export function ScenariosPage() {
 
       {activeTab === 'run' && (
         <div className="space-y-4">
+          <div className="space-y-2 rounded border border-gray-200 p-4">
+            <label htmlFor="parse-text" className="text-xs text-gray-500">
+              Describe a scenario in your own words
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="parse-text"
+                type="text"
+                value={parseText}
+                onChange={(e) => setParseText(e.target.value)}
+                placeholder='e.g. "cut dining out by 20%"'
+                className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleParse}
+                disabled={!parseText.trim() || parsing}
+                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 disabled:opacity-50"
+              >
+                {parsing ? 'Parsing...' : 'Suggest from text'}
+              </button>
+            </div>
+            {parseError && <p className="text-sm text-red-600">{parseError}</p>}
+          </div>
           <ScenarioRunForm
+            key={draftNonce}
+            initial={draft}
             debts={debts}
             submitLabel="Run Scenario"
             onSubmit={handleRun}

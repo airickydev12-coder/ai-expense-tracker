@@ -3,6 +3,7 @@ import type {
   OptimizationResultDict,
   ScenarioCombinedRequest,
   ScenarioOptimizeRequest,
+  ScenarioParseRequest,
   ScenarioPlanResultDict,
   ScenarioResultDict,
   ScenarioRunRequest,
@@ -10,6 +11,10 @@ import type {
 
 export function runScenario(request: ScenarioRunRequest): Promise<ScenarioResultDict> {
   return apiPost<ScenarioResultDict>('/scenarios/run', request)
+}
+
+export function parseScenario(request: ScenarioParseRequest): Promise<ScenarioRunRequest> {
+  return apiPost<ScenarioRunRequest>('/scenarios/parse', request)
 }
 
 export function optimizeScenarios(
