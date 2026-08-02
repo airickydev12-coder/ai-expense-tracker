@@ -25,6 +25,28 @@ A Vite + React + TypeScript + Tailwind SPA, added in Phase 5, consuming the Fast
 - Expects the backend running at `http://127.0.0.1:8000` (see `frontend/.env.development`, `VITE_API_BASE_URL`) — start the backend first (`.venv/Scripts/uvicorn.exe src.api.main:app --reload`), or dashboard data will show the error state rather than crash.
 - Not held to the backend's "955+ tests / 0 pyright errors" bar yet — but `npm run test` should pass before reporting a frontend change done.
 
+## Docker
+A containerized deployment also exists, additive to (not a replacement for) the
+`.venv`/`npm run dev` workflow above — use whichever fits the task.
+
+- One-command startup: `docker compose up --build`
+- Backend: FastAPI served by `uvicorn` on `http://localhost:8000` (same port as local
+  dev; `/docs` and `/health` work identically)
+- Frontend: built to static files and served by nginx on `http://localhost:3000`, which
+  reverse-proxies `/api/*` to the backend container — same-origin through nginx, so no
+  CORS configuration is involved in this path
+- Data: `data/app.db` and the JSON files persist in a named Docker volume
+  (`expense-data`), not in the image — `docker compose down` (no `-v`) keeps your data;
+  `docker compose down -v` deletes it
+- Secrets: copy `.env.example` to `.env` at the repo root and set `ANTHROPIC_API_KEY`
+  before starting — the backend container reads it via `env_file`, never baked into the
+  image
+- Rebuild after a dependency or code change: `docker compose up --build`
+- Stop everything: `docker compose down`
+- Running the test suite in Docker is out of scope for this setup — the suite already
+  isolates itself from `data/app.db` via an autouse fixture in `tests/conftest.py` and
+  needs no container; run it locally as documented above.
+
 ## Architecture Decision Records
 Detailed rationale lives in `docs/Architecture/`. Load the relevant one before making a change in its area rather than re-deriving the reasoning from scratch.
 

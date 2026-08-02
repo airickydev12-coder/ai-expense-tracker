@@ -13,6 +13,9 @@ __pycache__/
 .env
 .env.*
 
+# The env template is a placeholder with no real values — safe to commit
+!.env.example
+
 # VS Code
 .vscode/
 
@@ -36,3 +39,7 @@ frontend/*.local
 
 # Frontend dev env default is safe to commit (no secrets) — override the blanket .env.* rule above
 !frontend/.env.development
+
+# Frontend production env is also safe to commit (no secrets, just the
+# nginx-proxied relative API base) — same override pattern as .development
+!frontend/.env.production
