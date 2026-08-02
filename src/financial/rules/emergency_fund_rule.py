@@ -2,8 +2,9 @@ from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
-
-EMERGENCY_FUND_MONTHS_THRESHOLD = 3
+from src.financial.shared.thresholds import (
+    EMERGENCY_FUND_TARGET_MONTHS_THRESHOLD as EMERGENCY_FUND_MONTHS_THRESHOLD,
+)
 
 
 class EmergencyFundRule(FinancialRule):

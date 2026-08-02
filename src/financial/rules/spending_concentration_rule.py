@@ -2,8 +2,9 @@ from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
-
-SPENDING_CONCENTRATION_HIGH_THRESHOLD = 0.50
+from src.financial.shared.thresholds import (
+    SPENDING_CONCENTRATION_THRESHOLD as SPENDING_CONCENTRATION_HIGH_THRESHOLD,
+)
 
 
 class SpendingConcentrationRule(FinancialRule):

@@ -2,9 +2,10 @@ from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.rules.base_rule import FinancialRule
-
-SAVINGS_RATE_LOW_THRESHOLD = 0.10
-SAVINGS_RATE_STRONG_THRESHOLD = 0.20
+from src.financial.shared.thresholds import (
+    SAVINGS_RATE_LOW_THRESHOLD,
+    SAVINGS_RATE_STRONG_THRESHOLD,
+)
 
 
 class SavingsRateRule(FinancialRule):
