@@ -14,21 +14,6 @@ class RecommendationPriorityFilter(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class RecommendationCategoryFilter(str, Enum):
-    """Category values accepted by recommendation query parameters."""
-
-    CASH_FLOW = "Cash Flow"
-    BUDGET = "Budget"
-    DEBT = "Debt"
-    SAVINGS = "Savings"
-    GOALS = "Goals"
-    HEALTH = "Health"
-    BILLS = "Bills"
-    WEALTH = "Wealth"
-    INCOME = "Income"
-    EXPENSES = "Expenses"
-
-
 class RecommendationPriorityResponse(BaseModel):
     """Priority metadata returned by the recommendation API."""
 

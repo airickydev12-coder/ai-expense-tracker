@@ -3,7 +3,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.recommendations import (
-    RecommendationCategoryFilter,
     RecommendationCategoryResponse,
     RecommendationPriorityFilter,
     RecommendationPriorityResponse,
@@ -35,7 +34,7 @@ def get_recommendations(
         default=None,
         description="Return recommendations with this priority.",
     ),
-    category: RecommendationCategoryFilter | None = Query(
+    category: RecommendationCategory | None = Query(
         default=None,
         description="Return recommendations in this category.",
     ),
