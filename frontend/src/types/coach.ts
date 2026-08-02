@@ -110,6 +110,7 @@ export interface MonthlyReviewDict {
   status: 'ok' | 'no_history' | 'insufficient_recent_history'
   message: string | null
   last_recorded_snapshot: string | null
+  generated_at: string | null
   period_start: string | null
   period_end: string | null
   overall_summary: string | null

@@ -5,6 +5,7 @@ import {
   getFinancialNarrative,
   getMonthlyReview,
   listInsights,
+  saveMonthlyReview,
 } from '../api/coach'
 import { listRecommendationsByCategory } from '../api/recommendations'
 import { CoachChat } from '../components/coach/CoachChat'
@@ -124,6 +125,8 @@ export function CoachPage() {
   })
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({})
   const [monthlyReviewState, setMonthlyReviewState] = useState<MonthlyReviewState>({ status: 'loading' })
+  const [savingReview, setSavingReview] = useState(false)
+  const [saveReviewError, setSaveReviewError] = useState<string | null>(null)
   const [expandedAdviceKey, setExpandedAdviceKey] = useState<number | null>(null)
 
   useEffect(() => {
@@ -230,6 +233,17 @@ export function CoachPage() {
           [recommendationKey]: { status: 'error', message },
         }))
       })
+  }
+
+  function handleSaveReview() {
+    setSavingReview(true)
+    setSaveReviewError(null)
+    saveMonthlyReview()
+      .then((review) => setMonthlyReviewState({ status: 'success', review }))
+      .catch((err: unknown) => {
+        setSaveReviewError(err instanceof Error ? err.message : 'Failed to save review')
+      })
+      .finally(() => setSavingReview(false))
   }
 
   return (
@@ -399,6 +413,21 @@ export function CoachPage() {
               <p className="text-gray-600">{monthlyReviewState.review.message}</p>
             ) : (
               <>
+                {saveReviewError && <p className="text-red-600">{saveReviewError}</p>}
+                {monthlyReviewState.review.generated_at ? (
+                  <p className="text-xs text-gray-500">
+                    Saved {new Date(monthlyReviewState.review.generated_at).toLocaleString()}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSaveReview}
+                    disabled={savingReview}
+                    className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {savingReview ? 'Saving...' : 'Save This Review'}
+                  </button>
+                )}
                 <p className="text-gray-700">{monthlyReviewState.review.overall_summary}</p>
                 {monthlyReviewState.review.income_vs_expenses && (
                   <p className="text-gray-700">{monthlyReviewState.review.income_vs_expenses.narrative}</p>

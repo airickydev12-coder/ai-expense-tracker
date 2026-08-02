@@ -24,6 +24,7 @@ from src.financial.application.recommendation_application_service import (
 )
 from src.financial.coach.coaching import build_coaching_session
 from src.financial.coach.recommendation_explainer import get_recommendation_evidence
+from src.financial.coach.saved_content import search_saved_content
 from src.financial.debt.analytics import (
     get_highest_interest_debt,
     get_total_debt,
@@ -75,6 +76,11 @@ _SYSTEM_PROMPT = (
     "on it would have, call recommendation_evidence and cite the real "
     "numbers it returns — never fabricate a dollar amount, a timeline, or a "
     "percentage.\n\n"
+    "When asked about past decisions, prior monthly reviews, or previously "
+    "saved scenarios (e.g. \"what did we decide about my emergency fund "
+    "last month\"), call search_saved_content and answer from what it "
+    "actually returns. If nothing relevant is found, say so honestly "
+    "rather than inventing a past conversation or decision.\n\n"
     "Be warm but direct, like a knowledgeable friend, not a salesperson. "
     "Keep answers focused and concise — lead with the answer, then the "
     "supporting numbers. Avoid disclaimers about not being a licensed "
@@ -238,6 +244,13 @@ def _tool_recommendation_evidence(recommendation_key: str) -> dict:
     return get_recommendation_evidence(recommendation_key)
 
 
+def _tool_search_saved_content(
+    query: str | None = None,
+    limit: int | None = None,
+) -> dict:
+    return search_saved_content(query, limit if limit is not None else 5)
+
+
 _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_financial_snapshot": _tool_financial_snapshot,
     "get_expense_details": _tool_expense_details,
@@ -251,6 +264,7 @@ _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "run_scenario": _tool_run_scenario,
     "list_recommendations": _tool_list_recommendations,
     "recommendation_evidence": _tool_recommendation_evidence,
+    "search_saved_content": _tool_search_saved_content,
 }
 
 _EMPTY_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -352,6 +366,25 @@ _RECOMMENDATION_EVIDENCE_SCHEMA = {
         },
     },
     "required": ["recommendation_key"],
+    "additionalProperties": False,
+}
+
+_SEARCH_SAVED_CONTENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "query": {
+            "type": "string",
+            "description": (
+                "A keyword or phrase to search for, e.g. 'emergency fund'. "
+                "Omit to return the most recent saved items instead."
+            ),
+        },
+        "limit": {
+            "type": "integer",
+            "description": "Maximum number of matches to return per source. Defaults to 5.",
+        },
+    },
+    "required": [],
     "additionalProperties": False,
 }
 
@@ -459,6 +492,19 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "numbers yourself."
         ),
         "input_schema": _RECOMMENDATION_EVIDENCE_SCHEMA,
+    },
+    {
+        "name": "search_saved_content",
+        "description": (
+            "Call this when asked about past decisions, prior monthly "
+            "reviews, or previously saved 'what if' scenarios — e.g. 'what "
+            "did we decide about my emergency fund last month' or 'what "
+            "scenarios have I saved'. Searches saved monthly reviews and "
+            "saved scenarios by keyword, most recent first. If nothing "
+            "relevant comes back, say so honestly rather than inventing a "
+            "past decision."
+        ),
+        "input_schema": _SEARCH_SAVED_CONTENT_SCHEMA,
     },
 ]
 

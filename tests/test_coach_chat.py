@@ -317,3 +317,47 @@ def test_tool_run_scenario_executes_real_scenario_end_to_end(
     assert result["name"]
     assert isinstance(result["impacts"], list)
     assert len(result["impacts"]) > 0
+
+
+def test_tool_search_saved_content_delegates_to_search_saved_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict = {}
+
+    def fake_search_saved_content(query, limit) -> dict:
+        captured["query"] = query
+        captured["limit"] = limit
+        return {"monthly_reviews": [], "scenarios": []}
+
+    monkeypatch.setattr(chat, "search_saved_content", fake_search_saved_content)
+
+    result = chat._tool_search_saved_content(query="emergency fund")
+
+    assert captured == {"query": "emergency fund", "limit": 5}
+    assert result == {"monthly_reviews": [], "scenarios": []}
+
+
+def test_run_coach_chat_executes_search_saved_content_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "search_saved_content", input={"query": "emergency fund"}
+            ),
+            _text_message("Last month we discussed your emergency fund."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+    monkeypatch.setattr(
+        chat,
+        "search_saved_content",
+        lambda query=None, limit=5: {"monthly_reviews": [], "scenarios": []},
+    )
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "What did we decide about my emergency fund?"}]
+    )
+
+    assert reply == "Last month we discussed your emergency fund."

@@ -96,6 +96,14 @@ CREATE TABLE IF NOT EXISTS scenario_workspace (
     data TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS monthly_review_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    generated_at TEXT NOT NULL,
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    data TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS goal_ledger_entries (
     entry_id TEXT PRIMARY KEY,
     goal_id INTEGER NOT NULL,

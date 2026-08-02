@@ -31,6 +31,10 @@ export function getMonthlyReview(): Promise<MonthlyReviewDict> {
   return apiGet<MonthlyReviewDict>('/coach/monthly-review')
 }
 
+export function saveMonthlyReview(): Promise<MonthlyReviewDict> {
+  return apiPost<MonthlyReviewDict>('/coach/monthly-review', {})
+}
+
 export function sendChatMessage(request: CoachChatRequest): Promise<CoachChatResponse> {
   return apiPost<CoachChatResponse>('/coach/chat', request)
 }

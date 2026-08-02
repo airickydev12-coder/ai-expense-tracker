@@ -180,6 +180,75 @@ def test_get_monthly_review_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body["top_actions"][0]["title"] == "High Interest Debt"
 
 
+def test_post_monthly_review_saves_when_status_ok(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ok_review = {
+        "status": "ok",
+        "period_start": "2026-07-01T00:00:00+00:00",
+        "period_end": "2026-08-01T00:00:00+00:00",
+        "overall_summary": "Overall summary.",
+        "income_vs_expenses": None,
+        "cash_flow": None,
+        "debt_progress": None,
+        "savings_progress": None,
+        "goal_status": None,
+        "health_score": None,
+        "top_actions": None,
+        "known_gaps": None,
+    }
+
+    monkeypatch.setattr(
+        coach_router.coach_monthly_review,
+        "generate_monthly_review",
+        lambda snapshot: ok_review,
+    )
+
+    recorded: dict = {}
+
+    def fake_record_monthly_review(review: dict) -> dict:
+        recorded["review"] = review
+        return {**review, "generated_at": "2026-08-02T12:00:00+00:00"}
+
+    monkeypatch.setattr(
+        coach_router, "record_monthly_review", fake_record_monthly_review
+    )
+
+    response = client.post("/coach/monthly-review")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["generated_at"] == "2026-08-02T12:00:00+00:00"
+    assert recorded["review"]["status"] == "ok"
+
+
+def test_post_monthly_review_does_not_save_when_status_not_ok(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    degraded_review = {
+        "status": "no_history",
+        "message": "No financial snapshot has been recorded yet.",
+    }
+
+    monkeypatch.setattr(
+        coach_router.coach_monthly_review,
+        "generate_monthly_review",
+        lambda snapshot: degraded_review,
+    )
+
+    def fail_if_called(review: dict) -> dict:
+        raise AssertionError("record_monthly_review must not be called for degraded status.")
+
+    monkeypatch.setattr(coach_router, "record_monthly_review", fail_if_called)
+
+    response = client.post("/coach/monthly-review")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "no_history"
+    assert body["generated_at"] is None
+
+
 def test_get_insights() -> None:
     response = client.get("/coach/insights")
 

@@ -20,6 +20,7 @@ from src.financial.coach import monthly_review as coach_monthly_review
 from src.financial.coach import narrative as coach_narrative
 from src.financial.coach import recommendation_explainer
 from src.financial.coach.coaching import build_coaching_session
+from src.financial.coach.monthly_review_history_service import record_monthly_review
 from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 
@@ -48,6 +49,16 @@ def get_monthly_review() -> MonthlyReviewResponse:
     """Return an AI-generated monthly financial review."""
     snapshot = build_current_financial_snapshot()
     result = coach_monthly_review.generate_monthly_review(snapshot)
+    return MonthlyReviewResponse.model_validate(result)
+
+
+@router.post("/monthly-review")
+def create_monthly_review() -> MonthlyReviewResponse:
+    """Generate a monthly review and save it if there's enough data to ground one."""
+    snapshot = build_current_financial_snapshot()
+    result = coach_monthly_review.generate_monthly_review(snapshot)
+    if result["status"] == "ok":
+        result = record_monthly_review(result)
     return MonthlyReviewResponse.model_validate(result)
 
 

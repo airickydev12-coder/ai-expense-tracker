@@ -1,0 +1,69 @@
+"""Pragmatic personal-RAG retrieval over saved monthly reviews and scenarios.
+
+Keyword/recency retrieval, not vector/semantic search -- deliberately, for a
+single-user app whose saved-content corpus is small (see Phase 7 Stage 3
+plan). Structured financial data (balances, transactions, goals, bills,
+recommendations) is never retrieved this way; it stays in its own domain
+services and tables.
+"""
+
+import json
+
+from src.financial.coach.monthly_review_history_service import (
+    get_monthly_review_history,
+)
+from src.financial.scenarios.workspace_service import get_scenario_workspace
+
+
+def _matches(record_json: str, query: str) -> bool:
+    """Case-insensitive substring match against a JSON-serialized record."""
+    return query.strip().lower() in record_json.lower()
+
+
+def search_monthly_reviews(
+    query: str | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """Return saved monthly reviews, most recent first, optionally keyword-filtered."""
+    reviews = sorted(
+        get_monthly_review_history(),
+        key=lambda review: review["generated_at"],
+        reverse=True,
+    )
+
+    if query:
+        reviews = [
+            review
+            for review in reviews
+            if _matches(json.dumps(review, default=str), query)
+        ]
+
+    return reviews[:limit]
+
+
+def search_saved_scenarios(
+    query: str | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """Return saved scenario_workspace results, optionally keyword-filtered."""
+    results = get_scenario_workspace().get_results()
+
+    if query:
+        results = [
+            result
+            for result in results
+            if _matches(json.dumps(result.to_dict(), default=str), query)
+        ]
+
+    return [result.to_dict() for result in results[:limit]]
+
+
+def search_saved_content(
+    query: str | None = None,
+    limit: int = 5,
+) -> dict:
+    """Search saved monthly reviews and saved scenarios together."""
+    return {
+        "monthly_reviews": search_monthly_reviews(query, limit),
+        "scenarios": search_saved_scenarios(query, limit),
+    }

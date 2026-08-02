@@ -102,12 +102,14 @@ class MonthlyReviewResponse(BaseModel):
     `status` discriminates between a full review ("ok") and the two
     graceful-degradation cases where there isn't enough recorded history
     yet -- only `message` (and `last_recorded_snapshot`, when available)
-    are populated in those cases.
+    are populated in those cases. `generated_at` is only set when the
+    review was saved (via POST) -- a GET preview is never persisted.
     """
 
     status: Literal["ok", "no_history", "insufficient_recent_history"]
     message: str | None = None
     last_recorded_snapshot: str | None = None
+    generated_at: str | None = None
     period_start: str | None = None
     period_end: str | None = None
     overall_summary: str | None = None

@@ -77,6 +77,7 @@ const monthlyReview: MonthlyReviewDict = {
   status: 'no_history',
   message: 'No financial snapshot has been recorded yet.',
   last_recorded_snapshot: null,
+  generated_at: null,
   period_start: null,
   period_end: null,
   overall_summary: null,
@@ -185,5 +186,42 @@ describe('CoachPage', () => {
     render(<CoachPage />)
 
     expect(await screen.findByText('No financial snapshot has been recorded yet.')).toBeInTheDocument()
+  })
+
+  it('saves a monthly review and shows the saved confirmation', async () => {
+    vi.mocked(coachApi.listInsights).mockResolvedValue(insights)
+    vi.mocked(coachApi.getCoachingSession).mockResolvedValue(session)
+
+    const okReview: MonthlyReviewDict = {
+      status: 'ok',
+      message: null,
+      last_recorded_snapshot: null,
+      generated_at: null,
+      period_start: '2026-07-01T00:00:00+00:00',
+      period_end: '2026-08-01T00:00:00+00:00',
+      overall_summary: 'Overall summary.',
+      income_vs_expenses: null,
+      cash_flow: null,
+      debt_progress: null,
+      savings_progress: null,
+      goal_status: null,
+      health_score: null,
+      top_actions: null,
+      known_gaps: null,
+    }
+
+    vi.mocked(coachApi.getMonthlyReview).mockResolvedValue(okReview)
+    vi.mocked(coachApi.saveMonthlyReview).mockResolvedValue({
+      ...okReview,
+      generated_at: '2026-08-02T12:00:00+00:00',
+    })
+
+    render(<CoachPage />)
+
+    const saveButton = await screen.findByRole('button', { name: 'Save This Review' })
+    fireEvent.click(saveButton)
+
+    expect(await screen.findByText(/Saved/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save This Review' })).not.toBeInTheDocument()
   })
 })
