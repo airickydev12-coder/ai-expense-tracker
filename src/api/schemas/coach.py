@@ -171,6 +171,22 @@ class MonthlyReviewResponse(BaseModel):
     known_gaps: list[str] | None = None
 
 
+class SavedNoteResponse(BaseModel):
+    """A saved note."""
+
+    id: int
+    created_at: str
+    title: str
+    content: str
+
+
+class SaveNoteRequest(BaseModel):
+    """Request body for saving a new note."""
+
+    title: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+
+
 class CoachChatMessage(BaseModel):
     """One message in an AI coach chat conversation."""
 

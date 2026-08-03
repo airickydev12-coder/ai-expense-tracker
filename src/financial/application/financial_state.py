@@ -13,6 +13,7 @@ from src.financial.budgets.service import (
 from src.financial.coach.monthly_review_history_service import (
     load_monthly_review_history,
 )
+from src.financial.coach.notes_service import load_notes
 from src.financial.debt.service import (
     get_debts,
     load_debts,
@@ -58,6 +59,7 @@ def load_financial_state() -> None:
     load_history()
     load_scenario_workspace()
     load_monthly_review_history()
+    load_notes()
 
 
 def get_financial_state() -> dict:

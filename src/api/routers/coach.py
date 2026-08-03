@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 from src.api.schemas.coach import (
     CoachChatRequest,
@@ -10,6 +10,8 @@ from src.api.schemas.coach import (
     CoachNarrativeResponse,
     MonthlyReviewResponse,
     RecommendationExplanationResponse,
+    SaveNoteRequest,
+    SavedNoteResponse,
 )
 from src.core.exceptions import ValidationError
 from src.financial.application.financial_state import (
@@ -22,6 +24,7 @@ from src.financial.coach import recommendation_explainer
 from src.financial.coach.coaching import build_coaching_session
 from src.financial.coach.monthly_review_history_service import record_monthly_review
 from src.financial.coach.insights import generate_financial_coach_insights
+from src.financial.coach.notes_service import add_note, delete_note, get_notes
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 
 router = APIRouter(prefix="/coach", tags=["Coach"])
@@ -90,3 +93,29 @@ def send_chat_message(request: CoachChatRequest) -> CoachChatResponse:
     history = [{"role": message.role, "content": message.content} for message in request.messages]
     reply = coach_chat.run_coach_chat(history)
     return CoachChatResponse(reply=reply)
+
+
+@router.get("/notes")
+def list_notes() -> list[SavedNoteResponse]:
+    """Return all saved notes, newest first."""
+    notes = sorted(get_notes(), key=lambda note: note["created_at"], reverse=True)
+    return [SavedNoteResponse.model_validate(note) for note in notes]
+
+
+@router.post("/notes", status_code=status.HTTP_201_CREATED)
+def create_note(request: SaveNoteRequest) -> SavedNoteResponse:
+    """Save a new note."""
+    note = add_note(title=request.title, content=request.content)
+    return SavedNoteResponse.model_validate(note)
+
+
+@router.delete("/notes/{note_id}")
+def remove_note(note_id: int) -> SavedNoteResponse:
+    """Delete and return a saved note by ID."""
+    deleted = delete_note(note_id)
+    if deleted is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Note with ID {note_id} was not found.",
+        )
+    return SavedNoteResponse.model_validate(deleted)

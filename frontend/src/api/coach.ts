@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client'
+import { apiDelete, apiGet, apiPost } from './client'
 import type {
   CoachChatRequest,
   CoachChatResponse,
@@ -7,6 +7,7 @@ import type {
   FinancialCoachInsightDict,
   MonthlyReviewDict,
   RecommendationExplanationDict,
+  SavedNoteDict,
 } from '../types/coach'
 
 export function listInsights(): Promise<FinancialCoachInsightDict[]> {
@@ -37,4 +38,16 @@ export function saveMonthlyReview(): Promise<MonthlyReviewDict> {
 
 export function sendChatMessage(request: CoachChatRequest): Promise<CoachChatResponse> {
   return apiPost<CoachChatResponse>('/coach/chat', request)
+}
+
+export function listNotes(): Promise<SavedNoteDict[]> {
+  return apiGet<SavedNoteDict[]>('/coach/notes')
+}
+
+export function saveNote(title: string, content: string): Promise<SavedNoteDict> {
+  return apiPost<SavedNoteDict>('/coach/notes', { title, content })
+}
+
+export function deleteNote(noteId: number): Promise<SavedNoteDict> {
+  return apiDelete<SavedNoteDict>(`/coach/notes/${noteId}`)
 }

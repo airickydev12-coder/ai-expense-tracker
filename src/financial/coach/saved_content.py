@@ -1,4 +1,4 @@
-"""Pragmatic personal-RAG retrieval over saved monthly reviews and scenarios.
+"""Pragmatic personal-RAG retrieval over saved monthly reviews, scenarios, and notes.
 
 Keyword/recency retrieval, not vector/semantic search -- deliberately, for a
 single-user app whose saved-content corpus is small (see Phase 7 Stage 3
@@ -12,6 +12,7 @@ import json
 from src.financial.coach.monthly_review_history_service import (
     get_monthly_review_history,
 )
+from src.financial.coach.notes_service import get_notes
 from src.financial.scenarios.workspace_service import get_scenario_workspace
 
 
@@ -58,12 +59,30 @@ def search_saved_scenarios(
     return [result.to_dict() for result in results[:limit]]
 
 
+def search_saved_notes(
+    query: str | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """Return saved notes, most recent first, optionally keyword-filtered."""
+    notes = sorted(
+        get_notes(),
+        key=lambda note: note["created_at"],
+        reverse=True,
+    )
+
+    if query:
+        notes = [note for note in notes if _matches(json.dumps(note, default=str), query)]
+
+    return notes[:limit]
+
+
 def search_saved_content(
     query: str | None = None,
     limit: int = 5,
 ) -> dict:
-    """Search saved monthly reviews and saved scenarios together."""
+    """Search saved monthly reviews, saved scenarios, and saved notes together."""
     return {
         "monthly_reviews": search_monthly_reviews(query, limit),
         "scenarios": search_saved_scenarios(query, limit),
+        "notes": search_saved_notes(query, limit),
     }

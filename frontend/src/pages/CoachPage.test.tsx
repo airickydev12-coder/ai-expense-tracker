@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CoachPage } from './CoachPage'
 import * as coachApi from '../api/coach'
@@ -103,6 +103,7 @@ beforeEach(() => {
   })
   vi.mocked(coachApi.getMonthlyReview).mockResolvedValue(monthlyReview)
   vi.mocked(recommendationsApi.listRecommendations).mockResolvedValue(debtRecommendations)
+  vi.mocked(coachApi.listNotes).mockResolvedValue([])
 })
 
 describe('CoachPage', () => {
@@ -308,5 +309,53 @@ describe('CoachPage', () => {
 
     expect(await screen.findByText('Category Spending Shifts')).toBeInTheDocument()
     expect(screen.getByText('Food: +$45.50')).toBeInTheDocument()
+  })
+
+  it('renders saved notes and can save a new one', async () => {
+    vi.mocked(coachApi.listInsights).mockResolvedValue(insights)
+    vi.mocked(coachApi.getCoachingSession).mockResolvedValue(session)
+    vi.mocked(coachApi.listNotes).mockResolvedValue([
+      { id: 1, created_at: '2026-08-01T00:00:00+00:00', title: 'Rent', content: 'Rent increases every March.' },
+    ])
+    vi.mocked(coachApi.saveNote).mockResolvedValue({
+      id: 2,
+      created_at: '2026-08-02T00:00:00+00:00',
+      title: 'New Note',
+      content: 'New note content.',
+    })
+
+    render(<CoachPage />)
+
+    expect(await screen.findByText('Rent')).toBeInTheDocument()
+    expect(screen.getByText('Rent increases every March.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Title'), { target: { value: 'New Note' } })
+    fireEvent.change(screen.getByPlaceholderText('Note content'), { target: { value: 'New note content.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Note' }))
+
+    expect(await screen.findByText('New Note')).toBeInTheDocument()
+    expect(coachApi.saveNote).toHaveBeenCalledWith('New Note', 'New note content.')
+  })
+
+  it('deletes a note when Delete is clicked', async () => {
+    vi.mocked(coachApi.listInsights).mockResolvedValue(insights)
+    vi.mocked(coachApi.getCoachingSession).mockResolvedValue(session)
+    vi.mocked(coachApi.listNotes).mockResolvedValue([
+      { id: 1, created_at: '2026-08-01T00:00:00+00:00', title: 'Rent', content: 'Rent increases every March.' },
+    ])
+    vi.mocked(coachApi.deleteNote).mockResolvedValue({
+      id: 1,
+      created_at: '2026-08-01T00:00:00+00:00',
+      title: 'Rent',
+      content: 'Rent increases every March.',
+    })
+
+    render(<CoachPage />)
+
+    const deleteButton = await screen.findByRole('button', { name: 'Delete' })
+    fireEvent.click(deleteButton)
+
+    await waitFor(() => expect(screen.queryByText('Rent')).not.toBeInTheDocument())
+    expect(coachApi.deleteNote).toHaveBeenCalledWith(1)
   })
 })

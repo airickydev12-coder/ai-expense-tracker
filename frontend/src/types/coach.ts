@@ -103,6 +103,13 @@ export interface RecommendationEvidenceDict {
   concentration_percentage?: number | null
 }
 
+export interface SavedNoteDict {
+  id: number
+  created_at: string
+  title: string
+  content: string
+}
+
 export interface RecommendationExplanationDict {
   recommendation_key: string
   reason: string

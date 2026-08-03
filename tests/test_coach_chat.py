@@ -12,6 +12,7 @@ from src.core.db import clear_test_database, initialize_database, set_test_datab
 from src.core.exceptions import ExternalServiceError, ValidationError
 from src.financial.budgets.service import budgets as _budgets
 from src.financial.coach import chat
+from src.financial.coach.notes_service import clear_notes, get_notes
 from src.financial.expenses.service import add_expense, expenses as _expenses
 from src.financial.goals.service import goals as _goals
 from src.financial.recommendations.category import RecommendationCategory
@@ -942,3 +943,74 @@ def test_run_coach_chat_executes_build_combined_plan_tool(
     assert reply == "Here's the combined plan with no conflicts."
     assert received["name"] == "Debt + Savings Plan"
     assert len(received["steps"]) == 1
+
+
+# --- save_note: confirmed flag gate -----------------------------------------
+
+
+def test_tool_save_note_refuses_when_not_confirmed(tmp_path) -> None:
+    clear_notes()
+    with _isolated_test_database(tmp_path):
+        result = chat._tool_save_note(
+            title="Rent", content="Landlord raises rent every March.", confirmed=False
+        )
+
+        assert result["saved"] is False
+        assert get_notes() == []
+
+
+def test_tool_save_note_saves_real_note_when_confirmed(tmp_path) -> None:
+    clear_notes()
+    try:
+        with _isolated_test_database(tmp_path):
+            result = chat._tool_save_note(
+                title="Rent",
+                content="Landlord raises rent every March.",
+                confirmed=True,
+            )
+
+            assert result["saved"] is True
+            assert result["note"]["title"] == "Rent"
+            assert len(get_notes()) == 1
+            assert get_notes()[0]["content"] == "Landlord raises rent every March."
+    finally:
+        clear_notes()
+
+
+def test_run_coach_chat_executes_save_note_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "save_note",
+                input={
+                    "title": "Rent",
+                    "content": "Landlord raises rent every March.",
+                    "confirmed": True,
+                },
+            ),
+            _text_message("Saved that note for you."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_save_note(title: str, content: str, confirmed: bool = False) -> dict:
+        received["title"] = title
+        received["content"] = content
+        received["confirmed"] = confirmed
+        return {"saved": True, "note": {"id": 1, "title": title, "content": content}}
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "save_note", fake_save_note)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, save that note."}]
+    )
+
+    assert reply == "Saved that note for you."
+    assert received == {
+        "title": "Rent",
+        "content": "Landlord raises rent every March.",
+        "confirmed": True,
+    }

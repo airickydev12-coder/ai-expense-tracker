@@ -24,6 +24,7 @@ from src.financial.application.recommendation_application_service import (
     build_recommendations,
 )
 from src.financial.coach.coaching import build_coaching_session
+from src.financial.coach.notes_service import add_note
 from src.financial.coach.recommendation_explainer import get_recommendation_evidence
 from src.financial.coach.saved_content import search_saved_content
 from src.financial.debt.analytics import (
@@ -81,19 +82,20 @@ _SYSTEM_PROMPT = (
     "they exceed available cash flow together even though each looks fine "
     "alone); always mention any conflicts it returns rather than presenting "
     "the combined numbers as risk-free.\n\n"
-    "Exactly five actions are allowed to write, and each requires explicit "
+    "Exactly six actions are allowed to write, and each requires explicit "
     "approval first: describe the specific action in plain language and "
     "wait for the user's explicit 'yes' or equivalent approval in a later "
     "message before calling the tool with confirmed: true. Never set "
     "confirmed: true unless the user's most recent message clearly approves "
     "that specific action — if it's ambiguous, ask for clarification "
-    "instead of guessing. The five actions: dismiss_recommendation (call "
+    "instead of guessing. The six actions: dismiss_recommendation (call "
     "list_recommendations first for a real recommendation_key — never "
     "guess one); save_scenario (save a scenario you already ran with "
     "run_scenario); add_goal (create a new savings goal); update_budget "
     "(set a category's monthly limit — creates the budget if none exists "
-    "yet); and categorize_expense (call get_expense_details first for a "
-    "real expense_id — never guess one).\n\n"
+    "yet); categorize_expense (call get_expense_details first for a real "
+    "expense_id — never guess one); and save_note (save a short note the "
+    "user wants remembered for later).\n\n"
     "When asked what to prioritize or which recommendations matter most, "
     "call list_recommendations rather than inventing a priority order. "
     "When asked why a specific recommendation matters or what impact acting "
@@ -496,6 +498,24 @@ def _tool_categorize_expense(
     return {"categorized": True, "expense": expense.to_dict()}
 
 
+def _tool_save_note(
+    title: str,
+    content: str,
+    confirmed: bool = False,
+) -> dict:
+    if not confirmed:
+        return {
+            "saved": False,
+            "reason": (
+                "Not saved -- confirmed must be true, and should only be "
+                "set once the user has explicitly approved saving this "
+                "exact note in their most recent message."
+            ),
+        }
+    note = add_note(title=title, content=content)
+    return {"saved": True, "note": note}
+
+
 _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_financial_snapshot": _tool_financial_snapshot,
     "get_expense_details": _tool_expense_details,
@@ -516,6 +536,7 @@ _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "add_goal": _tool_add_goal,
     "update_budget": _tool_update_budget,
     "categorize_expense": _tool_categorize_expense,
+    "save_note": _tool_save_note,
 }
 
 _EMPTY_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -799,6 +820,30 @@ _CATEGORIZE_EXPENSE_SCHEMA = {
     "additionalProperties": False,
 }
 
+_SAVE_NOTE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "A short title for the note.",
+        },
+        "content": {
+            "type": "string",
+            "description": "The note's content -- whatever the user wants remembered.",
+        },
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved saving this exact note in their most recent "
+                "message."
+            ),
+        },
+    },
+    "required": ["title", "content", "confirmed"],
+    "additionalProperties": False,
+}
+
 _TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "get_financial_snapshot",
@@ -927,10 +972,10 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "Call this when asked about past decisions, prior monthly "
             "reviews, or previously saved 'what if' scenarios — e.g. 'what "
             "did we decide about my emergency fund last month' or 'what "
-            "scenarios have I saved'. Searches saved monthly reviews and "
-            "saved scenarios by keyword, most recent first. If nothing "
-            "relevant comes back, say so honestly rather than inventing a "
-            "past decision."
+            "scenarios have I saved' or 'what notes do I have about X'. "
+            "Searches saved monthly reviews, saved scenarios, and saved "
+            "notes by keyword, most recent first. If nothing relevant comes "
+            "back, say so honestly rather than inventing a past decision."
         ),
         "input_schema": _SEARCH_SAVED_CONTENT_SCHEMA,
     },
@@ -989,6 +1034,18 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "guess it."
         ),
         "input_schema": _CATEGORIZE_EXPENSE_SCHEMA,
+    },
+    {
+        "name": "save_note",
+        "description": (
+            "Call this to save a short note the user wants remembered for "
+            "later (e.g. 'my landlord raises rent every March'), but ONLY "
+            "after the user has explicitly approved saving it in their most "
+            "recent message -- first describe what you'd save and wait for "
+            "their approval. Saved notes become searchable via "
+            "search_saved_content."
+        ),
+        "input_schema": _SAVE_NOTE_SCHEMA,
     },
 ]
 

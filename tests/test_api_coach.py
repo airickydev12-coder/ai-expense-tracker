@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.routers import coach as coach_router
 from src.core.exceptions import ExternalServiceError, NotFoundError
+from src.financial.coach.notes_service import clear_notes
 from src.financial.scenarios.factory import register_default_scenario_handlers
 from src.financial.scenarios.service import reset_scenario_handlers
 
@@ -15,9 +16,10 @@ client = TestClient(app)
 
 
 def setup_function() -> None:
-    """Ensure scenario handlers are registered before each test."""
+    """Ensure scenario handlers are registered and notes are cleared before each test."""
     reset_scenario_handlers()
     register_default_scenario_handlers()
+    clear_notes()
 
 
 def test_get_financial_narrative(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -334,3 +336,47 @@ def test_post_chat_endpoint_propagates_external_service_error_as_502(
     )
 
     assert response.status_code == 502
+
+
+def test_list_notes_returns_empty_when_none_saved() -> None:
+    response = client.get("/coach/notes")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_create_and_list_notes() -> None:
+    create_response = client.post(
+        "/coach/notes",
+        json={"title": "Rent", "content": "Landlord raises rent every March."},
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["title"] == "Rent"
+    assert created["content"] == "Landlord raises rent every March."
+    assert "created_at" in created
+
+    list_response = client.get("/coach/notes")
+
+    assert list_response.status_code == 200
+    assert len(list_response.json()) == 1
+
+
+def test_delete_note_removes_it() -> None:
+    created = client.post(
+        "/coach/notes",
+        json={"title": "Rent", "content": "Landlord raises rent every March."},
+    ).json()
+
+    delete_response = client.delete(f"/coach/notes/{created['id']}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json()["title"] == "Rent"
+    assert client.get("/coach/notes").json() == []
+
+
+def test_delete_note_returns_404_for_unknown_id() -> None:
+    response = client.delete("/coach/notes/999999")
+
+    assert response.status_code == 404

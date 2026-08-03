@@ -109,6 +109,13 @@ CREATE TABLE IF NOT EXISTS financial_history_category_totals (
     data TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS saved_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS goal_ledger_entries (
     entry_id TEXT PRIMARY KEY,
     goal_id INTEGER NOT NULL,

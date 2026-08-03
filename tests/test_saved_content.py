@@ -1,4 +1,4 @@
-"""Tests for pragmatic personal-RAG retrieval over saved reviews and scenarios."""
+"""Tests for pragmatic personal-RAG retrieval over saved reviews, scenarios, and notes."""
 
 from decimal import Decimal
 
@@ -101,8 +101,48 @@ def test_search_saved_scenarios_returns_all_when_no_query(monkeypatch) -> None:
     assert len(results) == 1
 
 
-def test_search_saved_content_combines_both_sources(monkeypatch) -> None:
+def build_note(created_at: str, title: str, content: str) -> dict:
+    return {"id": 1, "created_at": created_at, "title": title, "content": content}
+
+
+def test_search_saved_notes_orders_by_recency(monkeypatch) -> None:
+    older = build_note("2026-06-01T00:00:00+00:00", "Older", "Older content.")
+    newer = build_note("2026-07-01T00:00:00+00:00", "Newer", "Newer content.")
+
+    monkeypatch.setattr(saved_content, "get_notes", lambda: [older, newer])
+
+    results = saved_content.search_saved_notes()
+
+    assert results == [newer, older]
+
+
+def test_search_saved_notes_filters_by_keyword(monkeypatch) -> None:
+    rent = build_note("2026-06-01T00:00:00+00:00", "Rent", "Landlord raises rent every March.")
+    unrelated = build_note("2026-07-01T00:00:00+00:00", "Other", "Unrelated content.")
+
+    monkeypatch.setattr(saved_content, "get_notes", lambda: [rent, unrelated])
+
+    results = saved_content.search_saved_notes(query="rent")
+
+    assert results == [rent]
+
+
+def test_search_saved_notes_respects_limit(monkeypatch) -> None:
+    notes = [
+        build_note(f"2026-0{i}-01T00:00:00+00:00", f"Note {i}", f"Content {i}")
+        for i in range(1, 5)
+    ]
+
+    monkeypatch.setattr(saved_content, "get_notes", lambda: notes)
+
+    results = saved_content.search_saved_notes(limit=2)
+
+    assert len(results) == 2
+
+
+def test_search_saved_content_combines_all_three_sources(monkeypatch) -> None:
     monkeypatch.setattr(saved_content, "get_monthly_review_history", lambda: [])
+    monkeypatch.setattr(saved_content, "get_notes", lambda: [])
 
     class FakeWorkspace:
         def get_results(self) -> list[ScenarioResult]:
@@ -112,4 +152,4 @@ def test_search_saved_content_combines_both_sources(monkeypatch) -> None:
 
     result = saved_content.search_saved_content()
 
-    assert result == {"monthly_reviews": [], "scenarios": []}
+    assert result == {"monthly_reviews": [], "scenarios": [], "notes": []}

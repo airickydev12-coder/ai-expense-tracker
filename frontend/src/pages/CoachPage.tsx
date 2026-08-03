@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import {
+  deleteNote,
   explainRecommendation,
   getCoachingSession,
   getFinancialNarrative,
   getMonthlyReview,
   listInsights,
+  listNotes,
   saveMonthlyReview,
+  saveNote,
 } from '../api/coach'
 import { listRecommendations } from '../api/recommendations'
 import { CoachChat } from '../components/coach/CoachChat'
@@ -15,6 +18,7 @@ import type {
   FinancialCoachInsightDict,
   MonthlyReviewDict,
   RecommendationExplanationDict,
+  SavedNoteDict,
 } from '../types/coach'
 import type { RecommendationResponse } from '../types/recommendations'
 
@@ -47,6 +51,11 @@ type MonthlyReviewState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; review: MonthlyReviewDict }
+
+type NotesState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'success'; notes: SavedNoteDict[] }
 
 function InsightCard({ insight }: { insight: FinancialCoachInsightDict }) {
   return (
@@ -130,6 +139,11 @@ export function CoachPage() {
   const [savingReview, setSavingReview] = useState(false)
   const [saveReviewError, setSaveReviewError] = useState<string | null>(null)
   const [expandedAdviceKey, setExpandedAdviceKey] = useState<number | null>(null)
+  const [notesState, setNotesState] = useState<NotesState>({ status: 'loading' })
+  const [noteTitle, setNoteTitle] = useState('')
+  const [noteContent, setNoteContent] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [saveNoteError, setSaveNoteError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -218,6 +232,25 @@ export function CoachPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    listNotes()
+      .then((notes) => {
+        if (!cancelled) setNotesState({ status: 'success', notes })
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          setNotesState({ status: 'error', message })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   function handleExplain(recommendationKey: string) {
     setExplanations((prev) => ({ ...prev, [recommendationKey]: { status: 'loading' } }))
 
@@ -246,6 +279,37 @@ export function CoachPage() {
         setSaveReviewError(err instanceof Error ? err.message : 'Failed to save review')
       })
       .finally(() => setSavingReview(false))
+  }
+
+  function handleSaveNote() {
+    setSavingNote(true)
+    setSaveNoteError(null)
+    saveNote(noteTitle, noteContent)
+      .then((note) => {
+        setNotesState((prev) => ({
+          status: 'success',
+          notes: [note, ...(prev.status === 'success' ? prev.notes : [])],
+        }))
+        setNoteTitle('')
+        setNoteContent('')
+      })
+      .catch((err: unknown) => {
+        setSaveNoteError(err instanceof Error ? err.message : 'Failed to save note')
+      })
+      .finally(() => setSavingNote(false))
+  }
+
+  function handleDeleteNote(noteId: number) {
+    deleteNote(noteId)
+      .then(() => {
+        setNotesState((prev) => ({
+          status: 'success',
+          notes: prev.status === 'success' ? prev.notes.filter((note) => note.id !== noteId) : [],
+        }))
+      })
+      .catch(() => {
+        // Deletion failures are non-critical; the note simply stays in the list.
+      })
   }
 
   return (
@@ -479,6 +543,61 @@ export function CoachPage() {
                   </ul>
                 )}
               </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Notes</h2>
+        <div className="mb-3 space-y-2">
+          {saveNoteError && <p className="text-red-600">{saveNoteError}</p>}
+          <input
+            type="text"
+            placeholder="Title"
+            value={noteTitle}
+            onChange={(e) => setNoteTitle(e.target.value)}
+            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+          <textarea
+            placeholder="Note content"
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSaveNote}
+            disabled={savingNote || !noteTitle.trim() || !noteContent.trim()}
+            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {savingNote ? 'Saving...' : 'Save Note'}
+          </button>
+        </div>
+        {notesState.status === 'loading' && <p className="text-gray-600">Loading notes...</p>}
+        {notesState.status === 'error' && (
+          <p className="text-red-600">Failed to load notes: {notesState.message}</p>
+        )}
+        {notesState.status === 'success' && (
+          <div className="space-y-2">
+            {notesState.notes.length === 0 ? (
+              <p className="text-sm text-gray-500">No notes saved yet.</p>
+            ) : (
+              notesState.notes.map((note) => (
+                <div key={note.id} className="rounded border border-gray-200 p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900">{note.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <p className="mt-1 text-gray-700">{note.content}</p>
+                </div>
+              ))
             )}
           </div>
         )}
