@@ -23,16 +23,20 @@ logger = get_logger(__name__)
 
 
 def load_goal_planning_requests_from_file(
+    user_id: int,
     goals: Sequence[Goal],
     file_path: Path = DB_PATH,
 ) -> dict[int, GoalPlanningRequest]:
-    """Load requests and bind them to the current Goal objects."""
+    """Load a user's requests and bind them to the current Goal objects."""
     try:
         with get_connection(file_path) as connection:
-            rows = connection.execute("""
+            rows = connection.execute(
+                """
                 SELECT goal_id, target_date, planned_monthly_contribution, priority
-                FROM goal_planning_requests
-                """).fetchall()
+                FROM goal_planning_requests WHERE user_id = ?
+                """,
+                (user_id,),
+            ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(
             f"Failed to load goal planning requests from {file_path}"
@@ -53,8 +57,9 @@ def load_goal_planning_requests_from_file(
         requests[request.goal.id] = request
 
     logger.debug(
-        "Loaded %d goal planning request(s) from %s",
+        "Loaded %d goal planning request(s) for user %d from %s",
         len(requests),
+        user_id,
         file_path,
     )
 
@@ -63,23 +68,29 @@ def load_goal_planning_requests_from_file(
 
 def save_goal_planning_requests_to_file(
     requests: Mapping[int, GoalPlanningRequest],
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Save goal-planning requests, replacing all existing rows."""
+    """Save a user's goal-planning requests, replacing their existing rows."""
     _validate_request_mapping(requests)
 
-    records = [_request_to_record(request) for request in requests.values()]
+    records = [
+        {**_request_to_record(request), "user_id": user_id}
+        for request in requests.values()
+    ]
 
     try:
         with get_connection(file_path) as connection:
-            connection.execute("DELETE FROM goal_planning_requests")
+            connection.execute(
+                "DELETE FROM goal_planning_requests WHERE user_id = ?", (user_id,)
+            )
             connection.executemany(
                 """
                 INSERT INTO goal_planning_requests (
-                    goal_id, target_date, planned_monthly_contribution, priority
+                    goal_id, target_date, planned_monthly_contribution, priority, user_id
                 )
                 VALUES (
-                    :goal_id, :target_date, :planned_monthly_contribution, :priority
+                    :goal_id, :target_date, :planned_monthly_contribution, :priority, :user_id
                 )
                 """,
                 records,
@@ -90,25 +101,27 @@ def save_goal_planning_requests_to_file(
         ) from error
 
     logger.debug(
-        "Saved %d goal planning request(s) to %s",
+        "Saved %d goal planning request(s) for user %d to %s",
         len(records),
+        user_id,
         file_path,
     )
 
 
 def remove_goal_planning_request_from_file(
+    user_id: int,
     goal_id: int,
     file_path: Path = DB_PATH,
 ) -> bool:
-    """Remove one persisted request by goal ID."""
+    """Remove one of a user's persisted requests by goal ID."""
     if goal_id <= 0:
         raise ValidationError("Goal ID must be greater than zero.")
 
     try:
         with get_connection(file_path) as connection:
             cursor = connection.execute(
-                "DELETE FROM goal_planning_requests WHERE goal_id = ?",
-                (goal_id,),
+                "DELETE FROM goal_planning_requests WHERE goal_id = ? AND user_id = ?",
+                (goal_id, user_id),
             )
     except sqlite3.Error as error:
         raise PersistenceError(
@@ -119,8 +132,9 @@ def remove_goal_planning_request_from_file(
 
     if removed:
         logger.debug(
-            "Removed goal planning request for goal %d from %s",
+            "Removed goal planning request for goal %d for user %d from %s",
             goal_id,
+            user_id,
             file_path,
         )
 

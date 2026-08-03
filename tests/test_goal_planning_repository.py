@@ -15,6 +15,8 @@ from src.financial.planning.repository import (
     save_goal_planning_requests_to_file,
 )
 
+USER_ID = 1
+
 
 def build_goal(goal_id: int = 1) -> Goal:
     return Goal(
@@ -39,9 +41,11 @@ def test_save_and_load_goal_planning_requests(db_path) -> None:
 
     save_goal_planning_requests_to_file(
         {goal.id: build_request(goal)},
+        USER_ID,
         file_path=db_path,
     )
     loaded = load_goal_planning_requests_from_file(
+        USER_ID,
         [goal],
         file_path=db_path,
     )
@@ -55,14 +59,17 @@ def test_save_and_load_goal_planning_requests(db_path) -> None:
 
 def test_load_ignores_orphaned_goal_requests(db_path) -> None:
     with get_connection(db_path) as connection:
-        connection.execute("""
+        connection.execute(
+            """
             INSERT INTO goal_planning_requests (
-                goal_id, target_date, planned_monthly_contribution, priority
+                goal_id, target_date, planned_monthly_contribution, priority, user_id
             )
-            VALUES (99, '2028-12-31', '500.00', 'HIGH')
-            """)
+            VALUES (99, '2028-12-31', '500.00', 'HIGH', ?)
+            """,
+            (USER_ID,),
+        )
 
-    assert load_goal_planning_requests_from_file([], file_path=db_path) == {}
+    assert load_goal_planning_requests_from_file(USER_ID, [], file_path=db_path) == {}
 
 
 def test_load_rejects_invalid_database_file(
@@ -75,7 +82,7 @@ def test_load_rejects_invalid_database_file(
         ValueError,
         match="Failed to load goal planning requests",
     ):
-        load_goal_planning_requests_from_file([], file_path=db_path)
+        load_goal_planning_requests_from_file(USER_ID, [], file_path=db_path)
 
 
 def test_remove_goal_planning_request(db_path) -> None:
@@ -92,11 +99,13 @@ def test_remove_goal_planning_request(db_path) -> None:
             first_goal.id: build_request(first_goal),
             second_goal.id: build_request(second_goal),
         },
+        USER_ID,
         file_path=db_path,
     )
 
     assert (
         remove_goal_planning_request_from_file(
+            USER_ID,
             first_goal.id,
             file_path=db_path,
         )
@@ -104,6 +113,7 @@ def test_remove_goal_planning_request(db_path) -> None:
     )
 
     loaded = load_goal_planning_requests_from_file(
+        USER_ID,
         [first_goal, second_goal],
         file_path=db_path,
     )

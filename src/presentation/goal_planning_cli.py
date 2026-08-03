@@ -50,6 +50,7 @@ GOAL_PLANNING_MENU_MAXIMUM = 7
 
 
 def run_goal_planning_menu(
+    user_id: int,
     goals: Sequence[Goal],
     *,
     input_fn: InputFunction = input,
@@ -65,12 +66,14 @@ def run_goal_planning_menu(
     """
     planning_date = today or date.today()
     requests_by_goal_id = load_goal_planning_requests_from_file(
+        user_id,
         goals,
         file_path=planning_file_path,
     )
 
     save_goal_planning_requests_to_file(
         requests_by_goal_id,
+        user_id,
         file_path=planning_file_path,
     )
 
@@ -107,6 +110,7 @@ def run_goal_planning_menu(
             )
             save_goal_planning_requests_to_file(
                 requests_by_goal_id,
+                user_id,
                 file_path=planning_file_path,
             )
         elif choice == 2:
@@ -119,6 +123,7 @@ def run_goal_planning_menu(
             )
             save_goal_planning_requests_to_file(
                 requests_by_goal_id,
+                user_id,
                 file_path=planning_file_path,
             )
         elif choice == 3:
@@ -131,6 +136,7 @@ def run_goal_planning_menu(
             )
             save_goal_planning_requests_to_file(
                 requests_by_goal_id,
+                user_id,
                 file_path=planning_file_path,
             )
         elif choice == 4:
@@ -148,6 +154,7 @@ def run_goal_planning_menu(
             )
             save_goal_planning_requests_to_file(
                 requests_by_goal_id,
+                user_id,
                 file_path=planning_file_path,
             )
         elif choice == 6:
@@ -158,6 +165,7 @@ def run_goal_planning_menu(
             )
             save_goal_planning_requests_to_file(
                 requests_by_goal_id,
+                user_id,
                 file_path=planning_file_path,
             )
         else:

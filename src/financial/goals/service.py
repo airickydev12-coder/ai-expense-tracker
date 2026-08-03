@@ -443,6 +443,7 @@ def delete_goal(
         save_goals(user_id, file_path)
 
         remove_goal_planning_request_from_file(
+            user_id,
             goal_id,
             file_path=file_path,
         )

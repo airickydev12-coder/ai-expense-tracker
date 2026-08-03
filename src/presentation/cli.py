@@ -105,7 +105,7 @@ def run_cli() -> None:
             run_financial_coach()
 
         elif choice == "15":
-            run_goal_planning_menu(get_goals())
+            run_goal_planning_menu(get_cli_user_id(), get_goals(get_cli_user_id()))
 
         elif choice == EXIT_OPTION:
             print("Goodbye!")

@@ -18,6 +18,8 @@ from src.presentation import goal_planning_cli
 InputFunction = Callable[[str], str]
 OutputFunction = Callable[[str], None]
 
+USER_ID = 1
+
 
 def make_input(
     responses: list[str],
@@ -123,14 +125,16 @@ def test_display_goal_planning_menu() -> None:
     ]
 
 
-def test_run_goal_planning_menu_returns_to_main_menu() -> None:
+def test_run_goal_planning_menu_returns_to_main_menu(tmp_path) -> None:
     messages, output_fn = collect_output()
 
     result = goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         input_fn=make_input(["7"]),
         output_fn=output_fn,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert result is None
@@ -139,6 +143,7 @@ def test_run_goal_planning_menu_returns_to_main_menu() -> None:
 
 def test_run_goal_planning_menu_routes_to_analyze_all(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([1, 7])
@@ -185,9 +190,11 @@ def test_run_goal_planning_menu_routes_to_analyze_all(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["analyze_all"]
@@ -195,6 +202,7 @@ def test_run_goal_planning_menu_routes_to_analyze_all(
 
 def test_run_goal_planning_menu_routes_to_analyze_single(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([2, 7])
@@ -227,9 +235,11 @@ def test_run_goal_planning_menu_routes_to_analyze_single(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["analyze_single"]
@@ -237,6 +247,7 @@ def test_run_goal_planning_menu_routes_to_analyze_single(
 
 def test_run_goal_planning_menu_routes_to_monthly_allocation(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([3, 7])
@@ -269,9 +280,11 @@ def test_run_goal_planning_menu_routes_to_monthly_allocation(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["monthly_allocation"]
@@ -279,6 +292,7 @@ def test_run_goal_planning_menu_routes_to_monthly_allocation(
 
 def test_run_goal_planning_menu_routes_to_view_requests(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([4, 7])
@@ -307,9 +321,11 @@ def test_run_goal_planning_menu_routes_to_view_requests(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["view_requests"]
@@ -317,6 +333,7 @@ def test_run_goal_planning_menu_routes_to_view_requests(
 
 def test_run_goal_planning_menu_reuses_session_request_storage(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     request_store_ids: list[int] = []
     choices = iter([1, 4, 7])
@@ -363,9 +380,11 @@ def test_run_goal_planning_menu_reuses_session_request_storage(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert len(request_store_ids) == 2
@@ -1018,6 +1037,7 @@ def test_ensure_goals_exist(
 
 def test_run_goal_planning_menu_routes_to_update_request(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([5, 7])
@@ -1048,9 +1068,11 @@ def test_run_goal_planning_menu_routes_to_update_request(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["update_request"]
@@ -1215,6 +1237,7 @@ def test_prompt_for_updated_priority_accepts_name_and_number() -> None:
 
 def test_run_goal_planning_menu_routes_to_delete_request(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     calls: list[str] = []
     choices = iter([6, 7])
@@ -1243,9 +1266,11 @@ def test_run_goal_planning_menu_routes_to_delete_request(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         build_goals(),
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert calls == ["delete_request"]

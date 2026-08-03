@@ -16,6 +16,8 @@ from src.financial.planning.repository import (
 )
 from src.presentation import goal_planning_cli
 
+USER_ID = 1
+
 
 def test_goal_planning_menu_loads_persisted_requests(
     monkeypatch: pytest.MonkeyPatch,
@@ -37,6 +39,7 @@ def test_goal_planning_menu_loads_persisted_requests(
     file_path = tmp_path / "planning.json"
     save_goal_planning_requests_to_file(
         {goal.id: request},
+        USER_ID,
         file_path=file_path,
     )
     captured: dict[str, object] = {}
@@ -63,6 +66,7 @@ def test_goal_planning_menu_loads_persisted_requests(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         [goal],
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
@@ -128,6 +132,7 @@ def test_goal_planning_menu_saves_new_request(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        USER_ID,
         [goal],
         output_fn=lambda message: None,
         today=date(2027, 1, 1),
@@ -135,6 +140,7 @@ def test_goal_planning_menu_saves_new_request(
     )
 
     loaded = load_goal_planning_requests_from_file(
+        USER_ID,
         [goal],
         file_path=file_path,
     )

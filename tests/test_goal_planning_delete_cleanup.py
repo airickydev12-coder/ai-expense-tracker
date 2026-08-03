@@ -10,6 +10,8 @@ from src.financial.planning.repository import (
     save_goal_planning_requests_to_file,
 )
 
+USER_ID = 1
+
 
 def test_delete_goal_removes_planning_request(tmp_path) -> None:
     goals_file = tmp_path / "goals.json"
@@ -17,6 +19,7 @@ def test_delete_goal_removes_planning_request(tmp_path) -> None:
 
     service.goals.clear()
     goal = service.add_goal(
+        USER_ID,
         "Emergency Fund",
         10000,
         4000,
@@ -32,11 +35,12 @@ def test_delete_goal_removes_planning_request(tmp_path) -> None:
                 priority=GoalPriority.HIGH,
             )
         },
+        USER_ID,
         file_path=planning_file,
     )
 
-    deleted = service.delete_goal(goal.id, file_path=goals_file)
-    loaded = load_goal_planning_requests_from_file([], file_path=planning_file)
+    deleted = service.delete_goal(USER_ID, goal.id, file_path=goals_file)
+    loaded = load_goal_planning_requests_from_file(USER_ID, [], file_path=planning_file)
 
     assert deleted is not None
     assert loaded == {}
