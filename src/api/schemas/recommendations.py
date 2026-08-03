@@ -42,3 +42,19 @@ class RecommendationResponse(BaseModel):
     rationale: str
     source_rule: str
     is_actionable: bool
+
+
+class RecommendationActionRequest(BaseModel):
+    """Request body for a recommendation lifecycle action."""
+
+    note: str = ""
+
+
+class RecommendationRecordResponse(BaseModel):
+    """Serialized representation of a recommendation's lifecycle record."""
+
+    recommendation_key: str
+    status: str
+    created_at: str
+    updated_at: str
+    note: str

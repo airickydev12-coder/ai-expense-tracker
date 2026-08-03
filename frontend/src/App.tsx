@@ -10,6 +10,7 @@ import { ForecastingPage } from './pages/ForecastingPage'
 import { GoalsPage } from './pages/GoalsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { IncomePage } from './pages/IncomePage'
+import { RecommendationsPage } from './pages/RecommendationsPage'
 import { ScenariosPage } from './pages/ScenariosPage'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
           <Route path="/forecasting" element={<ForecastingPage />} />
           <Route path="/scenarios" element={<ScenariosPage />} />
           <Route path="/coach" element={<CoachPage />} />
+          <Route path="/recommendations" element={<RecommendationsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

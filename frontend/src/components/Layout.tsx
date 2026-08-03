@@ -73,6 +73,12 @@ export function Layout() {
             >
               Coach
             </NavLink>
+            <NavLink
+              to="/recommendations"
+              className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+            >
+              Recommendations
+            </NavLink>
           </nav>
         </div>
       </header>

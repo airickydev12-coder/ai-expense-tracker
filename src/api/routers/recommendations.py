@@ -1,11 +1,15 @@
 """API routes for financial recommendations."""
 
+from typing import Callable
+
 from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.recommendations import (
+    RecommendationActionRequest,
     RecommendationCategoryResponse,
     RecommendationPriorityFilter,
     RecommendationPriorityResponse,
+    RecommendationRecordResponse,
     RecommendationResponse,
 )
 from src.financial.application.recommendation_application_service import (
@@ -14,6 +18,12 @@ from src.financial.application.recommendation_application_service import (
 )
 from src.financial.recommendations.category import (
     RecommendationCategory,
+)
+from src.financial.recommendations.history import RecommendationRecord
+from src.financial.recommendations.history_service import (
+    complete_recommendation,
+    dismiss_recommendation,
+    suppress_recommendation,
 )
 from src.financial.recommendations.priority import (
     RecommendationPriority,
@@ -111,3 +121,75 @@ def get_recommendation(
         )
 
     return RecommendationResponse.model_validate(recommendation.to_dict())
+
+
+def _apply_lifecycle_action(
+    action: Callable[..., RecommendationRecord | None],
+    recommendation_key: str,
+    request: RecommendationActionRequest,
+) -> RecommendationRecordResponse:
+    """Apply a lifecycle action and return its resulting record, or 404."""
+
+    record = action(recommendation_key, note=request.note)
+
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No lifecycle record found for this recommendation. "
+                "Fetch GET /recommendations first to register it."
+            ),
+        )
+
+    return RecommendationRecordResponse.model_validate(record.to_dict())
+
+
+@router.post(
+    "/{recommendation_key}/dismiss",
+    response_model=RecommendationRecordResponse,
+)
+def dismiss_recommendation_route(
+    recommendation_key: str,
+    request: RecommendationActionRequest = RecommendationActionRequest(),
+) -> RecommendationRecordResponse:
+    """Mark a recommendation as dismissed."""
+
+    return _apply_lifecycle_action(
+        dismiss_recommendation,
+        recommendation_key,
+        request,
+    )
+
+
+@router.post(
+    "/{recommendation_key}/complete",
+    response_model=RecommendationRecordResponse,
+)
+def complete_recommendation_route(
+    recommendation_key: str,
+    request: RecommendationActionRequest = RecommendationActionRequest(),
+) -> RecommendationRecordResponse:
+    """Mark a recommendation as completed."""
+
+    return _apply_lifecycle_action(
+        complete_recommendation,
+        recommendation_key,
+        request,
+    )
+
+
+@router.post(
+    "/{recommendation_key}/suppress",
+    response_model=RecommendationRecordResponse,
+)
+def suppress_recommendation_route(
+    recommendation_key: str,
+    request: RecommendationActionRequest = RecommendationActionRequest(),
+) -> RecommendationRecordResponse:
+    """Mark a recommendation as suppressed."""
+
+    return _apply_lifecycle_action(
+        suppress_recommendation,
+        recommendation_key,
+        request,
+    )

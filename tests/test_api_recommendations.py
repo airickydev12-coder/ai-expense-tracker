@@ -1,13 +1,17 @@
 """Tests for the financial recommendations API."""
 
+from datetime import datetime, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.routers import recommendations as recommendations_router
 from src.financial.recommendations.category import RecommendationCategory
+from src.financial.recommendations.history import RecommendationRecord
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
+from src.financial.recommendations.status import RecommendationStatus
 
 client = TestClient(app)
 
@@ -306,3 +310,174 @@ def test_recommendation_metadata_routes_are_not_treated_as_keys(
 
     assert categories_response.status_code == 200
     assert priorities_response.status_code == 200
+
+
+def make_test_record() -> RecommendationRecord:
+    """Create a lifecycle record used by lifecycle-action API tests."""
+
+    timestamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    return RecommendationRecord(
+        recommendation_key="budget:reduce_dining_expenses",
+        status=RecommendationStatus.DISMISSED,
+        created_at=timestamp,
+        updated_at=timestamp,
+        note="Already on it",
+    )
+
+
+def test_dismiss_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dismiss a recommendation and return its updated lifecycle record."""
+
+    captured_arguments: dict[str, object] = {}
+
+    def fake_dismiss(key: str, note: str = "") -> RecommendationRecord:
+        captured_arguments["key"] = key
+        captured_arguments["note"] = note
+        return make_test_record()
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "dismiss_recommendation",
+        fake_dismiss,
+    )
+
+    response = client.post(
+        "/recommendations/budget:reduce_dining_expenses/dismiss",
+        json={"note": "Already on it"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "recommendation_key": "budget:reduce_dining_expenses",
+        "status": "DISMISSED",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+        "note": "Already on it",
+    }
+    assert captured_arguments == {
+        "key": "budget:reduce_dining_expenses",
+        "note": "Already on it",
+    }
+
+
+def test_dismiss_recommendation_defaults_to_empty_note(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Allow the request body to be omitted entirely."""
+
+    captured_note: str | None = None
+
+    def fake_dismiss(key: str, note: str = "") -> RecommendationRecord:
+        nonlocal captured_note
+        captured_note = note
+        return make_test_record()
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "dismiss_recommendation",
+        fake_dismiss,
+    )
+
+    response = client.post("/recommendations/budget:reduce_dining_expenses/dismiss")
+
+    assert response.status_code == 200
+    assert captured_note == ""
+
+
+def test_dismiss_recommendation_returns_404_when_not_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return 404 when no lifecycle record exists for the key."""
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "dismiss_recommendation",
+        lambda key, note="": None,
+    )
+
+    response = client.post("/recommendations/unknown/dismiss")
+
+    assert response.status_code == 404
+
+
+def test_complete_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Complete a recommendation and return its updated lifecycle record."""
+
+    record = RecommendationRecord(
+        recommendation_key="budget:reduce_dining_expenses",
+        status=RecommendationStatus.COMPLETED,
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+    )
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "complete_recommendation",
+        lambda key, note="": record,
+    )
+
+    response = client.post("/recommendations/budget:reduce_dining_expenses/complete")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "COMPLETED"
+
+
+def test_complete_recommendation_returns_404_when_not_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return 404 when no lifecycle record exists for the key."""
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "complete_recommendation",
+        lambda key, note="": None,
+    )
+
+    response = client.post("/recommendations/unknown/complete")
+
+    assert response.status_code == 404
+
+
+def test_suppress_recommendation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Suppress a recommendation and return its updated lifecycle record."""
+
+    record = RecommendationRecord(
+        recommendation_key="budget:reduce_dining_expenses",
+        status=RecommendationStatus.SUPPRESSED,
+        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+    )
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "suppress_recommendation",
+        lambda key, note="": record,
+    )
+
+    response = client.post("/recommendations/budget:reduce_dining_expenses/suppress")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "SUPPRESSED"
+
+
+def test_suppress_recommendation_returns_404_when_not_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return 404 when no lifecycle record exists for the key."""
+
+    monkeypatch.setattr(
+        recommendations_router,
+        "suppress_recommendation",
+        lambda key, note="": None,
+    )
+
+    response = client.post("/recommendations/unknown/suppress")
+
+    assert response.status_code == 404
