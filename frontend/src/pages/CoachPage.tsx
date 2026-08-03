@@ -7,7 +7,7 @@ import {
   listInsights,
   saveMonthlyReview,
 } from '../api/coach'
-import { listRecommendationsByCategory } from '../api/recommendations'
+import { listRecommendations } from '../api/recommendations'
 import { CoachChat } from '../components/coach/CoachChat'
 import { SeverityBadge } from '../components/coach/SeverityBadge'
 import type {
@@ -33,7 +33,7 @@ type NarrativeState =
   | { status: 'error'; message: string }
   | { status: 'success'; narrative: string }
 
-type DebtRecommendationsState =
+type RecommendationsState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; recommendations: RecommendationResponse[] }
@@ -61,7 +61,7 @@ function InsightCard({ insight }: { insight: FinancialCoachInsightDict }) {
   )
 }
 
-function DebtRecommendationCard({
+function RecommendationCard({
   recommendation,
   explanationState,
   onExplain,
@@ -73,7 +73,9 @@ function DebtRecommendationCard({
   return (
     <div className="rounded border border-gray-200 p-3 text-sm">
       <div className="flex items-center justify-between">
-        <span className="font-medium text-gray-900">{recommendation.title}</span>
+        <span className="font-medium text-gray-900">
+          {recommendation.title} <span className="text-xs text-gray-500">({recommendation.category})</span>
+        </span>
         <SeverityBadge value={recommendation.priority} />
       </div>
       <p className="mt-1 text-gray-700">{recommendation.message}</p>
@@ -120,7 +122,7 @@ export function CoachPage() {
   const [narrativeState, setNarrativeState] = useState<NarrativeState>({ status: 'loading' })
   const [insightsState, setInsightsState] = useState<InsightsState>({ status: 'loading' })
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'loading' })
-  const [debtRecommendationsState, setDebtRecommendationsState] = useState<DebtRecommendationsState>({
+  const [recommendationsState, setRecommendationsState] = useState<RecommendationsState>({
     status: 'loading',
   })
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({})
@@ -181,14 +183,14 @@ export function CoachPage() {
   useEffect(() => {
     let cancelled = false
 
-    listRecommendationsByCategory('Debt')
+    listRecommendations()
       .then((recommendations) => {
-        if (!cancelled) setDebtRecommendationsState({ status: 'success', recommendations })
+        if (!cancelled) setRecommendationsState({ status: 'success', recommendations })
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Unknown error'
-          setDebtRecommendationsState({ status: 'error', message })
+          setRecommendationsState({ status: 'error', message })
         }
       })
 
@@ -374,22 +376,22 @@ export function CoachPage() {
       </div>
 
       <div>
-        <h2 className="mb-2 text-lg font-medium text-gray-900">Debt Recommendations</h2>
-        {debtRecommendationsState.status === 'loading' && (
-          <p className="text-gray-600">Loading debt recommendations...</p>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Recommendations</h2>
+        {recommendationsState.status === 'loading' && (
+          <p className="text-gray-600">Loading recommendations...</p>
         )}
-        {debtRecommendationsState.status === 'error' && (
+        {recommendationsState.status === 'error' && (
           <p className="text-red-600">
-            Failed to load debt recommendations: {debtRecommendationsState.message}
+            Failed to load recommendations: {recommendationsState.message}
           </p>
         )}
-        {debtRecommendationsState.status === 'success' && (
+        {recommendationsState.status === 'success' && (
           <div className="space-y-2">
-            {debtRecommendationsState.recommendations.length === 0 ? (
-              <p className="text-sm text-gray-500">No debt recommendations right now.</p>
+            {recommendationsState.recommendations.length === 0 ? (
+              <p className="text-sm text-gray-500">No recommendations right now.</p>
             ) : (
-              debtRecommendationsState.recommendations.map((recommendation) => (
-                <DebtRecommendationCard
+              recommendationsState.recommendations.map((recommendation) => (
+                <RecommendationCard
                   key={recommendation.key}
                   recommendation={recommendation}
                   explanationState={explanations[recommendation.key]}

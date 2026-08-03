@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.routers import coach as coach_router
-from src.core.exceptions import ExternalServiceError, NotFoundError, ValidationError
+from src.core.exceptions import ExternalServiceError, NotFoundError
 from src.financial.scenarios.factory import register_default_scenario_handlers
 from src.financial.scenarios.service import reset_scenario_handlers
 
@@ -59,7 +59,7 @@ def test_get_recommendation_explanation_success(
 
     monkeypatch.setattr(
         coach_router.recommendation_explainer,
-        "explain_debt_recommendation",
+        "explain_recommendation",
         fake_explain,
     )
 
@@ -80,7 +80,7 @@ def test_get_recommendation_explanation_not_found(
 
     monkeypatch.setattr(
         coach_router.recommendation_explainer,
-        "explain_debt_recommendation",
+        "explain_recommendation",
         fake_explain,
     )
 
@@ -89,21 +89,37 @@ def test_get_recommendation_explanation_not_found(
     assert response.status_code == 404
 
 
-def test_get_recommendation_explanation_rejects_non_debt_category(
+def test_get_recommendation_explanation_non_debt_category_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fake_explain(recommendation_key: str) -> dict:
-        raise ValidationError("Only debt-category recommendations are supported.")
+        assert recommendation_key == "cash_flow:negative"
+        return {
+            "recommendation_key": recommendation_key,
+            "reason": "Cash flow is negative this period.",
+            "evidence": {
+                "type": "aggregate",
+                "net_cash_flow": Decimal("-125.00"),
+                "total_income": Decimal("0.00"),
+                "total_debt": Decimal("0.00"),
+            },
+            "expected_impact": "Reduce spending or increase income.",
+            "confidence": "Medium",
+            "assumptions": ["No new income sources are added."],
+        }
 
     monkeypatch.setattr(
         coach_router.recommendation_explainer,
-        "explain_debt_recommendation",
+        "explain_recommendation",
         fake_explain,
     )
 
     response = client.get("/coach/recommendations/cash_flow:negative/explanation")
 
-    assert response.status_code == 400
+    assert response.status_code == 200
+    body = response.json()
+    assert body["evidence"]["type"] == "aggregate"
+    assert body["evidence"]["net_cash_flow"] == "-125.00"
 
 
 def test_get_monthly_review_no_history(monkeypatch: pytest.MonkeyPatch) -> None:

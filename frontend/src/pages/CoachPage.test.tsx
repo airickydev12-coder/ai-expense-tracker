@@ -102,7 +102,7 @@ beforeEach(() => {
     narrative: 'Your finances look healthy overall.',
   })
   vi.mocked(coachApi.getMonthlyReview).mockResolvedValue(monthlyReview)
-  vi.mocked(recommendationsApi.listRecommendationsByCategory).mockResolvedValue(debtRecommendations)
+  vi.mocked(recommendationsApi.listRecommendations).mockResolvedValue(debtRecommendations)
 })
 
 describe('CoachPage', () => {
@@ -178,6 +178,61 @@ describe('CoachPage', () => {
     fireEvent.click(explainButton)
 
     expect(await screen.findByText(/Card A has the highest APR/)).toBeInTheDocument()
+  })
+
+  it('renders a non-debt recommendation and fetches its explanation', async () => {
+    vi.mocked(coachApi.listInsights).mockResolvedValue(insights)
+    vi.mocked(coachApi.getCoachingSession).mockResolvedValue(session)
+    vi.mocked(recommendationsApi.listRecommendations).mockResolvedValue([
+      {
+        key: 'goals:low_goal_progress',
+        priority: 'MEDIUM',
+        category: 'Goals',
+        score: 150,
+        title: 'Low Goal Progress',
+        message: "Your goal 'Emergency Fund' is 10% funded.",
+        action: 'Consider increasing contributions toward this goal.',
+        rationale: '',
+        source_rule: 'GoalProgressThresholdRule',
+        is_actionable: true,
+      },
+    ])
+    vi.mocked(coachApi.explainRecommendation).mockResolvedValue({
+      recommendation_key: 'goals:low_goal_progress',
+      reason: 'This goal is behind pace.',
+      evidence: {
+        type: 'goal',
+        goal_name: 'Emergency Fund',
+        target_amount: 10000,
+        current_amount: 1000,
+        progress_percentage: 10,
+        debt_name: null,
+        debt_balance: null,
+        interest_rate: null,
+        minimum_payment: null,
+        extra_monthly_payment: null,
+        payoff_months_saved: null,
+        total_interest_saved: null,
+        total_debt: null,
+        total_income: null,
+        debt_to_income_ratio: null,
+        total_account_balance: null,
+        total_goal_progress: null,
+      },
+      expected_impact: 'Reaching the target sooner requires higher contributions.',
+      confidence: 'Medium',
+      assumptions: ['No withdrawals occur.'],
+    })
+
+    render(<CoachPage />)
+
+    expect(await screen.findByText('Low Goal Progress')).toBeInTheDocument()
+    expect(screen.getByText('(Goals)')).toBeInTheDocument()
+
+    const explainButton = await screen.findByRole('button', { name: 'Explain' })
+    fireEvent.click(explainButton)
+
+    expect(await screen.findByText(/This goal is behind pace/)).toBeInTheDocument()
   })
 
   it('shows the monthly review message when there is no history yet', async () => {

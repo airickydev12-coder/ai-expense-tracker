@@ -40,7 +40,7 @@ def get_recommendation_explanation(
     recommendation_key: str,
 ) -> RecommendationExplanationResponse:
     """Return an AI-generated, evidence-grounded explanation for a recommendation."""
-    result = recommendation_explainer.explain_debt_recommendation(recommendation_key)
+    result = recommendation_explainer.explain_recommendation(recommendation_key)
     return RecommendationExplanationResponse.model_validate(result)
 
 

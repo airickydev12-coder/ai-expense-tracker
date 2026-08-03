@@ -50,7 +50,15 @@ export interface CoachNarrativeDict {
 }
 
 export interface RecommendationEvidenceDict {
-  type: 'debt' | 'aggregate'
+  type:
+    | 'debt'
+    | 'aggregate'
+    | 'goal'
+    | 'bill'
+    | 'budget'
+    | 'expense'
+    | 'expense_category_concentration'
+  // debt / aggregate (original fields, kept required for backward compatibility)
   debt_name: string | null
   debt_balance: number | null
   interest_rate: number | null
@@ -58,11 +66,41 @@ export interface RecommendationEvidenceDict {
   extra_monthly_payment: number | null
   payoff_months_saved: number | null
   total_interest_saved: number | null
-  total_debt: number
+  total_debt: number | null
   total_income: number | null
   debt_to_income_ratio: number | null
   total_account_balance: number | null
   total_goal_progress: number | null
+  // aggregate (new)
+  total_expenses?: number | null
+  net_cash_flow?: number | null
+  net_worth?: number | null
+  health_score?: number | null
+  health_status?: string | null
+  // goal
+  goal_name?: string | null
+  target_amount?: number | null
+  current_amount?: number | null
+  progress_percentage?: number | null
+  // bill
+  bill_name?: string | null
+  due_day?: number | null
+  days_until_due?: number | null
+  is_paid?: boolean | null
+  // budget
+  category?: string | null
+  limit?: number | null
+  spent?: number | null
+  remaining?: number | null
+  utilization_percentage?: number | null
+  // expense
+  expense_name?: string | null
+  expense_category?: string | null
+  amount?: number | null
+  average_expense?: number | null
+  // expense_category_concentration
+  total_spending?: number | null
+  concentration_percentage?: number | null
 }
 
 export interface RecommendationExplanationDict {

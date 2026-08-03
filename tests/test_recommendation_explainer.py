@@ -1,4 +1,4 @@
-"""Tests for AI-generated debt-recommendation explanations."""
+"""Tests for AI-generated, evidence-grounded recommendation explanations."""
 
 from decimal import Decimal
 
@@ -6,34 +6,50 @@ import anthropic
 import httpx
 import pytest
 
-from src.core.exceptions import ExternalServiceError, NotFoundError, ValidationError
+from src.core.exceptions import ExternalServiceError, NotFoundError
 from src.financial.coach import recommendation_explainer
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 
 
-def build_debt_recommendation(
-    source_rule: str = "HighInterestDebtRule",
-    message: str = "Card A has a high interest rate of 27.40%.",
+def build_recommendation(
+    category: RecommendationCategory,
+    title: str,
+    message: str,
+    source_rule: str,
 ) -> Recommendation:
     return Recommendation(
         priority=RecommendationPriority.HIGH,
-        category=RecommendationCategory.DEBT,
-        title="High Interest Debt",
+        category=category,
+        title=title,
         message=message,
-        action="Prioritize this debt for repayment.",
+        action="Take action.",
         source_rule=source_rule,
     )
 
 
-def build_snapshot() -> dict:
-    return {
+def build_debt_recommendation(
+    source_rule: str = "HighInterestDebtRule",
+    message: str = "Card A has a high interest rate of 27.40%.",
+) -> Recommendation:
+    return build_recommendation(
+        RecommendationCategory.DEBT, "High Interest Debt", message, source_rule
+    )
+
+
+def build_snapshot(**overrides: object) -> dict:
+    snapshot = {
         "total_income": Decimal("5000.00"),
-        "total_debt": Decimal("4800.00"),
+        "total_expenses": Decimal("3000.00"),
         "net_cash_flow": Decimal("300.00"),
         "total_account_balance": Decimal("2000.00"),
         "total_goal_progress": Decimal("500.00"),
+        "total_debt": Decimal("4800.00"),
+        "net_worth": Decimal("5000.00"),
+        "health_score": 70,
+        "health_status": "Good",
+        "current_day": 15,
         "debts": [
             {
                 "id": 1,
@@ -43,33 +59,48 @@ def build_snapshot() -> dict:
                 "minimum_payment": Decimal("145.00"),
             }
         ],
+        "goals": [
+            {
+                "id": 1,
+                "name": "Emergency Fund",
+                "target_amount": Decimal("10000.00"),
+                "current_amount": Decimal("1000.00"),
+            }
+        ],
+        "bills": [
+            {
+                "id": 1,
+                "name": "Electric",
+                "amount": Decimal("125.00"),
+                "due_day": 18,
+                "is_paid": False,
+            }
+        ],
+        "budget_report": [
+            {
+                "category": "Food",
+                "limit": Decimal("400.00"),
+                "spent": Decimal("450.00"),
+                "remaining": Decimal("-50.00"),
+            }
+        ],
+        "largest_expense": {
+            "id": 1,
+            "name": "Rent",
+            "category": "Housing",
+            "amount": Decimal("1200.00"),
+        },
+        "average_expense": Decimal("300.00"),
+        "category_totals": {
+            "Housing": Decimal("1200.00"),
+            "Food": Decimal("450.00"),
+        },
     }
+    snapshot.update(overrides)
+    return snapshot
 
 
-def test_explain_debt_recommendation_rejects_non_debt_category(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A non-DEBT recommendation should be rejected before any AI call."""
-    recommendation = Recommendation(
-        priority=RecommendationPriority.HIGH,
-        category=RecommendationCategory.CASH_FLOW,
-        title="Negative Cash Flow",
-        message="Your expenses exceed your income.",
-        action="Reduce spending or increase income.",
-        source_rule="NegativeCashFlowRule",
-    )
-
-    monkeypatch.setattr(
-        recommendation_explainer,
-        "get_recommendation_by_key",
-        lambda key: recommendation,
-    )
-
-    with pytest.raises(ValidationError):
-        recommendation_explainer.explain_debt_recommendation("cash_flow:negative")
-
-
-def test_explain_debt_recommendation_raises_not_found_for_unknown_key(
+def test_explain_recommendation_raises_not_found_for_unknown_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An unknown recommendation key should raise NotFoundError."""
@@ -80,10 +111,10 @@ def test_explain_debt_recommendation_raises_not_found_for_unknown_key(
     )
 
     with pytest.raises(NotFoundError):
-        recommendation_explainer.explain_debt_recommendation("debt:unknown")
+        recommendation_explainer.explain_recommendation("debt:unknown")
 
 
-def test_explain_debt_recommendation_returns_structured_result(
+def test_explain_recommendation_returns_structured_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A DEBT recommendation should produce evidence-grounded structured output."""
@@ -111,7 +142,7 @@ def test_explain_debt_recommendation_returns_structured_result(
         },
     )
 
-    result = recommendation_explainer.explain_debt_recommendation(recommendation.key)
+    result = recommendation_explainer.explain_recommendation(recommendation.key)
 
     assert result["recommendation_key"] == recommendation.key
     assert result["reason"] == "Card A has the highest APR."
@@ -119,6 +150,7 @@ def test_explain_debt_recommendation_returns_structured_result(
     assert result["evidence"]["type"] == "debt"
     assert result["evidence"]["debt_name"] == "Card A"
     assert result["evidence"]["payoff_months_saved"] is not None
+    assert result["evidence"]["total_debt"] == Decimal("4800.00")
 
 
 def test_get_recommendation_evidence_returns_no_ai_call_result(
@@ -155,29 +187,6 @@ def test_get_recommendation_evidence_returns_no_ai_call_result(
     assert result["evidence"]["debt_name"] == "Card A"
 
 
-def test_get_recommendation_evidence_rejects_non_debt_category(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A non-DEBT recommendation should be rejected."""
-    recommendation = Recommendation(
-        priority=RecommendationPriority.HIGH,
-        category=RecommendationCategory.CASH_FLOW,
-        title="Negative Cash Flow",
-        message="Your expenses exceed your income.",
-        action="Reduce spending or increase income.",
-        source_rule="NegativeCashFlowRule",
-    )
-
-    monkeypatch.setattr(
-        recommendation_explainer,
-        "get_recommendation_by_key",
-        lambda key: recommendation,
-    )
-
-    with pytest.raises(ValidationError):
-        recommendation_explainer.get_recommendation_evidence("cash_flow:negative")
-
-
 def test_get_recommendation_evidence_raises_not_found_for_unknown_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -190,44 +199,6 @@ def test_get_recommendation_evidence_raises_not_found_for_unknown_key(
 
     with pytest.raises(NotFoundError):
         recommendation_explainer.get_recommendation_evidence("debt:unknown")
-
-
-def test_resolve_target_debt_for_high_interest_rule() -> None:
-    """The selector should mirror HighInterestDebtRule and match by name."""
-    recommendation = build_debt_recommendation()
-    snapshot = build_snapshot()
-
-    debt = recommendation_explainer._resolve_target_debt(recommendation, snapshot)
-
-    assert debt is not None
-    assert debt["name"] == "Card A"
-
-
-def test_resolve_target_debt_returns_none_for_aggregate_rules() -> None:
-    """Aggregate-level rules have no single target debt to resolve."""
-    recommendation = build_debt_recommendation(
-        source_rule="DebtToIncomeRule",
-        message="Your debt is 60% of your income.",
-    )
-    snapshot = build_snapshot()
-
-    assert (
-        recommendation_explainer._resolve_target_debt(recommendation, snapshot)
-        is None
-    )
-
-
-def test_resolve_target_debt_falls_back_when_name_mismatch() -> None:
-    """A resolved debt whose name isn't in the message should be discarded."""
-    recommendation = build_debt_recommendation(
-        message="Some other debt has a high interest rate.",
-    )
-    snapshot = build_snapshot()
-
-    assert (
-        recommendation_explainer._resolve_target_debt(recommendation, snapshot)
-        is None
-    )
 
 
 def test_choose_extra_payment_respects_cash_flow() -> None:
@@ -260,3 +231,173 @@ def test_request_explanation_wraps_anthropic_errors(
 
     with pytest.raises(ExternalServiceError):
         recommendation_explainer._request_explanation("prompt")
+
+
+# --- _gather_evidence: one real case per entity type ------------------------
+
+
+def test_gather_evidence_for_goal_completion() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.GOALS,
+        "Goal Completed",
+        "Your goal 'Emergency Fund' is fully funded.",
+        "GoalCompletionRule",
+    )
+    snapshot = build_snapshot(
+        goals=[
+            {
+                "id": 1,
+                "name": "Emergency Fund",
+                "target_amount": Decimal("1000.00"),
+                "current_amount": Decimal("1000.00"),
+            }
+        ]
+    )
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "goal"
+    assert evidence["goal_name"] == "Emergency Fund"
+    assert evidence["progress_percentage"] == 100.0
+
+
+def test_gather_evidence_for_low_goal_progress() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.GOALS,
+        "Low Goal Progress",
+        "Your goal 'Emergency Fund' is 10% funded.",
+        "GoalProgressThresholdRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "goal"
+    assert evidence["goal_name"] == "Emergency Fund"
+    assert evidence["progress_percentage"] == 10.0
+
+
+def test_gather_evidence_for_bill_due_soon() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.BILLS,
+        "Bill Due Soon",
+        "Electric is due in 3 days.",
+        "BillDueSoonRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "bill"
+    assert evidence["bill_name"] == "Electric"
+    assert evidence["days_until_due"] == 3
+
+
+def test_gather_evidence_for_budget_overrun() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.BUDGET,
+        "Budget Overrun",
+        "Your Food budget is over by $50.00.",
+        "BudgetOverrunRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "budget"
+    assert evidence["category"] == "Food"
+    assert evidence["remaining"] == Decimal("-50.00")
+
+
+def test_gather_evidence_for_budget_utilization() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.BUDGET,
+        "Budget Nearly Exhausted",
+        "Your Food budget is 112% utilized.",
+        "BudgetUtilizationRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "budget"
+    assert evidence["category"] == "Food"
+    assert evidence["utilization_percentage"] == pytest.approx(112.5)
+
+
+def test_gather_evidence_for_expense_spike() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.EXPENSES,
+        "Expense Spike Detected",
+        "Rent is significantly higher than your average expense.",
+        "ExpenseSpikeRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "expense"
+    assert evidence["expense_name"] == "Rent"
+    assert evidence["average_expense"] == Decimal("300.00")
+
+
+def test_gather_evidence_for_spending_concentration() -> None:
+    recommendation = build_recommendation(
+        RecommendationCategory.EXPENSES,
+        "Spending Concentration Detected",
+        "Housing represents 73% of your spending.",
+        "SpendingConcentrationRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "expense_category_concentration"
+    assert evidence["category"] == "Housing"
+    assert evidence["concentration_percentage"] == pytest.approx(
+        float(Decimal("1200.00") / Decimal("1650.00") * 100)
+    )
+
+
+def test_gather_evidence_falls_back_to_aggregate_for_aggregate_rules() -> None:
+    """Aggregate-level rules have no single target entity to resolve."""
+    recommendation = build_recommendation(
+        RecommendationCategory.WEALTH,
+        "Negative Net Worth",
+        "Your net worth is negative.",
+        "NetWorthRule",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "aggregate"
+    assert evidence["net_worth"] == snapshot["net_worth"]
+    assert evidence["health_score"] == snapshot["health_score"]
+
+
+def test_gather_evidence_falls_back_when_entity_name_mismatch() -> None:
+    """A resolved entity whose name isn't in the message should be discarded."""
+    recommendation = build_debt_recommendation(
+        message="Some other debt has a high interest rate.",
+    )
+    snapshot = build_snapshot()
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "aggregate"
+
+
+def test_gather_evidence_falls_back_when_selector_finds_nothing() -> None:
+    """A registered rule whose selector finds no matching entity falls back."""
+    recommendation = build_recommendation(
+        RecommendationCategory.BILLS,
+        "Bill Due Soon",
+        "Electric is due in 3 days.",
+        "BillDueSoonRule",
+    )
+    snapshot = build_snapshot(bills=[])
+
+    evidence = recommendation_explainer._gather_evidence(recommendation, snapshot)
+
+    assert evidence["type"] == "aggregate"

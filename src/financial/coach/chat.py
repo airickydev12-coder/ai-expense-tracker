@@ -643,8 +643,8 @@ _RECOMMENDATION_EVIDENCE_SCHEMA = {
         "recommendation_key": {
             "type": "string",
             "description": (
-                "The key of a debt-category recommendation, from "
-                "list_recommendations or get_coach_analysis."
+                "The key of any recommendation, from list_recommendations "
+                "or get_coach_analysis."
             ),
         },
     },
@@ -910,12 +910,14 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "recommendation_evidence",
         "description": (
-            "Call this when asked why a specific debt-related recommendation "
-            "matters or what impact acting on it would have. Returns real, "
-            "precomputed evidence (the recommendation plus supporting "
-            "numbers, e.g. a debt's balance/rate and a real payoff "
-            "projection) for you to cite directly — never invent these "
-            "numbers yourself."
+            "Call this when asked why a specific recommendation matters or "
+            "what impact acting on it would have — works for any "
+            "recommendation category. Returns real, precomputed evidence "
+            "(the recommendation plus supporting numbers specific to what "
+            "it's about, e.g. a debt's balance/rate and payoff projection, "
+            "a goal's progress, a budget's utilization, a bill's due date, "
+            "or overall financial numbers) for you to cite directly — never "
+            "invent these numbers yourself."
         ),
         "input_schema": _RECOMMENDATION_EVIDENCE_SCHEMA,
     },

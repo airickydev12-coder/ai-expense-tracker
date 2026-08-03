@@ -1,7 +1,8 @@
-"""AI-generated structured explanation for a single DEBT-category recommendation."""
+"""AI-generated structured explanation for a financial recommendation."""
 
 import json
 from decimal import Decimal
+from typing import Callable
 
 import anthropic
 
@@ -18,10 +19,16 @@ from src.financial.application.recommendation_application_service import (
     get_recommendation_by_key,
 )
 from src.financial.coach.insights import calculate_debt_to_income_ratio
-from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
+from src.financial.rules.bill_due_rule import (
+    BILL_DUE_WINDOW_MAX_DAYS,
+    BILL_DUE_WINDOW_MIN_DAYS,
+)
+from src.financial.rules.budget_rule import BUDGET_UTILIZATION_CRITICAL_THRESHOLD
+from src.financial.rules.expense_spike_rule import EXPENSE_SPIKE_MULTIPLIER
 from src.financial.scenarios.debt_scenario import calculate_debt_payoff
 from src.financial.scenarios.optimizer import DEFAULT_EXTRA_DEBT_PAYMENTS
+from src.financial.shared.thresholds import SPENDING_CONCENTRATION_THRESHOLD
 
 logger = get_logger(__name__)
 
@@ -37,18 +44,20 @@ _EXPLANATION_SCHEMA = {
     "additionalProperties": False,
 }
 
+# --- entity selectors: each mirrors its source rule's own selection logic --
 
-def _select_high_interest_debt(debts: list[dict]) -> dict | None:
+
+def _select_high_interest_debt(snapshot: dict) -> dict | None:
     """Mirror HighInterestDebtRule's selection: first balance>0 & rate>=15."""
-    for debt in debts:
+    for debt in snapshot.get("debts", []):
         if debt["balance"] > 0 and debt["interest_rate"] >= 15:
             return debt
     return None
 
 
-def _select_highest_interest_debt(debts: list[dict]) -> dict | None:
+def _select_highest_interest_debt(snapshot: dict) -> dict | None:
     """Mirror DebtPayoffPriorityRule's selection: max active debt by rate."""
-    active_debts = [debt for debt in debts if debt["balance"] > 0]
+    active_debts = [debt for debt in snapshot.get("debts", []) if debt["balance"] > 0]
     if not active_debts:
         return None
 
@@ -59,51 +68,100 @@ def _select_highest_interest_debt(debts: list[dict]) -> dict | None:
     return highest
 
 
-def _select_missing_minimum_payment_debt(debts: list[dict]) -> dict | None:
+def _select_missing_minimum_payment_debt(snapshot: dict) -> dict | None:
     """Mirror DebtMinimumPaymentRule's selection: first balance>0 & no minimum."""
-    for debt in debts:
+    for debt in snapshot.get("debts", []):
         if debt["balance"] > 0 and debt["minimum_payment"] <= 0:
             return debt
     return None
 
 
-_DEBT_RULE_SELECTORS = {
-    "HighInterestDebtRule": _select_high_interest_debt,
-    "DebtPayoffPriorityRule": _select_highest_interest_debt,
-    "DebtMinimumPaymentRule": _select_missing_minimum_payment_debt,
-}
+def _select_completed_goal(snapshot: dict) -> dict | None:
+    """Mirror GoalCompletionRule's selection: first fully-funded goal."""
+    for goal in snapshot.get("goals", []):
+        if goal["target_amount"] > 0 and goal["current_amount"] >= goal["target_amount"]:
+            return goal
+    return None
 
 
-def _resolve_target_debt(
-    recommendation: Recommendation,
-    snapshot: dict,
-) -> dict | None:
-    """
-    Resolve which single debt a recommendation refers to, if any.
+def _select_low_progress_goal(snapshot: dict) -> dict | None:
+    """Mirror GoalProgressThresholdRule's selection: first goal <25% funded."""
+    for goal in snapshot.get("goals", []):
+        target_amount = goal["target_amount"]
+        if target_amount <= 0:
+            continue
+        if goal["current_amount"] / target_amount < 0.25:
+            return goal
+    return None
 
-    Returns None for aggregate-level rules (DebtToIncomeRule, DebtRatioRule)
-    or when the mirrored selection doesn't match the recommendation's own
-    message -- callers should fall back to aggregate evidence in that case
-    rather than risk presenting the wrong debt.
-    """
-    selector = _DEBT_RULE_SELECTORS.get(recommendation.source_rule)
-    if selector is None:
+
+def _select_bill_due_soon(snapshot: dict) -> dict | None:
+    """Mirror BillDueSoonRule's selection: first unpaid bill due within the window."""
+    current_day = snapshot.get("current_day")
+    if current_day is None:
         return None
 
-    debt = selector(snapshot.get("debts", []))
-    if debt is None:
+    for bill in snapshot.get("bills", []):
+        if bill["is_paid"]:
+            continue
+
+        days_until_due = bill["due_day"] - current_day
+        if BILL_DUE_WINDOW_MIN_DAYS <= days_until_due <= BILL_DUE_WINDOW_MAX_DAYS:
+            return bill
+
+    return None
+
+
+def _select_overrun_budget(snapshot: dict) -> dict | None:
+    """Mirror BudgetOverrunRule's selection: first budget over its limit."""
+    for budget in snapshot.get("budget_report", []):
+        if budget["remaining"] < 0:
+            return budget
+    return None
+
+
+def _select_high_utilization_budget(snapshot: dict) -> dict | None:
+    """Mirror BudgetUtilizationRule's selection: first nearly-exhausted budget."""
+    for budget in snapshot.get("budget_report", []):
+        limit = budget["limit"]
+        if limit <= 0:
+            continue
+        if budget["spent"] / limit >= BUDGET_UTILIZATION_CRITICAL_THRESHOLD:
+            return budget
+    return None
+
+
+def _select_expense_spike(snapshot: dict) -> dict | None:
+    """Mirror ExpenseSpikeRule's selection: the largest expense, if it spikes."""
+    largest_expense = snapshot.get("largest_expense")
+    average_expense = snapshot.get("average_expense")
+
+    if largest_expense is None or average_expense is None or average_expense <= 0:
         return None
 
-    if debt["name"].lower() not in recommendation.message.lower():
-        logger.warning(
-            "Resolved debt %r did not match recommendation message for "
-            "source_rule=%r; falling back to aggregate evidence.",
-            debt["name"],
-            recommendation.source_rule,
-        )
+    if largest_expense["amount"] < average_expense * EXPENSE_SPIKE_MULTIPLIER:
         return None
 
-    return debt
+    return largest_expense
+
+
+def _select_concentrated_category(snapshot: dict) -> dict | None:
+    """Mirror SpendingConcentrationRule's selection: the dominant spending category."""
+    category_totals = snapshot.get("category_totals", {})
+    if not category_totals:
+        return None
+
+    total_spending = sum(category_totals.values())
+    if total_spending <= 0:
+        return None
+
+    largest_category = max(category_totals, key=category_totals.get)
+    largest_amount = category_totals[largest_category]
+
+    if largest_amount / total_spending < SPENDING_CONCENTRATION_THRESHOLD:
+        return None
+
+    return {"category": largest_category, "amount": largest_amount}
 
 
 def _choose_extra_payment(net_cash_flow: Decimal) -> float:
@@ -116,8 +174,11 @@ def _choose_extra_payment(net_cash_flow: Decimal) -> float:
     return min(DEFAULT_EXTRA_DEBT_PAYMENTS)
 
 
+# --- evidence builders: real, precomputed fields -- never LLM-authored -----
+
+
 def _build_debt_evidence(debt: dict, snapshot: dict) -> dict:
-    """Build real, precomputed debt-specific evidence -- never LLM-authored."""
+    """Build real, precomputed debt-specific evidence, including payoff projection."""
     extra_payment = _choose_extra_payment(snapshot["net_cash_flow"])
     interest_rate = Decimal(str(debt["interest_rate"]))
 
@@ -162,26 +223,157 @@ def _build_debt_evidence(debt: dict, snapshot: dict) -> dict:
     return evidence
 
 
-def _build_aggregate_evidence(snapshot: dict) -> dict:
-    """Build real, precomputed aggregate debt evidence for non-single-debt rules."""
+def _build_goal_evidence(goal: dict, snapshot: dict) -> dict:
+    """Build real, precomputed goal-specific evidence."""
+    target_amount = goal["target_amount"]
+    current_amount = goal["current_amount"]
+
     return {
-        "type": "aggregate",
-        "total_debt": snapshot["total_debt"],
-        "total_income": snapshot["total_income"],
-        "debt_to_income_ratio": calculate_debt_to_income_ratio(snapshot),
-        "total_account_balance": snapshot["total_account_balance"],
-        "total_goal_progress": snapshot["total_goal_progress"],
+        "type": "goal",
+        "goal_name": goal["name"],
+        "target_amount": target_amount,
+        "current_amount": current_amount,
+        "progress_percentage": (
+            float(current_amount / target_amount * 100) if target_amount > 0 else 0.0
+        ),
     }
 
 
+def _build_bill_evidence(bill: dict, snapshot: dict) -> dict:
+    """Build real, precomputed bill-specific evidence."""
+    current_day = snapshot.get("current_day")
+
+    return {
+        "type": "bill",
+        "bill_name": bill["name"],
+        "amount": bill["amount"],
+        "due_day": bill["due_day"],
+        "days_until_due": (
+            bill["due_day"] - current_day if current_day is not None else None
+        ),
+        "is_paid": bill["is_paid"],
+    }
+
+
+def _build_budget_evidence(budget: dict, snapshot: dict) -> dict:
+    """Build real, precomputed budget-specific evidence."""
+    limit = budget["limit"]
+    spent = budget["spent"]
+
+    return {
+        "type": "budget",
+        "category": budget["category"],
+        "limit": limit,
+        "spent": spent,
+        "remaining": budget["remaining"],
+        "utilization_percentage": (
+            float(spent / limit * 100) if limit > 0 else 0.0
+        ),
+    }
+
+
+def _build_expense_evidence(expense: dict, snapshot: dict) -> dict:
+    """Build real, precomputed expense-spike evidence."""
+    return {
+        "type": "expense",
+        "expense_name": expense["name"],
+        "expense_category": expense["category"],
+        "amount": expense["amount"],
+        "average_expense": snapshot.get("average_expense"),
+    }
+
+
+def _build_expense_category_evidence(entity: dict, snapshot: dict) -> dict:
+    """Build real, precomputed spending-concentration evidence."""
+    category_totals = snapshot.get("category_totals", {})
+    total_spending = sum(category_totals.values()) if category_totals else Decimal("0")
+    amount = entity["amount"]
+
+    return {
+        "type": "expense_category_concentration",
+        "category": entity["category"],
+        "amount": amount,
+        "total_spending": total_spending,
+        "concentration_percentage": (
+            float(amount / total_spending * 100) if total_spending > 0 else 0.0
+        ),
+    }
+
+
+def _build_aggregate_evidence(snapshot: dict) -> dict:
+    """Build real, precomputed aggregate evidence for non-entity-specific rules."""
+    return {
+        "type": "aggregate",
+        "total_income": snapshot["total_income"],
+        "total_expenses": snapshot["total_expenses"],
+        "net_cash_flow": snapshot["net_cash_flow"],
+        "total_account_balance": snapshot["total_account_balance"],
+        "total_goal_progress": snapshot["total_goal_progress"],
+        "total_debt": snapshot["total_debt"],
+        "net_worth": snapshot["net_worth"],
+        "health_score": snapshot["health_score"],
+        "health_status": snapshot["health_status"],
+        "debt_to_income_ratio": calculate_debt_to_income_ratio(snapshot),
+    }
+
+
+# --- registry-driven dispatch -----------------------------------------------
+
+_ENTITY_RULES: dict[str, tuple[Callable[[dict], dict | None], str, Callable[[dict, dict], dict]]] = {
+    "HighInterestDebtRule": (_select_high_interest_debt, "name", _build_debt_evidence),
+    "DebtPayoffPriorityRule": (_select_highest_interest_debt, "name", _build_debt_evidence),
+    "DebtMinimumPaymentRule": (
+        _select_missing_minimum_payment_debt,
+        "name",
+        _build_debt_evidence,
+    ),
+    "GoalCompletionRule": (_select_completed_goal, "name", _build_goal_evidence),
+    "GoalProgressThresholdRule": (_select_low_progress_goal, "name", _build_goal_evidence),
+    "BillDueSoonRule": (_select_bill_due_soon, "name", _build_bill_evidence),
+    "BudgetOverrunRule": (_select_overrun_budget, "category", _build_budget_evidence),
+    "BudgetUtilizationRule": (
+        _select_high_utilization_budget,
+        "category",
+        _build_budget_evidence,
+    ),
+    "ExpenseSpikeRule": (_select_expense_spike, "name", _build_expense_evidence),
+    "SpendingConcentrationRule": (
+        _select_concentrated_category,
+        "category",
+        _build_expense_category_evidence,
+    ),
+}
+
+
 def _gather_evidence(recommendation: Recommendation, snapshot: dict) -> dict:
-    """Resolve the target debt (if any) and build real, precomputed evidence."""
-    debt = _resolve_target_debt(recommendation, snapshot)
-    return (
-        _build_debt_evidence(debt, snapshot)
-        if debt is not None
-        else _build_aggregate_evidence(snapshot)
-    )
+    """
+    Resolve the target entity (if any) and build real, precomputed evidence.
+
+    Falls back to aggregate evidence for rules with no single-entity
+    selector, when the selector finds nothing, or when the resolved
+    entity's identifying name/category doesn't appear in the
+    recommendation's own message -- never risk presenting the wrong entity.
+    """
+    entry = _ENTITY_RULES.get(recommendation.source_rule)
+    if entry is None:
+        return _build_aggregate_evidence(snapshot)
+
+    selector, message_key, evidence_builder = entry
+    entity = selector(snapshot)
+    if entity is None:
+        return _build_aggregate_evidence(snapshot)
+
+    identifier = str(entity[message_key])
+    if identifier.lower() not in recommendation.message.lower():
+        logger.warning(
+            "Resolved entity %r did not match recommendation message for "
+            "source_rule=%r; falling back to aggregate evidence.",
+            identifier,
+            recommendation.source_rule,
+        )
+        return _build_aggregate_evidence(snapshot)
+
+    return evidence_builder(entity, snapshot)
 
 
 def _build_prompt(recommendation: Recommendation, evidence: dict) -> str:
@@ -236,18 +428,12 @@ def _request_explanation(prompt: str) -> dict:
     return json.loads(text)
 
 
-def _get_debt_recommendation(recommendation_key: str) -> Recommendation:
-    """Look up a recommendation and validate it's DEBT-category."""
+def _get_recommendation(recommendation_key: str) -> Recommendation:
+    """Look up a recommendation by key, raising if none exists."""
     recommendation = get_recommendation_by_key(recommendation_key)
     if recommendation is None:
         raise NotFoundError(
             f"No recommendation was found with key: {recommendation_key}"
-        )
-
-    if recommendation.category != RecommendationCategory.DEBT:
-        raise ValidationError(
-            "Recommendation explanations are currently only available "
-            "for debt-category recommendations."
         )
 
     return recommendation
@@ -255,15 +441,15 @@ def _get_debt_recommendation(recommendation_key: str) -> Recommendation:
 
 def get_recommendation_evidence(recommendation_key: str) -> dict:
     """
-    Return a DEBT recommendation plus real, precomputed evidence -- no AI call.
+    Return a recommendation plus real, precomputed evidence -- no AI call.
 
-    Shares lookup/validation/evidence-gathering with
-    explain_debt_recommendation(), but stops short of generating an AI
-    narrative -- used by the coach chat's evidence-lookup tool, which lets
-    the already-running chat model write its own grounded explanation
-    instead of triggering a second, nested Claude call.
+    Shares lookup/evidence-gathering with explain_recommendation(), but
+    stops short of generating an AI narrative -- used by the coach chat's
+    evidence-lookup tool, which lets the already-running chat model write
+    its own grounded explanation instead of triggering a second, nested
+    Claude call.
     """
-    recommendation = _get_debt_recommendation(recommendation_key)
+    recommendation = _get_recommendation(recommendation_key)
     snapshot = build_current_financial_snapshot()
     evidence = _gather_evidence(recommendation, snapshot)
 
@@ -273,9 +459,9 @@ def get_recommendation_evidence(recommendation_key: str) -> dict:
     }
 
 
-def explain_debt_recommendation(recommendation_key: str) -> dict:
-    """Generate a structured, evidence-grounded explanation for a DEBT recommendation."""
-    recommendation = _get_debt_recommendation(recommendation_key)
+def explain_recommendation(recommendation_key: str) -> dict:
+    """Generate a structured, evidence-grounded explanation for a recommendation."""
+    recommendation = _get_recommendation(recommendation_key)
 
     logger.info(
         "Requesting explanation for recommendation key=%r",

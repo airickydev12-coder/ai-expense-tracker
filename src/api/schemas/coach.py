@@ -15,7 +15,16 @@ class CoachNarrativeResponse(BaseModel):
 class RecommendationEvidenceResponse(BaseModel):
     """Real, precomputed evidence grounding a recommendation explanation."""
 
-    type: Literal["debt", "aggregate"]
+    type: Literal[
+        "debt",
+        "aggregate",
+        "goal",
+        "bill",
+        "budget",
+        "expense",
+        "expense_category_concentration",
+    ]
+    # debt
     debt_name: str | None = None
     debt_balance: Decimal | None = None
     interest_rate: float | None = None
@@ -23,11 +32,41 @@ class RecommendationEvidenceResponse(BaseModel):
     extra_monthly_payment: float | None = None
     payoff_months_saved: int | None = None
     total_interest_saved: Decimal | None = None
-    total_debt: Decimal
+    # aggregate
     total_income: Decimal | None = None
-    debt_to_income_ratio: float | None = None
+    total_expenses: Decimal | None = None
+    net_cash_flow: Decimal | None = None
     total_account_balance: Decimal | None = None
     total_goal_progress: Decimal | None = None
+    total_debt: Decimal | None = None
+    net_worth: Decimal | None = None
+    health_score: int | None = None
+    health_status: str | None = None
+    debt_to_income_ratio: float | None = None
+    # goal
+    goal_name: str | None = None
+    target_amount: Decimal | None = None
+    current_amount: Decimal | None = None
+    progress_percentage: float | None = None
+    # bill
+    bill_name: str | None = None
+    due_day: int | None = None
+    days_until_due: int | None = None
+    is_paid: bool | None = None
+    # budget
+    category: str | None = None
+    limit: Decimal | None = None
+    spent: Decimal | None = None
+    remaining: Decimal | None = None
+    utilization_percentage: float | None = None
+    # expense
+    expense_name: str | None = None
+    expense_category: str | None = None
+    amount: Decimal | None = None
+    average_expense: Decimal | None = None
+    # expense_category_concentration
+    total_spending: Decimal | None = None
+    concentration_percentage: float | None = None
 
 
 class RecommendationExplanationResponse(BaseModel):
