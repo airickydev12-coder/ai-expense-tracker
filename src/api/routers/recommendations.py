@@ -2,8 +2,9 @@
 
 from typing import Callable
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.dependencies import get_current_user
 from src.api.schemas.recommendations import (
     RecommendationActionRequest,
     RecommendationCategoryResponse,
@@ -28,6 +29,7 @@ from src.financial.recommendations.history_service import (
 from src.financial.recommendations.priority import (
     RecommendationPriority,
 )
+from src.financial.users.models import User
 
 router = APIRouter(
     prefix="/recommendations",
@@ -53,10 +55,12 @@ def get_recommendations(
         ge=1,
         description="Maximum number of filtered recommendations to return.",
     ),
+    current_user: User = Depends(get_current_user),
 ) -> list[RecommendationResponse]:
     """Return prioritized and optionally filtered recommendations."""
 
     recommendations = build_recommendations(
+        current_user.id,
         priority=priority.value if priority is not None else None,
         category=category.value if category is not None else None,
         limit=limit,
@@ -107,10 +111,12 @@ def get_recommendation_priorities() -> list[RecommendationPriorityResponse]:
 )
 def get_recommendation(
     recommendation_key: str,
+    current_user: User = Depends(get_current_user),
 ) -> RecommendationResponse:
     """Return a single recommendation by key."""
 
     recommendation = get_recommendation_by_key(
+        current_user.id,
         recommendation_key,
     )
 
@@ -125,12 +131,13 @@ def get_recommendation(
 
 def _apply_lifecycle_action(
     action: Callable[..., RecommendationRecord | None],
+    user_id: int,
     recommendation_key: str,
     request: RecommendationActionRequest,
 ) -> RecommendationRecordResponse:
     """Apply a lifecycle action and return its resulting record, or 404."""
 
-    record = action(recommendation_key, note=request.note)
+    record = action(user_id, recommendation_key, note=request.note)
 
     if record is None:
         raise HTTPException(
@@ -151,11 +158,13 @@ def _apply_lifecycle_action(
 def dismiss_recommendation_route(
     recommendation_key: str,
     request: RecommendationActionRequest = RecommendationActionRequest(),
+    current_user: User = Depends(get_current_user),
 ) -> RecommendationRecordResponse:
     """Mark a recommendation as dismissed."""
 
     return _apply_lifecycle_action(
         dismiss_recommendation,
+        current_user.id,
         recommendation_key,
         request,
     )
@@ -168,11 +177,13 @@ def dismiss_recommendation_route(
 def complete_recommendation_route(
     recommendation_key: str,
     request: RecommendationActionRequest = RecommendationActionRequest(),
+    current_user: User = Depends(get_current_user),
 ) -> RecommendationRecordResponse:
     """Mark a recommendation as completed."""
 
     return _apply_lifecycle_action(
         complete_recommendation,
+        current_user.id,
         recommendation_key,
         request,
     )
@@ -185,11 +196,13 @@ def complete_recommendation_route(
 def suppress_recommendation_route(
     recommendation_key: str,
     request: RecommendationActionRequest = RecommendationActionRequest(),
+    current_user: User = Depends(get_current_user),
 ) -> RecommendationRecordResponse:
     """Mark a recommendation as suppressed."""
 
     return _apply_lifecycle_action(
         suppress_recommendation,
+        current_user.id,
         recommendation_key,
         request,
     )

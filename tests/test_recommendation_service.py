@@ -1,6 +1,8 @@
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.recommendations.service import generate_recommendations
 
+USER_ID = 1
+
 
 def build_snapshot() -> dict:
     """Build a snapshot containing several recommendation triggers."""
@@ -27,7 +29,7 @@ def build_snapshot() -> dict:
 
 
 def test_generate_recommendations_returns_prioritized_results():
-    recommendations = generate_recommendations(build_snapshot())
+    recommendations = generate_recommendations(USER_ID, build_snapshot())
 
     assert recommendations
     assert all(
@@ -38,6 +40,7 @@ def test_generate_recommendations_returns_prioritized_results():
 
 def test_generate_recommendations_applies_limit():
     recommendations = generate_recommendations(
+        USER_ID,
         build_snapshot(),
         limit=2,
     )
@@ -47,6 +50,7 @@ def test_generate_recommendations_applies_limit():
 
 def test_generate_recommendations_returns_recommendation_objects():
     recommendations = generate_recommendations(
+        USER_ID,
         build_snapshot(),
         limit=1,
     )

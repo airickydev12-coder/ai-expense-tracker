@@ -11,15 +11,19 @@ logger = get_logger(__name__)
 
 
 def load_recommendation_history_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[RecommendationRecord]:
-    """Load recommendation lifecycle records from the database."""
+    """Load a user's recommendation lifecycle records from the database."""
     try:
         with get_connection(db_path) as connection:
-            rows = connection.execute("""
+            rows = connection.execute(
+                """
                 SELECT recommendation_key, status, created_at, updated_at, note
-                FROM recommendation_history ORDER BY recommendation_key
-                """).fetchall()
+                FROM recommendation_history WHERE user_id = ? ORDER BY recommendation_key
+                """,
+                (user_id,),
+            ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(
             f"Failed to load recommendation history from {db_path}"
@@ -28,8 +32,9 @@ def load_recommendation_history_from_file(
     records = [RecommendationRecord.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d recommendation history record(s) from %s",
+        "Loaded %d recommendation history record(s) for user %d from %s",
         len(records),
+        user_id,
         db_path,
     )
 
@@ -38,20 +43,23 @@ def load_recommendation_history_from_file(
 
 def save_recommendation_history_to_file(
     records: list[RecommendationRecord],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save recommendation lifecycle records, replacing all existing rows."""
+    """Save a user's recommendation lifecycle records, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM recommendation_history")
+            connection.execute(
+                "DELETE FROM recommendation_history WHERE user_id = ?", (user_id,)
+            )
             connection.executemany(
                 """
                 INSERT INTO recommendation_history (
-                    recommendation_key, status, created_at, updated_at, note
+                    recommendation_key, status, created_at, updated_at, note, user_id
                 )
-                VALUES (:recommendation_key, :status, :created_at, :updated_at, :note)
+                VALUES (:recommendation_key, :status, :created_at, :updated_at, :note, :user_id)
                 """,
-                [record.to_dict() for record in records],
+                [{**record.to_dict(), "user_id": user_id} for record in records],
             )
     except sqlite3.Error as error:
         raise PersistenceError(
@@ -59,7 +67,8 @@ def save_recommendation_history_to_file(
         ) from error
 
     logger.debug(
-        "Saved %d recommendation history record(s) to %s",
+        "Saved %d recommendation history record(s) for user %d to %s",
         len(records),
+        user_id,
         db_path,
     )

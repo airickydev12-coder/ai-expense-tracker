@@ -194,7 +194,7 @@ def test_build_rule_snapshot_converts_domain_objects_to_dicts() -> None:
     # since rules read these fields via bill["is_paid"], debt["balance"],
     # etc. Running the real rule engine end-to-end proves the fix holds,
     # not just that build_rule_snapshot() returns the right shape.
-    recommendations = generate_recommendations(rule_snapshot)
+    recommendations = generate_recommendations(1, rule_snapshot)
 
     titles = {recommendation.title for recommendation in recommendations}
 

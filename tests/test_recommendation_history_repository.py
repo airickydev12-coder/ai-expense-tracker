@@ -12,6 +12,9 @@ from src.financial.recommendations.status import (
 )
 
 
+USER_ID = 1
+
+
 def test_save_and_load_recommendation_history(
     db_path,
 ):
@@ -30,10 +33,11 @@ def test_save_and_load_recommendation_history(
 
     save_recommendation_history_to_file(
         records,
+        USER_ID,
         db_path,
     )
 
-    loaded_records = load_recommendation_history_from_file(db_path)
+    loaded_records = load_recommendation_history_from_file(USER_ID, db_path)
 
     assert len(loaded_records) == 2
     assert loaded_records[0].recommendation_key == ("budget:budget_overrun")
@@ -46,7 +50,7 @@ def test_load_history_returns_empty_when_db_missing(
 ):
     db_path = tmp_path / "missing.db"
 
-    assert load_recommendation_history_from_file(db_path) == []
+    assert load_recommendation_history_from_file(USER_ID, db_path) == []
 
 
 def test_save_history_creates_parent_directory(
@@ -56,6 +60,7 @@ def test_save_history_creates_parent_directory(
 
     save_recommendation_history_to_file(
         [],
+        USER_ID,
         db_path,
     )
 
@@ -76,4 +81,4 @@ def test_load_history_rejects_invalid_database_file(
         ValueError,
         match="Failed to load recommendation history",
     ):
-        load_recommendation_history_from_file(db_path)
+        load_recommendation_history_from_file(USER_ID, db_path)

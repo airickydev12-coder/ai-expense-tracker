@@ -7,10 +7,11 @@ from src.financial.rules.rule_engine import create_default_rule_engine
 
 
 def generate_recommendations(
+    user_id: int,
     snapshot: dict,
     limit: int | None = None,
 ) -> list[Recommendation]:
-    """Generate, process, and lifecycle-filter recommendations."""
+    """Generate, process, and lifecycle-filter recommendations for this user."""
     rule_engine = create_default_rule_engine()
 
     raw_recommendations = rule_engine.evaluate(snapshot)
@@ -20,7 +21,8 @@ def generate_recommendations(
     processed_recommendations = recommendation_engine.process(raw_recommendations)
 
     displayable_recommendations = filter_displayable_recommendations(
-        processed_recommendations
+        user_id,
+        processed_recommendations,
     )
 
     if limit is not None:

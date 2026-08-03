@@ -21,6 +21,8 @@ from src.financial.recommendations.status import (
     RecommendationStatus,
 )
 
+USER_ID = 1
+
 
 def setup_function():
     """Reset recommendation history before each test."""
@@ -48,18 +50,18 @@ def test_register_recommendation_is_persisted(
 ):
     file_path = tmp_path / "recommendation_history.json"
 
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
     recommendation = build_recommendation()
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
 
     assert file_path.exists()
-    assert len(get_recommendation_history()) == 1
+    assert len(get_recommendation_history(USER_ID)) == 1
 
     reset_recommendation_history()
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
-    records = get_recommendation_history()
+    records = get_recommendation_history(USER_ID)
 
     assert len(records) == 1
     assert records[0].recommendation_key == (recommendation.key)
@@ -70,20 +72,21 @@ def test_status_changes_are_persisted(
 ):
     file_path = tmp_path / "recommendation_history.json"
 
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
     recommendation = build_recommendation()
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
 
     activate_recommendation(
+        USER_ID,
         recommendation.key,
         note="User opened the recommendation.",
     )
 
     reset_recommendation_history()
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
-    record = get_recommendation_history()[0]
+    record = get_recommendation_history(USER_ID)[0]
 
     assert record.status == RecommendationStatus.ACTIVE
     assert record.note == ("User opened the recommendation.")
@@ -94,17 +97,18 @@ def test_completed_recommendation_is_filtered(
 ):
     file_path = tmp_path / "recommendation_history.json"
 
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
     recommendation = build_recommendation()
 
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
     complete_recommendation(
+        USER_ID,
         recommendation.key,
         note="Debt paid off.",
     )
 
-    results = filter_displayable_recommendations([recommendation])
+    results = filter_displayable_recommendations(USER_ID, [recommendation])
 
     assert results == []
 
@@ -114,20 +118,21 @@ def test_dismissed_recommendation_stays_hidden_after_reload(
 ):
     file_path = tmp_path / "recommendation_history.json"
 
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
     recommendation = build_recommendation()
 
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
     dismiss_recommendation(
+        USER_ID,
         recommendation.key,
         note="Not relevant right now.",
     )
 
     reset_recommendation_history()
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
-    results = filter_displayable_recommendations([recommendation])
+    results = filter_displayable_recommendations(USER_ID, [recommendation])
 
     assert results == []
 
@@ -137,12 +142,12 @@ def test_new_recommendation_is_registered_and_displayed(
 ):
     file_path = tmp_path / "recommendation_history.json"
 
-    load_recommendation_history(file_path)
+    load_recommendation_history(USER_ID, file_path)
 
     recommendation = build_recommendation()
 
-    results = filter_displayable_recommendations([recommendation])
+    results = filter_displayable_recommendations(USER_ID, [recommendation])
 
     assert results == [recommendation]
-    assert len(get_recommendation_history()) == 1
-    assert get_recommendation_history()[0].status == (RecommendationStatus.NEW)
+    assert len(get_recommendation_history(USER_ID)) == 1
+    assert get_recommendation_history(USER_ID)[0].status == (RecommendationStatus.NEW)
