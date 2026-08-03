@@ -116,6 +116,16 @@ CREATE TABLE IF NOT EXISTS saved_notes (
     content TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS notification_log (
+    id INTEGER PRIMARY KEY,
+    notification_key TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    sent_at TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS recurring_expense_templates (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,

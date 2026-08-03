@@ -38,6 +38,7 @@ from src.financial.income.service import (
     get_income_entries,
     load_income,
 )
+from src.financial.notifications.service import load_notification_log
 from src.financial.recommendations.history_service import (
     load_recommendation_history,
 )
@@ -64,6 +65,7 @@ def load_financial_state() -> None:
     load_monthly_review_history()
     load_notes()
     load_recurring_expense_templates()
+    load_notification_log()
 
 
 def get_financial_state() -> dict:

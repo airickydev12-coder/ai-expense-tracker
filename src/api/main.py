@@ -9,6 +9,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -25,6 +27,7 @@ from src.api.routers.goals import router as goals_router
 from src.api.routers.health import router as health_router
 from src.api.routers.history import router as history_router
 from src.api.routers.income import router as income_router
+from src.api.routers.notifications import router as notifications_router
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )
@@ -32,6 +35,7 @@ from src.api.routers.recurring_expenses import (
     router as recurring_expenses_router,
 )
 from src.api.routers.scenarios import router as scenarios_router
+from src.core.config import NOTIFICATION_CHECK_INTERVAL_MINUTES
 from src.core.db import initialize_database
 from src.core.exceptions import (
     BusinessRuleError,
@@ -40,20 +44,40 @@ from src.core.exceptions import (
     PersistenceError,
     ValidationError,
 )
-from src.core.logging import configure_logging
+from src.core.logging import configure_logging, get_logger
 from src.financial.application.financial_state import load_financial_state
+from src.financial.notifications.service import check_and_send_notifications
 from src.financial.scenarios.factory import register_default_scenario_handlers
 
 configure_logging(console_level=logging.INFO)
 
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialize the database and hydrate in-memory state on startup."""
+    """Initialize the database, hydrate in-memory state, and start the
+    notification scheduler on startup; stop the scheduler on shutdown."""
     initialize_database()
     load_financial_state()
     register_default_scenario_handlers()
-    yield
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        check_and_send_notifications,
+        trigger=IntervalTrigger(minutes=NOTIFICATION_CHECK_INTERVAL_MINUTES),
+        id="check_and_send_notifications",
+    )
+    scheduler.start()
+    logger.info(
+        "Notification scheduler started (every %d minute(s))",
+        NOTIFICATION_CHECK_INTERVAL_MINUTES,
+    )
+
+    try:
+        yield
+    finally:
+        scheduler.shutdown()
 
 
 app = FastAPI(
@@ -121,3 +145,4 @@ app.include_router(coach_router)
 app.include_router(dashboard.router)
 app.include_router(recommendations_router)
 app.include_router(recurring_expenses_router)
+app.include_router(notifications_router)

@@ -85,6 +85,12 @@ export function Layout() {
             >
               Recommendations
             </NavLink>
+            <NavLink
+              to="/notifications"
+              className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+            >
+              Notifications
+            </NavLink>
           </nav>
         </div>
       </header>
