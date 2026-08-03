@@ -380,3 +380,71 @@ def test_delete_note_returns_404_for_unknown_id() -> None:
     response = client.delete("/coach/notes/999999")
 
     assert response.status_code == 404
+
+
+def test_export_monthly_review_returns_csv(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The export endpoint should return a downloadable CSV of an 'ok' review."""
+    ok_review = {
+        "status": "ok",
+        "period_start": "2026-07-01T00:00:00+00:00",
+        "period_end": "2026-08-01T00:00:00+00:00",
+        "overall_summary": "Overall summary.",
+        "income_vs_expenses": {
+            "narrative": "Income narrative.",
+            "income_change": Decimal("500.00"),
+            "expense_change": Decimal("-100.00"),
+        },
+        "cash_flow": {
+            "narrative": "Cash flow narrative.",
+            "change": Decimal("600.00"),
+            "direction": "Improving",
+        },
+        "debt_progress": {
+            "narrative": "Debt narrative.",
+            "total_debt": Decimal("1000.00"),
+        },
+        "savings_progress": {"narrative": "Savings narrative."},
+        "goal_status": {"narrative": "Goals narrative."},
+        "health_score": {
+            "narrative": "Health score narrative.",
+            "change": Decimal("5"),
+            "direction": "Improving",
+            "current_score": 80,
+        },
+        "top_actions": [],
+        "category_trends": [],
+        "known_gaps": [],
+    }
+
+    monkeypatch.setattr(
+        coach_router.coach_monthly_review,
+        "generate_monthly_review",
+        lambda snapshot: ok_review,
+    )
+
+    response = client.get("/coach/monthly-review/export")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert (
+        "attachment; filename=monthly_review.csv" in response.headers["content-disposition"]
+    )
+    assert "Overall summary." in response.text
+
+
+def test_export_monthly_review_returns_422_when_not_enough_history(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A degraded review status should surface as a 422, not a broken CSV."""
+    monkeypatch.setattr(
+        coach_router.coach_monthly_review,
+        "generate_monthly_review",
+        lambda snapshot: {
+            "status": "no_history",
+            "message": "No financial snapshot has been recorded yet.",
+        },
+    )
+
+    response = client.get("/coach/monthly-review/export")
+
+    assert response.status_code == 422

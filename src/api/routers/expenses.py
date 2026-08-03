@@ -3,6 +3,7 @@
 from decimal import ROUND_HALF_UP
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from src.api.schemas.analytics import (
     CategoryTotalResponse,
@@ -19,6 +20,7 @@ from src.core.money import CURRENCY_PRECISION
 from src.financial.expenses import analytics as expense_analytics
 from src.financial.expenses import categorization as expense_categorization
 from src.financial.expenses import service as expense_service
+from src.financial.expenses.export import export_expenses_to_csv
 from src.financial.expenses.models import Expense
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
@@ -51,6 +53,17 @@ def get_expense_statistics() -> ExpenseStatisticsResponse:
             ExpenseResponse.model_validate(highest) if highest is not None else None
         ),
         lowest=(ExpenseResponse.model_validate(lowest) if lowest is not None else None),
+    )
+
+
+@router.get("/export")
+def export_expenses() -> StreamingResponse:
+    """Return all recorded expenses as a downloadable CSV file."""
+    csv_text = export_expenses_to_csv(expense_service.get_expenses())
+    return StreamingResponse(
+        iter([csv_text]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=expenses.csv"},
     )
 
 

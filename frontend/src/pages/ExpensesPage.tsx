@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from '../api/expenses'
+import { BASE_URL } from '../api/client'
 import { ExpenseForm } from '../components/expenses/ExpenseForm'
 import type { ExpenseFormValues } from '../components/expenses/ExpenseForm'
 import type { ExpenseResponse } from '../types/expenses'
@@ -91,6 +92,14 @@ export function ExpensesPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4">
       <h1 className="text-2xl font-semibold text-gray-900">Expenses</h1>
+
+      <a
+        href={`${BASE_URL}/expenses/export`}
+        download
+        className="inline-block text-sm text-blue-600 hover:underline"
+      >
+        Download CSV
+      </a>
 
       {mutationError && <p className="text-sm text-red-600">{mutationError}</p>}
 

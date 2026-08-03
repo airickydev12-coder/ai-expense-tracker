@@ -3,6 +3,7 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from src.api.schemas.coach import (
     CoachChatRequest,
@@ -22,6 +23,7 @@ from src.financial.coach import monthly_review as coach_monthly_review
 from src.financial.coach import narrative as coach_narrative
 from src.financial.coach import recommendation_explainer
 from src.financial.coach.coaching import build_coaching_session
+from src.financial.coach.monthly_review_export import export_monthly_review_to_csv
 from src.financial.coach.monthly_review_history_service import record_monthly_review
 from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.coach.notes_service import add_note, delete_note, get_notes
@@ -63,6 +65,19 @@ def create_monthly_review() -> MonthlyReviewResponse:
     if result["status"] == "ok":
         result = record_monthly_review(result)
     return MonthlyReviewResponse.model_validate(result)
+
+
+@router.get("/monthly-review/export")
+def export_monthly_review() -> StreamingResponse:
+    """Return the current monthly review as a downloadable CSV file."""
+    snapshot = build_current_financial_snapshot()
+    review = coach_monthly_review.generate_monthly_review(snapshot)
+    csv_text = export_monthly_review_to_csv(review)
+    return StreamingResponse(
+        iter([csv_text]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=monthly_review.csv"},
+    )
 
 
 @router.get("/insights")

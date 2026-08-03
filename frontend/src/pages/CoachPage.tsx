@@ -11,6 +11,7 @@ import {
   saveNote,
 } from '../api/coach'
 import { listRecommendations } from '../api/recommendations'
+import { BASE_URL } from '../api/client'
 import { CoachChat } from '../components/coach/CoachChat'
 import { SeverityBadge } from '../components/coach/SeverityBadge'
 import type {
@@ -480,6 +481,13 @@ export function CoachPage() {
             ) : (
               <>
                 {saveReviewError && <p className="text-red-600">{saveReviewError}</p>}
+                <a
+                  href={`${BASE_URL}/coach/monthly-review/export`}
+                  download
+                  className="inline-block text-sm text-blue-600 hover:underline"
+                >
+                  Download CSV
+                </a>
                 {monthlyReviewState.review.generated_at ? (
                   <p className="text-xs text-gray-500">
                     Saved {new Date(monthlyReviewState.review.generated_at).toLocaleString()}

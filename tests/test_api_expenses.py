@@ -288,3 +288,24 @@ def test_suggest_expense_category_returns_502_on_external_failure(
     assert response.json() == {
         "detail": "Category suggestion is unavailable: boom"
     }
+
+
+def test_export_expenses_returns_csv(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The export endpoint should return a downloadable CSV of all expenses."""
+    test_expenses = [
+        Expense(
+            id=1,
+            name="Coffee",
+            category=ExpenseCategory.FOOD,
+            amount=Decimal("5.25"),
+        )
+    ]
+    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+
+    response = client.get("/expenses/export")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=expenses.csv" in response.headers["content-disposition"]
+    assert "id,name,category,amount" in response.text
+    assert "1,Coffee,Food,5.25" in response.text
