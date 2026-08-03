@@ -11,13 +11,16 @@ logger = get_logger(__name__)
 
 
 def load_goals_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[Goal]:
-    """Load goals from the database."""
+    """Load a user's goals from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
-                "SELECT id, name, target_amount, current_amount FROM goals ORDER BY id"
+                "SELECT id, name, target_amount, current_amount FROM goals "
+                "WHERE user_id = ? ORDER BY id",
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load goals from {db_path}") from error
@@ -25,8 +28,9 @@ def load_goals_from_file(
     goals = [Goal.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d goal(s) from %s",
+        "Loaded %d goal(s) for user %d from %s",
         len(goals),
+        user_id,
         db_path,
     )
 
@@ -35,24 +39,26 @@ def load_goals_from_file(
 
 def save_goals_to_file(
     goals: list[Goal],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save goals to the database, replacing all existing rows."""
+    """Save a user's goals to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM goals")
+            connection.execute("DELETE FROM goals WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
-                INSERT INTO goals (id, name, target_amount, current_amount)
-                VALUES (:id, :name, :target_amount, :current_amount)
+                INSERT INTO goals (id, name, target_amount, current_amount, user_id)
+                VALUES (:id, :name, :target_amount, :current_amount, :user_id)
                 """,
-                [goal.to_dict() for goal in goals],
+                [{**goal.to_dict(), "user_id": user_id} for goal in goals],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save goals to {db_path}") from error
 
     logger.debug(
-        "Saved %d goal(s) to %s",
+        "Saved %d goal(s) for user %d to %s",
         len(goals),
+        user_id,
         db_path,
     )

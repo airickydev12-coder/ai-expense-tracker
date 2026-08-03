@@ -11,16 +11,18 @@ logger = get_logger(__name__)
 
 
 def load_recurring_expense_templates_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[RecurringExpenseTemplate]:
-    """Load recurring expense templates from the database."""
+    """Load a user's recurring expense templates from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
                 """
                 SELECT id, name, category, amount, frequency, next_occurrence, is_active
-                FROM recurring_expense_templates ORDER BY id
-                """
+                FROM recurring_expense_templates WHERE user_id = ? ORDER BY id
+                """,
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(
@@ -30,8 +32,9 @@ def load_recurring_expense_templates_from_file(
     templates = [RecurringExpenseTemplate.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d recurring expense template(s) from %s",
+        "Loaded %d recurring expense template(s) for user %d from %s",
         len(templates),
+        user_id,
         db_path,
     )
 
@@ -40,20 +43,24 @@ def load_recurring_expense_templates_from_file(
 
 def save_recurring_expense_templates_to_file(
     templates: list[RecurringExpenseTemplate],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save recurring expense templates to the database, replacing all existing rows."""
+    """Save a user's recurring expense templates to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM recurring_expense_templates")
+            connection.execute(
+                "DELETE FROM recurring_expense_templates WHERE user_id = ?",
+                (user_id,),
+            )
             connection.executemany(
                 """
                 INSERT INTO recurring_expense_templates
-                    (id, name, category, amount, frequency, next_occurrence, is_active)
+                    (id, name, category, amount, frequency, next_occurrence, is_active, user_id)
                 VALUES
-                    (:id, :name, :category, :amount, :frequency, :next_occurrence, :is_active)
+                    (:id, :name, :category, :amount, :frequency, :next_occurrence, :is_active, :user_id)
                 """,
-                [template.to_dict() for template in templates],
+                [{**template.to_dict(), "user_id": user_id} for template in templates],
             )
     except sqlite3.Error as error:
         raise PersistenceError(
@@ -61,7 +68,8 @@ def save_recurring_expense_templates_to_file(
         ) from error
 
     logger.debug(
-        "Saved %d recurring expense template(s) to %s",
+        "Saved %d recurring expense template(s) for user %d to %s",
         len(templates),
+        user_id,
         db_path,
     )

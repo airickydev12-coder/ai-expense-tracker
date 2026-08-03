@@ -19,9 +19,9 @@ def build_note(note_id: int = 1) -> dict:
 def test_save_and_load_notes(db_path):
     original_notes = [build_note()]
 
-    save_notes_to_file(original_notes, db_path)
+    save_notes_to_file(original_notes, user_id=1, db_path=db_path)
 
-    loaded_notes = load_notes_from_file(db_path)
+    loaded_notes = load_notes_from_file(user_id=1, db_path=db_path)
 
     assert loaded_notes == original_notes
 
@@ -29,7 +29,7 @@ def test_save_and_load_notes(db_path):
 def test_load_notes_returns_empty_when_db_missing(tmp_path):
     db_path = tmp_path / "missing.db"
 
-    assert load_notes_from_file(db_path) == []
+    assert load_notes_from_file(user_id=1, db_path=db_path) == []
 
 
 def test_load_notes_rejects_invalid_database_file(tmp_path):
@@ -38,16 +38,16 @@ def test_load_notes_rejects_invalid_database_file(tmp_path):
     db_path.write_text("not a valid sqlite database", encoding="utf-8")
 
     with pytest.raises(ValueError, match="Failed to load notes"):
-        load_notes_from_file(db_path)
+        load_notes_from_file(user_id=1, db_path=db_path)
 
 
 def test_save_replaces_all_existing_rows(db_path):
-    save_notes_to_file([build_note(1)], db_path)
+    save_notes_to_file([build_note(1)], user_id=1, db_path=db_path)
 
     second_notes = [build_note(1), build_note(2)]
-    save_notes_to_file(second_notes, db_path)
+    save_notes_to_file(second_notes, user_id=1, db_path=db_path)
 
-    loaded_notes = load_notes_from_file(db_path)
+    loaded_notes = load_notes_from_file(user_id=1, db_path=db_path)
 
     assert len(loaded_notes) == 2
 
@@ -58,8 +58,16 @@ def test_save_and_load_multiple_notes_preserves_order(db_path):
         {**build_note(2), "title": "Second"},
     ]
 
-    save_notes_to_file(notes, db_path)
+    save_notes_to_file(notes, user_id=1, db_path=db_path)
 
-    loaded_notes = load_notes_from_file(db_path)
+    loaded_notes = load_notes_from_file(user_id=1, db_path=db_path)
 
     assert [note["title"] for note in loaded_notes] == ["First", "Second"]
+
+
+def test_notes_are_isolated_per_user(db_path):
+    save_notes_to_file([build_note(1)], user_id=1, db_path=db_path)
+    save_notes_to_file([build_note(1), build_note(2)], user_id=2, db_path=db_path)
+
+    assert len(load_notes_from_file(user_id=1, db_path=db_path)) == 1
+    assert len(load_notes_from_file(user_id=2, db_path=db_path)) == 2

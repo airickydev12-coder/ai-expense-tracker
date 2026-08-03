@@ -10,83 +10,87 @@ from src.financial.coach.notes_repository import (
 
 logger = get_logger(__name__)
 
-_notes: list[dict] = []
-_loaded_file_path: Path = DB_PATH
+_notes: dict[int, list[dict]] = {}
 
 
-def load_notes(
-    file_path: Path = DB_PATH,
-) -> None:
-    """Load saved notes into application memory."""
-    global _loaded_file_path
-
-    _notes.clear()
-    _notes.extend(load_notes_from_file(file_path))
-
-    _loaded_file_path = file_path
+def _ensure_loaded(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Lazily load a user's saved notes into the cache on first access."""
+    if user_id not in _notes:
+        _notes[user_id] = load_notes_from_file(user_id, db_path)
 
 
-def save_notes(
-    file_path: Path | None = None,
-) -> None:
-    """Save all saved notes."""
-    target_path = file_path if file_path is not None else _loaded_file_path
-
-    save_notes_to_file(_notes, target_path)
+def load_notes(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Force-reload a user's saved notes from the repository."""
+    _notes[user_id] = load_notes_from_file(user_id, db_path)
 
 
-def get_notes() -> list[dict]:
-    """Return a copy of all saved notes."""
-    return _notes.copy()
+def save_notes(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Save all of this user's saved notes using the repository."""
+    save_notes_to_file(_notes[user_id], user_id, db_path)
 
 
-def _get_next_note_id() -> int:
-    """Return the next available note ID."""
-    if not _notes:
+def get_notes(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
+    """Return a copy of all of this user's saved notes."""
+    _ensure_loaded(user_id, db_path)
+    return _notes[user_id].copy()
+
+
+def _get_next_note_id(user_id: int) -> int:
+    """Return the next available note ID for this user."""
+    user_notes = _notes.get(user_id, [])
+    if not user_notes:
         return 1
 
-    return max(note["id"] for note in _notes) + 1
+    return max(note["id"] for note in user_notes) + 1
 
 
 def add_note(
+    user_id: int,
     title: str,
     content: str,
-    file_path: Path | None = None,
+    db_path: Path = DB_PATH,
     *,
     now: datetime | None = None,
 ) -> dict:
-    """Create and persist a new saved note."""
+    """Create and persist a new saved note for this user."""
+    _ensure_loaded(user_id, db_path)
+
     note = {
-        "id": _get_next_note_id(),
+        "id": _get_next_note_id(user_id),
         "created_at": (now if now is not None else datetime.now(timezone.utc)).isoformat(),
         "title": title.strip(),
         "content": content.strip(),
     }
 
-    _notes.append(note)
-    save_notes(file_path)
+    _notes[user_id].append(note)
+    save_notes(user_id, db_path)
 
     logger.info(
-        "Saved note %d (%s)",
+        "Saved note %d (%s) for user %d",
         note["id"],
         note["title"],
+        user_id,
     )
 
     return note
 
 
 def delete_note(
+    user_id: int,
     note_id: int,
-    file_path: Path | None = None,
+    db_path: Path = DB_PATH,
 ) -> dict | None:
-    """Delete a saved note by ID."""
-    for index, note in enumerate(_notes):
+    """Delete one of this user's saved notes by ID."""
+    _ensure_loaded(user_id, db_path)
+
+    for index, note in enumerate(_notes[user_id]):
         if note["id"] == note_id:
-            deleted_note = _notes.pop(index)
-            save_notes(file_path)
+            deleted_note = _notes[user_id].pop(index)
+            save_notes(user_id, db_path)
             logger.info(
-                "Deleted note %d",
+                "Deleted note %d for user %d",
                 note_id,
+                user_id,
             )
             return deleted_note
 

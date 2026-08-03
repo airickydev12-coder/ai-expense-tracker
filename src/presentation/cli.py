@@ -1,11 +1,11 @@
 """Primary command-line interface controller."""
 
 from src.financial.application.financial_state import (
-    load_financial_state,
     record_current_financial_snapshot,
 )
 from src.financial.expenses.analytics import get_total
 from src.financial.expenses.service import get_expenses
+from src.presentation.cli_context import get_cli_user_id
 from src.financial.goals.service import get_goals
 from src.financial.history.service import get_history
 from src.financial.scenarios.factory import (

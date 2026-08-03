@@ -4,6 +4,8 @@ from src.financial.budgets.models import Budget
 from src.financial.shared.categories import ExpenseCategory
 from src.presentation import budget_cli
 
+TEST_USER_ID = 1
+
 
 def build_budget(
     category: ExpenseCategory = ExpenseCategory.FOOD,
@@ -47,14 +49,22 @@ def test_create_or_update_budgets(
 
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
 
     def fake_add_budget(
+        user_id,
         category,
         limit,
     ):
+        captured["user_id"] = user_id
         captured["category"] = category
         captured["limit"] = limit
         return build_budget(category, limit)
@@ -68,7 +78,7 @@ def test_create_or_update_budgets(
     monkeypatch.setattr(
         budget_cli,
         "get_expenses",
-        lambda: [],
+        lambda user_id: [],
     )
 
     monkeypatch.setattr(
@@ -87,6 +97,7 @@ def test_create_or_update_budgets(
 
     output = capsys.readouterr().out
 
+    assert captured["user_id"] == TEST_USER_ID
     assert captured["category"] == ExpenseCategory.FOOD
     assert captured["limit"] == 500
     assert captured["summary"]["remaining"] == 400
@@ -121,11 +132,18 @@ def test_create_or_update_multiple_budgets(
 
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: next(categories),
     )
 
     def fake_add_budget(
+        user_id,
         category,
         limit,
     ):
@@ -146,7 +164,7 @@ def test_create_or_update_multiple_budgets(
     monkeypatch.setattr(
         budget_cli,
         "get_expenses",
-        lambda: [],
+        lambda user_id: [],
     )
 
     monkeypatch.setattr(
@@ -194,6 +212,12 @@ def test_create_or_update_budgets_rejects_invalid_limit(
 
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
@@ -201,7 +225,7 @@ def test_create_or_update_budgets_rejects_invalid_limit(
     monkeypatch.setattr(
         budget_cli,
         "add_budget",
-        lambda category, limit: build_budget(
+        lambda user_id, category, limit: build_budget(
             category,
             limit,
         ),
@@ -210,7 +234,7 @@ def test_create_or_update_budgets_rejects_invalid_limit(
     monkeypatch.setattr(
         budget_cli,
         "get_expenses",
-        lambda: [],
+        lambda user_id: [],
     )
 
     monkeypatch.setattr(
@@ -251,6 +275,12 @@ def test_create_or_update_budgets_rejects_non_positive_limit(
 
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
@@ -258,7 +288,7 @@ def test_create_or_update_budgets_rejects_non_positive_limit(
     monkeypatch.setattr(
         budget_cli,
         "add_budget",
-        lambda category, limit: build_budget(
+        lambda user_id, category, limit: build_budget(
             category,
             limit,
         ),
@@ -267,7 +297,7 @@ def test_create_or_update_budgets_rejects_non_positive_limit(
     monkeypatch.setattr(
         budget_cli,
         "get_expenses",
-        lambda: [],
+        lambda user_id: [],
     )
 
     monkeypatch.setattr(
@@ -321,11 +351,18 @@ def test_delete_budget_flow(
 
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
 
-    def fake_delete_budget(category):
+    def fake_delete_budget(user_id, category):
+        captured["user_id"] = user_id
         captured["category"] = category
         return budget
 
@@ -339,6 +376,7 @@ def test_delete_budget_flow(
 
     output = capsys.readouterr().out
 
+    assert captured["user_id"] == TEST_USER_ID
     assert captured["category"] == ExpenseCategory.FOOD
     assert "Deleted budget for Food." in output
 
@@ -349,6 +387,12 @@ def test_delete_budget_flow_handles_missing_budget(
 ):
     monkeypatch.setattr(
         budget_cli,
+        "get_cli_user_id",
+        lambda: TEST_USER_ID,
+    )
+
+    monkeypatch.setattr(
+        budget_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
@@ -356,7 +400,7 @@ def test_delete_budget_flow_handles_missing_budget(
     monkeypatch.setattr(
         budget_cli,
         "delete_budget",
-        lambda category: None,
+        lambda user_id, category: None,
     )
 
     budget_cli.delete_budget_flow()
@@ -377,7 +421,7 @@ def test_delete_budget_flow_returns_when_cancelled(
         lambda: None,
     )
 
-    def fake_delete_budget(category):
+    def fake_delete_budget(user_id, category):
         captured["called"] = True
 
     monkeypatch.setattr(

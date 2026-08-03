@@ -37,10 +37,12 @@ def test_save_and_load_recurring_expense_templates(db_path):
 
     save_recurring_expense_templates_to_file(
         original_templates,
+        1,
         db_path,
     )
 
     loaded_templates = load_recurring_expense_templates_from_file(
+        1,
         db_path,
     )
 
@@ -52,7 +54,7 @@ def test_load_recurring_expense_templates_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_recurring_expenses.db"
 
-    assert load_recurring_expense_templates_from_file(db_path) == []
+    assert load_recurring_expense_templates_from_file(1, db_path) == []
 
 
 def test_save_recurring_expense_templates_creates_parent_directory(
@@ -73,6 +75,7 @@ def test_save_recurring_expense_templates_creates_parent_directory(
 
     save_recurring_expense_templates_to_file(
         templates,
+        1,
         db_path,
     )
 
@@ -92,4 +95,4 @@ def test_load_recurring_expense_templates_rejects_invalid_database_file(
         ValueError,
         match="Failed to load recurring expense templates",
     ):
-        load_recurring_expense_templates_from_file(db_path)
+        load_recurring_expense_templates_from_file(1, db_path)

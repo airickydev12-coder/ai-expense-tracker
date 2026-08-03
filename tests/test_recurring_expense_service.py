@@ -18,6 +18,8 @@ from src.financial.recurring_expenses.service import (
 )
 from src.financial.shared.categories import ExpenseCategory
 
+USER_ID = 1
+
 
 @contextlib.contextmanager
 def _isolated_test_database(tmp_path):
@@ -41,6 +43,7 @@ def test_add_recurring_expense_template(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     template = add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -59,6 +62,7 @@ def test_add_multiple_templates_assigns_unique_ids(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     first = add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -68,6 +72,7 @@ def test_add_multiple_templates_assigns_unique_ids(tmp_path):
     )
 
     second = add_recurring_expense_template(
+        user_id=USER_ID,
         name="Gym Membership",
         category=ExpenseCategory.HEALTHCARE,
         amount=Decimal("40.00"),
@@ -78,13 +83,14 @@ def test_add_multiple_templates_assigns_unique_ids(tmp_path):
 
     assert first.id == 1
     assert second.id == 2
-    assert get_next_recurring_expense_template_id() == 3
+    assert get_next_recurring_expense_template_id(USER_ID, file_path) == 3
 
 
 def test_get_recurring_expense_templates_returns_copy(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -93,20 +99,23 @@ def test_get_recurring_expense_templates_returns_copy(tmp_path):
         file_path=file_path,
     )
 
-    returned = get_recurring_expense_templates()
+    returned = get_recurring_expense_templates(USER_ID, file_path)
     returned.clear()
 
-    assert len(recurring_expense_templates) == 1
+    assert len(recurring_expense_templates[USER_ID]) == 1
 
 
-def test_get_recurring_expense_template_by_id_returns_none():
-    assert get_recurring_expense_template_by_id(999) is None
+def test_get_recurring_expense_template_by_id_returns_none(tmp_path):
+    file_path = tmp_path / "recurring.db"
+
+    assert get_recurring_expense_template_by_id(USER_ID, 999, file_path) is None
 
 
 def test_update_recurring_expense_template(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     template = add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -116,6 +125,7 @@ def test_update_recurring_expense_template(tmp_path):
     )
 
     updated = update_recurring_expense_template(
+        user_id=USER_ID,
         template_id=template.id,
         amount=Decimal("17.99"),
         is_active=False,
@@ -133,6 +143,7 @@ def test_update_recurring_expense_template_returns_none_when_missing(tmp_path):
 
     assert (
         update_recurring_expense_template(
+            user_id=USER_ID,
             template_id=999,
             amount=Decimal("1.00"),
             file_path=file_path,
@@ -145,6 +156,7 @@ def test_delete_recurring_expense_template(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     template = add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -154,12 +166,13 @@ def test_delete_recurring_expense_template(tmp_path):
     )
 
     deleted = delete_recurring_expense_template(
+        USER_ID,
         template.id,
         file_path=file_path,
     )
 
     assert deleted == template
-    assert get_recurring_expense_templates() == []
+    assert get_recurring_expense_templates(USER_ID, file_path) == []
 
 
 def test_delete_recurring_expense_template_returns_none_when_missing(tmp_path):
@@ -167,6 +180,7 @@ def test_delete_recurring_expense_template_returns_none_when_missing(tmp_path):
 
     assert (
         delete_recurring_expense_template(
+            USER_ID,
             999,
             file_path=file_path,
         )
@@ -178,6 +192,7 @@ def test_load_recurring_expense_templates_restores_saved_templates(tmp_path):
     file_path = tmp_path / "recurring.db"
 
     add_recurring_expense_template(
+        user_id=USER_ID,
         name="Streaming Subscription",
         category=ExpenseCategory.ENTERTAINMENT,
         amount=Decimal("15.99"),
@@ -188,9 +203,9 @@ def test_load_recurring_expense_templates_restores_saved_templates(tmp_path):
 
     recurring_expense_templates.clear()
 
-    load_recurring_expense_templates(file_path)
+    load_recurring_expense_templates(USER_ID, file_path)
 
-    loaded = get_recurring_expense_templates()
+    loaded = get_recurring_expense_templates(USER_ID, file_path)
 
     assert len(loaded) == 1
     assert loaded[0].name == "Streaming Subscription"
@@ -199,6 +214,7 @@ def test_load_recurring_expense_templates_restores_saved_templates(tmp_path):
 def test_generate_due_expenses_creates_expense_and_advances_occurrence(tmp_path):
     with _isolated_test_database(tmp_path):
         add_recurring_expense_template(
+            user_id=USER_ID,
             name="Streaming Subscription",
             category=ExpenseCategory.ENTERTAINMENT,
             amount=Decimal("15.99"),
@@ -206,13 +222,13 @@ def test_generate_due_expenses_creates_expense_and_advances_occurrence(tmp_path)
             next_occurrence=date(2026, 9, 1),
         )
 
-        generated = generate_due_expenses(as_of=date(2026, 9, 1))
+        generated = generate_due_expenses(USER_ID, as_of=date(2026, 9, 1))
 
         assert len(generated) == 1
         assert generated[0].name == "Streaming Subscription"
         assert generated[0].amount == Decimal("15.99")
 
-        template = get_recurring_expense_template_by_id(1)
+        template = get_recurring_expense_template_by_id(USER_ID, 1)
         assert template is not None
         assert template.next_occurrence == date(2026, 10, 1)
 
@@ -220,6 +236,7 @@ def test_generate_due_expenses_creates_expense_and_advances_occurrence(tmp_path)
 def test_generate_due_expenses_skips_expenses_not_yet_due(tmp_path):
     with _isolated_test_database(tmp_path):
         add_recurring_expense_template(
+            user_id=USER_ID,
             name="Streaming Subscription",
             category=ExpenseCategory.ENTERTAINMENT,
             amount=Decimal("15.99"),
@@ -227,7 +244,7 @@ def test_generate_due_expenses_skips_expenses_not_yet_due(tmp_path):
             next_occurrence=date(2026, 12, 1),
         )
 
-        generated = generate_due_expenses(as_of=date(2026, 9, 1))
+        generated = generate_due_expenses(USER_ID, as_of=date(2026, 9, 1))
 
         assert generated == []
 
@@ -235,6 +252,7 @@ def test_generate_due_expenses_skips_expenses_not_yet_due(tmp_path):
 def test_generate_due_expenses_skips_inactive_templates(tmp_path):
     with _isolated_test_database(tmp_path):
         add_recurring_expense_template(
+            user_id=USER_ID,
             name="Streaming Subscription",
             category=ExpenseCategory.ENTERTAINMENT,
             amount=Decimal("15.99"),
@@ -243,7 +261,7 @@ def test_generate_due_expenses_skips_inactive_templates(tmp_path):
             is_active=False,
         )
 
-        generated = generate_due_expenses(as_of=date(2026, 9, 1))
+        generated = generate_due_expenses(USER_ID, as_of=date(2026, 9, 1))
 
         assert generated == []
 
@@ -251,6 +269,7 @@ def test_generate_due_expenses_skips_inactive_templates(tmp_path):
 def test_generate_due_expenses_catches_up_multiple_missed_periods(tmp_path):
     with _isolated_test_database(tmp_path):
         add_recurring_expense_template(
+            user_id=USER_ID,
             name="Streaming Subscription",
             category=ExpenseCategory.ENTERTAINMENT,
             amount=Decimal("15.99"),
@@ -258,10 +277,10 @@ def test_generate_due_expenses_catches_up_multiple_missed_periods(tmp_path):
             next_occurrence=date(2026, 6, 1),
         )
 
-        generated = generate_due_expenses(as_of=date(2026, 9, 1))
+        generated = generate_due_expenses(USER_ID, as_of=date(2026, 9, 1))
 
         assert len(generated) == 4
 
-        template = get_recurring_expense_template_by_id(1)
+        template = get_recurring_expense_template_by_id(USER_ID, 1)
         assert template is not None
         assert template.next_occurrence == date(2026, 10, 1)

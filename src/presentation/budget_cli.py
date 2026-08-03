@@ -6,6 +6,7 @@ from src.financial.budgets.service import (
     delete_budget,
 )
 from src.financial.expenses.service import get_expenses
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.input_handlers import select_category
 from src.presentation.views import (
     display_budget_summary,
@@ -41,13 +42,14 @@ def create_or_update_budgets() -> None:
             continue
 
         budget = add_budget(
+            get_cli_user_id(),
             category,
             limit,
         )
 
         summary = get_budget_summary(
             budget,
-            get_expenses(),
+            get_expenses(get_cli_user_id()),
         )
 
         print("\nBudget saved successfully.")
@@ -68,7 +70,7 @@ def delete_budget_flow() -> None:
     if category is None:
         return
 
-    deleted_budget = delete_budget(category)
+    deleted_budget = delete_budget(get_cli_user_id(), category)
 
     if deleted_budget is None:
         print("Budget not found.")

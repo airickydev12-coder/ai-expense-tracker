@@ -2,9 +2,10 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
+from src.api.dependencies import get_current_user
 from src.api.schemas.coach import (
     CoachChatRequest,
     CoachChatResponse,
@@ -28,6 +29,7 @@ from src.financial.coach.monthly_review_history_service import record_monthly_re
 from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.coach.notes_service import add_note, delete_note, get_notes
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
+from src.financial.users.models import User
 
 router = APIRouter(prefix="/coach", tags=["Coach"])
 
@@ -111,23 +113,31 @@ def send_chat_message(request: CoachChatRequest) -> CoachChatResponse:
 
 
 @router.get("/notes")
-def list_notes() -> list[SavedNoteResponse]:
+def list_notes(current_user: User = Depends(get_current_user)) -> list[SavedNoteResponse]:
     """Return all saved notes, newest first."""
-    notes = sorted(get_notes(), key=lambda note: note["created_at"], reverse=True)
+    notes = sorted(
+        get_notes(current_user.id), key=lambda note: note["created_at"], reverse=True
+    )
     return [SavedNoteResponse.model_validate(note) for note in notes]
 
 
 @router.post("/notes", status_code=status.HTTP_201_CREATED)
-def create_note(request: SaveNoteRequest) -> SavedNoteResponse:
+def create_note(
+    request: SaveNoteRequest,
+    current_user: User = Depends(get_current_user),
+) -> SavedNoteResponse:
     """Save a new note."""
-    note = add_note(title=request.title, content=request.content)
+    note = add_note(current_user.id, title=request.title, content=request.content)
     return SavedNoteResponse.model_validate(note)
 
 
 @router.delete("/notes/{note_id}")
-def remove_note(note_id: int) -> SavedNoteResponse:
+def remove_note(
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+) -> SavedNoteResponse:
     """Delete and return a saved note by ID."""
-    deleted = delete_note(note_id)
+    deleted = delete_note(current_user.id, note_id)
     if deleted is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,5 +1,6 @@
 """Tests for the recurring expense template API endpoints."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -7,6 +8,24 @@ from src.financial.expenses.service import expenses
 from src.financial.recurring_expenses.service import recurring_expense_templates
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, attaching its token to every request."""
+    client.post(
+        "/auth/register",
+        json={
+            "username": "recurring-expenses-user",
+            "email": "recurring-expenses-user@example.com",
+            "password": "correct-password",
+        },
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "recurring-expenses-user", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def setup_function() -> None:

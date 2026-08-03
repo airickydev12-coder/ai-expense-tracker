@@ -5,6 +5,7 @@ from src.financial.expenses.service import (
     delete_expense,
     update_expense,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.input_handlers import select_category
 from src.presentation.views import display_expenses
 
@@ -30,6 +31,7 @@ def add_expense_flow() -> None:
         return
 
     add_expense(
+        get_cli_user_id(),
         name,
         category,
         amount,
@@ -50,7 +52,7 @@ def delete_expense_flow() -> None:
         print("Invalid input. Please enter a number.")
         return
 
-    deleted_expense = delete_expense(expense_id)
+    deleted_expense = delete_expense(get_cli_user_id(), expense_id)
 
     if deleted_expense is None:
         print("Expense not found.")
@@ -100,6 +102,7 @@ def update_expense_flow() -> None:
             return
 
     updated_expense = update_expense(
+        user_id=get_cli_user_id(),
         expense_id=expense_id,
         name=name,
         category=category,

@@ -19,52 +19,75 @@ from src.financial.shared.categories import ExpenseCategory
 
 logger = get_logger(__name__)
 
-recurring_expense_templates: list[RecurringExpenseTemplate] = []
+recurring_expense_templates: dict[int, list[RecurringExpenseTemplate]] = {}
+
+
+def _ensure_loaded(user_id: int, file_path: Path = DB_PATH) -> None:
+    """Lazily load a user's recurring expense templates into the cache on first access."""
+    if user_id not in recurring_expense_templates:
+        recurring_expense_templates[user_id] = load_recurring_expense_templates_from_file(
+            user_id, file_path
+        )
 
 
 def load_recurring_expense_templates(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Load recurring expense templates into application memory."""
-    recurring_expense_templates.clear()
-    recurring_expense_templates.extend(load_recurring_expense_templates_from_file(file_path))
+    """Force-reload a user's recurring expense templates from the repository."""
+    recurring_expense_templates[user_id] = load_recurring_expense_templates_from_file(
+        user_id, file_path
+    )
 
 
 def save_recurring_expense_templates(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Save all recurring expense templates from application memory."""
+    """Save a user's recurring expense templates using the repository."""
     save_recurring_expense_templates_to_file(
-        recurring_expense_templates,
+        recurring_expense_templates[user_id],
+        user_id,
         file_path,
     )
 
 
-def get_recurring_expense_templates() -> list[RecurringExpenseTemplate]:
-    """Return a copy of all recurring expense templates."""
-    return recurring_expense_templates.copy()
+def get_recurring_expense_templates(
+    user_id: int,
+    file_path: Path = DB_PATH,
+) -> list[RecurringExpenseTemplate]:
+    """Return a copy of all of this user's recurring expense templates."""
+    _ensure_loaded(user_id, file_path)
+    return recurring_expense_templates[user_id].copy()
 
 
 def get_recurring_expense_template_by_id(
+    user_id: int,
     template_id: int,
+    file_path: Path = DB_PATH,
 ) -> RecurringExpenseTemplate | None:
-    """Return a recurring expense template by ID."""
-    for template in recurring_expense_templates:
+    """Return one of this user's recurring expense templates by ID."""
+    _ensure_loaded(user_id, file_path)
+
+    for template in recurring_expense_templates[user_id]:
         if template.id == template_id:
             return template
 
     return None
 
 
-def get_next_recurring_expense_template_id() -> int:
-    """Return the next available recurring expense template ID."""
-    if not recurring_expense_templates:
+def get_next_recurring_expense_template_id(user_id: int, file_path: Path = DB_PATH) -> int:
+    """Return the next available recurring expense template ID for this user."""
+    _ensure_loaded(user_id, file_path)
+    user_templates = recurring_expense_templates[user_id]
+    if not user_templates:
         return 1
 
-    return max(template.id for template in recurring_expense_templates) + 1
+    return max(template.id for template in user_templates) + 1
 
 
 def add_recurring_expense_template(
+    user_id: int,
     name: str,
     category: ExpenseCategory,
     amount: Decimal,
@@ -73,9 +96,11 @@ def add_recurring_expense_template(
     is_active: bool = True,
     file_path: Path = DB_PATH,
 ) -> RecurringExpenseTemplate:
-    """Create and save a recurring expense template."""
+    """Create and save a recurring expense template for this user."""
+    _ensure_loaded(user_id, file_path)
+
     template = RecurringExpenseTemplate(
-        id=get_next_recurring_expense_template_id(),
+        id=get_next_recurring_expense_template_id(user_id, file_path),
         name=name,
         category=category,
         amount=amount,
@@ -84,19 +109,21 @@ def add_recurring_expense_template(
         is_active=is_active,
     )
 
-    recurring_expense_templates.append(template)
-    save_recurring_expense_templates(file_path)
+    recurring_expense_templates[user_id].append(template)
+    save_recurring_expense_templates(user_id, file_path)
 
     logger.info(
-        "Added recurring expense template %d (%s)",
+        "Added recurring expense template %d (%s) for user %d",
         template.id,
         template.name,
+        user_id,
     )
 
     return template
 
 
 def update_recurring_expense_template(
+    user_id: int,
     template_id: int,
     name: str | None = None,
     category: ExpenseCategory | None = None,
@@ -106,8 +133,10 @@ def update_recurring_expense_template(
     is_active: bool | None = None,
     file_path: Path = DB_PATH,
 ) -> RecurringExpenseTemplate | None:
-    """Update an existing recurring expense template."""
-    template = get_recurring_expense_template_by_id(template_id)
+    """Update one of this user's existing recurring expense templates by ID."""
+    _ensure_loaded(user_id, file_path)
+
+    template = get_recurring_expense_template_by_id(user_id, template_id, file_path)
 
     if template is None:
         return None
@@ -124,31 +153,36 @@ def update_recurring_expense_template(
         is_active=(is_active if is_active is not None else template.is_active),
     )
 
-    template_index = recurring_expense_templates.index(template)
-    recurring_expense_templates[template_index] = updated_template
+    template_index = recurring_expense_templates[user_id].index(template)
+    recurring_expense_templates[user_id][template_index] = updated_template
 
-    save_recurring_expense_templates(file_path)
+    save_recurring_expense_templates(user_id, file_path)
 
     logger.info(
-        "Updated recurring expense template %d",
+        "Updated recurring expense template %d for user %d",
         template_id,
+        user_id,
     )
 
     return updated_template
 
 
 def delete_recurring_expense_template(
+    user_id: int,
     template_id: int,
     file_path: Path = DB_PATH,
 ) -> RecurringExpenseTemplate | None:
-    """Delete a recurring expense template by ID."""
-    for index, template in enumerate(recurring_expense_templates):
+    """Delete one of this user's recurring expense templates by ID."""
+    _ensure_loaded(user_id, file_path)
+
+    for index, template in enumerate(recurring_expense_templates[user_id]):
         if template.id == template_id:
-            deleted_template = recurring_expense_templates.pop(index)
-            save_recurring_expense_templates(file_path)
+            deleted_template = recurring_expense_templates[user_id].pop(index)
+            save_recurring_expense_templates(user_id, file_path)
             logger.info(
-                "Deleted recurring expense template %d",
+                "Deleted recurring expense template %d for user %d",
                 template_id,
+                user_id,
             )
             return deleted_template
 
@@ -173,28 +207,32 @@ def _advance_occurrence(
 
 
 def generate_due_expenses(
+    user_id: int,
     as_of: date | None = None,
     file_path: Path = DB_PATH,
 ) -> list[Expense]:
     """
-    Generate real expenses for every active template that is due.
+    Generate real expenses for every one of this user's active templates that is due.
 
     A template due more than one period ago generates one expense per
     missed period (catch-up semantics), advancing its next occurrence
     each time, so a template checked after several months of inactivity
     doesn't silently skip the missed periods.
     """
+    _ensure_loaded(user_id, file_path)
+
     effective_date = as_of if as_of is not None else date.today()
 
     generated_expenses: list[Expense] = []
     templates_changed = False
 
-    for template in recurring_expense_templates:
+    for template in recurring_expense_templates[user_id]:
         if not template.is_active:
             continue
 
         while template.next_occurrence <= effective_date:
             expense = add_expense(
+                user_id=user_id,
                 name=template.name,
                 category=template.category,
                 amount=template.amount,
@@ -208,11 +246,12 @@ def generate_due_expenses(
             templates_changed = True
 
     if templates_changed:
-        save_recurring_expense_templates(file_path)
+        save_recurring_expense_templates(user_id, file_path)
 
     logger.info(
-        "Generated %d expense(s) from recurring templates as of %s",
+        "Generated %d expense(s) from recurring templates for user %d as of %s",
         len(generated_expenses),
+        user_id,
         effective_date.isoformat(),
     )
 

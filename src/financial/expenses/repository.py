@@ -11,13 +11,15 @@ logger = get_logger(__name__)
 
 
 def load_expenses_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[Expense]:
-    """Load expenses from the database."""
+    """Load a user's expenses from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
-                "SELECT id, name, category, amount FROM expenses ORDER BY id"
+                "SELECT id, name, category, amount FROM expenses WHERE user_id = ? ORDER BY id",
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load expenses from {db_path}") from error
@@ -25,8 +27,9 @@ def load_expenses_from_file(
     expenses = [Expense.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d expense(s) from %s",
+        "Loaded %d expense(s) for user %d from %s",
         len(expenses),
+        user_id,
         db_path,
     )
 
@@ -35,24 +38,26 @@ def load_expenses_from_file(
 
 def save_expenses_to_file(
     expenses: list[Expense],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save expenses to the database, replacing all existing rows."""
+    """Save a user's expenses to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM expenses")
+            connection.execute("DELETE FROM expenses WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
-                INSERT INTO expenses (id, name, category, amount)
-                VALUES (:id, :name, :category, :amount)
+                INSERT INTO expenses (id, name, category, amount, user_id)
+                VALUES (:id, :name, :category, :amount, :user_id)
                 """,
-                [expense.to_dict() for expense in expenses],
+                [{**expense.to_dict(), "user_id": user_id} for expense in expenses],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save expenses to {db_path}") from error
 
     logger.debug(
-        "Saved %d expense(s) to %s",
+        "Saved %d expense(s) for user %d to %s",
         len(expenses),
+        user_id,
         db_path,
     )

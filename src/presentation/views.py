@@ -8,6 +8,7 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.service import get_expenses
+from src.presentation.cli_context import get_cli_user_id
 from src.financial.forecasting.models import (
     FinancialForecast,
     MetricProjection,
@@ -65,7 +66,7 @@ def _format_signed_number(value: int) -> str:
 
 def display_dashboard() -> None:
     """Display a financial dashboard summary."""
-    expenses = get_expenses()
+    expenses = get_expenses(get_cli_user_id())
 
     if not expenses:
         print("\nFinancial Core")
@@ -76,7 +77,7 @@ def display_dashboard() -> None:
     average = get_average(expenses)
     highest = get_highest_expense(expenses)
     category_totals = get_category_totals(expenses)
-    budgets = get_budgets()
+    budgets = get_budgets(get_cli_user_id())
     budget_report = build_budget_report(
         budgets,
         expenses,
@@ -162,7 +163,7 @@ def display_categories() -> None:
 
 def display_expenses() -> None:
     """Display all recorded expenses."""
-    expenses = get_expenses()
+    expenses = get_expenses(get_cli_user_id())
 
     if not expenses:
         print("No expenses recorded yet.")
@@ -181,7 +182,7 @@ def display_expenses() -> None:
 
 def display_category_totals() -> None:
     """Display spending totals by category."""
-    totals = get_category_totals(get_expenses())
+    totals = get_category_totals(get_expenses(get_cli_user_id()))
 
     if not totals:
         print("No expenses recorded yet.")
@@ -207,8 +208,8 @@ def display_budget_summary(
 
 def display_saved_budget_summaries() -> None:
     """Display summaries for saved budgets."""
-    budgets = get_budgets()
-    expenses = get_expenses()
+    budgets = get_budgets(get_cli_user_id())
+    expenses = get_expenses(get_cli_user_id())
 
     if not budgets:
         print("No budgets configured yet.")
@@ -233,7 +234,7 @@ def display_saved_budget_summaries() -> None:
 
 def display_current_budgets() -> None:
     """Display all configured budgets."""
-    budgets = get_budgets()
+    budgets = get_budgets(get_cli_user_id())
 
     if not budgets:
         print("\nNo budgets have been created yet.")

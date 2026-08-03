@@ -11,13 +11,15 @@ logger = get_logger(__name__)
 
 
 def load_accounts_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[Account]:
-    """Load accounts from the database."""
+    """Load a user's accounts from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
-                "SELECT id, name, account_type, balance FROM accounts ORDER BY id"
+                "SELECT id, name, account_type, balance FROM accounts WHERE user_id = ? ORDER BY id",
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load accounts from {db_path}") from error
@@ -25,8 +27,9 @@ def load_accounts_from_file(
     accounts = [Account.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d account(s) from %s",
+        "Loaded %d account(s) for user %d from %s",
         len(accounts),
+        user_id,
         db_path,
     )
 
@@ -35,24 +38,26 @@ def load_accounts_from_file(
 
 def save_accounts_to_file(
     accounts: list[Account],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save accounts to the database, replacing all existing rows."""
+    """Save a user's accounts to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM accounts")
+            connection.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
-                INSERT INTO accounts (id, name, account_type, balance)
-                VALUES (:id, :name, :account_type, :balance)
+                INSERT INTO accounts (id, name, account_type, balance, user_id)
+                VALUES (:id, :name, :account_type, :balance, :user_id)
                 """,
-                [account.to_dict() for account in accounts],
+                [{**account.to_dict(), "user_id": user_id} for account in accounts],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save accounts to {db_path}") from error
 
     logger.debug(
-        "Saved %d account(s) to %s",
+        "Saved %d account(s) for user %d to %s",
         len(accounts),
+        user_id,
         db_path,
     )

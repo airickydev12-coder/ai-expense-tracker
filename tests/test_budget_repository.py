@@ -9,6 +9,8 @@ from src.financial.budgets.repository import (
 )
 from src.financial.shared.categories import ExpenseCategory
 
+USER_ID = 1
+
 
 def test_save_and_load_budgets(db_path):
     original_budgets = [
@@ -24,10 +26,12 @@ def test_save_and_load_budgets(db_path):
 
     save_budgets_to_file(
         original_budgets,
+        USER_ID,
         db_path,
     )
 
     loaded_budgets = load_budgets_from_file(
+        USER_ID,
         db_path,
     )
 
@@ -39,7 +43,7 @@ def test_load_budgets_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_budgets.db"
 
-    assert load_budgets_from_file(db_path) == []
+    assert load_budgets_from_file(USER_ID, db_path) == []
 
 
 def test_save_budgets_creates_parent_directory(
@@ -56,6 +60,7 @@ def test_save_budgets_creates_parent_directory(
 
     save_budgets_to_file(
         budgets,
+        USER_ID,
         db_path,
     )
 
@@ -75,4 +80,4 @@ def test_load_budgets_rejects_invalid_database_file(
         ValueError,
         match="Failed to load budgets",
     ):
-        load_budgets_from_file(db_path)
+        load_budgets_from_file(USER_ID, db_path)

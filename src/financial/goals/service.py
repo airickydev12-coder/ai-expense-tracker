@@ -35,70 +35,87 @@ logger = get_logger(__name__)
 
 MoneyInput: TypeAlias = Decimal | int | float | str
 
-goals: list[Goal] = []
+goals: dict[int, list[Goal]] = {}
+
+
+def _ensure_loaded(user_id: int, file_path: Path = DB_PATH) -> None:
+    """Lazily load a user's goals into the cache on first access."""
+    if user_id not in goals:
+        load_goals(user_id, file_path)
 
 
 def load_goals(
+    user_id: int,
     file_path: Path = DB_PATH,
     ledger_file_path: Path | None = None,
 ) -> None:
-    """Load goals and migrate existing balances."""
+    """Load a user's goals and migrate existing balances."""
     resolved_ledger_path = _resolve_ledger_file_path(
         goals_file_path=file_path,
         ledger_file_path=ledger_file_path,
     )
 
-    goals.clear()
-    goals.extend(load_goals_from_file(file_path))
+    goals[user_id] = load_goals_from_file(user_id, file_path)
 
     migrate_existing_goal_balances(
-        goals,
+        goals[user_id],
         ledger_file_path=resolved_ledger_path,
     )
 
 
 def save_goals(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Save all goals from application memory."""
+    """Save a user's goals from application memory."""
     save_goals_to_file(
-        goals,
+        goals[user_id],
+        user_id,
         file_path,
     )
 
 
-def get_goals() -> list[Goal]:
-    """Return a copy of all goals."""
-    return goals.copy()
+def get_goals(user_id: int, file_path: Path = DB_PATH) -> list[Goal]:
+    """Return a copy of all of this user's goals."""
+    _ensure_loaded(user_id, file_path)
+    return goals[user_id].copy()
 
 
 def get_goal_by_id(
+    user_id: int,
     goal_id: int,
+    file_path: Path = DB_PATH,
 ) -> Goal | None:
-    """Return a goal by ID."""
-    for goal in goals:
+    """Return one of this user's goals by ID."""
+    _ensure_loaded(user_id, file_path)
+
+    for goal in goals[user_id]:
         if goal.id == goal_id:
             return goal
 
     return None
 
 
-def get_next_goal_id() -> int:
-    """Return the next available goal ID."""
-    if not goals:
+def get_next_goal_id(user_id: int) -> int:
+    """Return the next available goal ID for this user."""
+    user_goals = goals.get(user_id, [])
+    if not user_goals:
         return 1
 
-    return max(goal.id for goal in goals) + 1
+    return max(goal.id for goal in user_goals) + 1
 
 
 def add_goal(
+    user_id: int,
     name: str,
     target_amount: MoneyInput,
     current_amount: MoneyInput = ZERO,
     file_path: Path = DB_PATH,
     ledger_file_path: Path | None = None,
 ) -> Goal:
-    """Create and save a financial goal."""
+    """Create and save a financial goal for this user."""
+    _ensure_loaded(user_id, file_path)
+
     resolved_ledger_path = _resolve_ledger_file_path(
         goals_file_path=file_path,
         ledger_file_path=ledger_file_path,
@@ -108,14 +125,14 @@ def add_goal(
     normalized_current = to_money(current_amount)
 
     goal = Goal(
-        id=get_next_goal_id(),
+        id=get_next_goal_id(user_id),
         name=name,
         target_amount=normalized_target,
         current_amount=normalized_current,
     )
 
-    goals.append(goal)
-    save_goals(file_path)
+    goals[user_id].append(goal)
+    save_goals(user_id, file_path)
 
     if normalized_current > ZERO:
         migrate_existing_goal_balances(
@@ -124,15 +141,17 @@ def add_goal(
         )
 
     logger.info(
-        "Added goal %d (%s)",
+        "Added goal %d (%s) for user %d",
         goal.id,
         goal.name,
+        user_id,
     )
 
     return goal
 
 
 def update_goal(
+    user_id: int,
     goal_id: int,
     name: str | None = None,
     target_amount: MoneyInput | None = None,
@@ -146,7 +165,9 @@ def update_goal(
     for backward compatibility. New contributions must use the
     append-only goal ledger.
     """
-    goal = get_goal_by_id(goal_id)
+    _ensure_loaded(user_id, file_path)
+
+    goal = get_goal_by_id(user_id, goal_id, file_path)
 
     if goal is None:
         return None
@@ -166,20 +187,22 @@ def update_goal(
         current_amount=normalized_current,
     )
 
-    goal_index = goals.index(goal)
-    goals[goal_index] = updated_goal
+    goal_index = goals[user_id].index(goal)
+    goals[user_id][goal_index] = updated_goal
 
-    save_goals(file_path)
+    save_goals(user_id, file_path)
 
     logger.info(
-        "Updated goal %d",
+        "Updated goal %d for user %d",
         goal_id,
+        user_id,
     )
 
     return updated_goal
 
 
 def contribute_to_goal(
+    user_id: int,
     goal_id: int,
     contribution: MoneyInput,
     file_path: Path = DB_PATH,
@@ -195,7 +218,9 @@ def contribute_to_goal(
     if normalized_contribution < ZERO:
         raise ValidationError("Goal contribution cannot be negative.")
 
-    goal = get_goal_by_id(goal_id)
+    _ensure_loaded(user_id, file_path)
+
+    goal = get_goal_by_id(user_id, goal_id, file_path)
 
     if goal is None:
         return None
@@ -208,7 +233,7 @@ def contribute_to_goal(
     record_contribution(
         goal,
         normalized_contribution,
-        goals=goals,
+        goals=goals[user_id],
         effective_date=effective_date,
         source=source,
         note=note,
@@ -218,15 +243,17 @@ def contribute_to_goal(
     )
 
     logger.info(
-        "Recorded contribution of %s to goal %d",
+        "Recorded contribution of %s to goal %d for user %d",
         normalized_contribution,
         goal_id,
+        user_id,
     )
 
-    return get_goal_by_id(goal_id)
+    return get_goal_by_id(user_id, goal_id, file_path)
 
 
 def withdraw_from_goal(
+    user_id: int,
     goal_id: int,
     amount: MoneyInput,
     file_path: Path = DB_PATH,
@@ -237,7 +264,9 @@ def withdraw_from_goal(
     correlation_id: str | None = None,
 ) -> Goal | None:
     """Record a withdrawal through the goal ledger."""
-    goal = get_goal_by_id(goal_id)
+    _ensure_loaded(user_id, file_path)
+
+    goal = get_goal_by_id(user_id, goal_id, file_path)
 
     if goal is None:
         return None
@@ -250,7 +279,7 @@ def withdraw_from_goal(
     record_withdrawal(
         goal,
         to_money(amount),
-        goals=goals,
+        goals=goals[user_id],
         effective_date=effective_date,
         source=source,
         note=note,
@@ -260,15 +289,17 @@ def withdraw_from_goal(
     )
 
     logger.info(
-        "Recorded withdrawal of %s from goal %d",
+        "Recorded withdrawal of %s from goal %d for user %d",
         amount,
         goal_id,
+        user_id,
     )
 
-    return get_goal_by_id(goal_id)
+    return get_goal_by_id(user_id, goal_id, file_path)
 
 
 def adjust_goal_balance(
+    user_id: int,
     goal_id: int,
     amount: MoneyInput,
     file_path: Path = DB_PATH,
@@ -279,7 +310,9 @@ def adjust_goal_balance(
     correlation_id: str | None = None,
 ) -> Goal | None:
     """Record a signed balance correction through the goal ledger."""
-    goal = get_goal_by_id(goal_id)
+    _ensure_loaded(user_id, file_path)
+
+    goal = get_goal_by_id(user_id, goal_id, file_path)
 
     if goal is None:
         return None
@@ -292,7 +325,7 @@ def adjust_goal_balance(
     record_adjustment(
         goal,
         to_money(amount),
-        goals=goals,
+        goals=goals[user_id],
         effective_date=effective_date,
         source=source,
         note=note,
@@ -302,15 +335,17 @@ def adjust_goal_balance(
     )
 
     logger.info(
-        "Recorded adjustment of %s to goal %d",
+        "Recorded adjustment of %s to goal %d for user %d",
         amount,
         goal_id,
+        user_id,
     )
 
-    return get_goal_by_id(goal_id)
+    return get_goal_by_id(user_id, goal_id, file_path)
 
 
 def reverse_goal_ledger_entry(
+    user_id: int,
     goal_id: int,
     entry_id: str,
     file_path: Path = DB_PATH,
@@ -321,7 +356,9 @@ def reverse_goal_ledger_entry(
     correlation_id: str | None = None,
 ) -> Goal | None:
     """Reverse a ledger entry belonging to a goal."""
-    goal = get_goal_by_id(goal_id)
+    _ensure_loaded(user_id, file_path)
+
+    goal = get_goal_by_id(user_id, goal_id, file_path)
 
     if goal is None:
         return None
@@ -334,7 +371,7 @@ def reverse_goal_ledger_entry(
     reverse_entry(
         entry_id,
         goal=goal,
-        goals=goals,
+        goals=goals[user_id],
         effective_date=effective_date,
         source=source,
         note=note,
@@ -344,30 +381,35 @@ def reverse_goal_ledger_entry(
     )
 
     logger.info(
-        "Reversed ledger entry %s for goal %d",
+        "Reversed ledger entry %s for goal %d for user %d",
         entry_id,
         goal_id,
+        user_id,
     )
 
-    return get_goal_by_id(goal_id)
+    return get_goal_by_id(user_id, goal_id, file_path)
 
 
 def get_goal_ledger_entries(
+    user_id: int,
     goal_id: int,
     ledger_file_path: Path = DB_PATH,
 ) -> list[GoalLedgerEntry]:
-    """Return all ledger entries recorded for a goal."""
+    """Return all ledger entries recorded for one of this user's goals."""
+    _ensure_loaded(user_id, ledger_file_path)
+
     entries = load_goal_ledger_from_file(ledger_file_path)
 
     return [entry for entry in entries if entry.goal_id == goal_id]
 
 
 def reconcile_goal(
+    user_id: int,
     goal_id: int,
     ledger_file_path: Path = DB_PATH,
 ) -> tuple[bool, Decimal] | None:
     """Compare a goal's cached balance against its ledger-derived balance."""
-    goal = get_goal_by_id(goal_id)
+    goal = get_goal_by_id(user_id, goal_id, ledger_file_path)
 
     if goal is None:
         return None
@@ -376,20 +418,23 @@ def reconcile_goal(
 
 
 def delete_goal(
+    user_id: int,
     goal_id: int,
     file_path: Path = DB_PATH,
 ) -> Goal | None:
     """
-    Delete a goal from the active goal list.
+    Delete one of this user's goals from the active goal list.
 
     Ledger entries remain preserved as an audit trail.
     """
-    for index, goal in enumerate(goals):
+    _ensure_loaded(user_id, file_path)
+
+    for index, goal in enumerate(goals[user_id]):
         if goal.id != goal_id:
             continue
 
-        deleted_goal = goals.pop(index)
-        save_goals(file_path)
+        deleted_goal = goals[user_id].pop(index)
+        save_goals(user_id, file_path)
 
         remove_goal_planning_request_from_file(
             goal_id,
@@ -397,8 +442,9 @@ def delete_goal(
         )
 
         logger.info(
-            "Deleted goal %d",
+            "Deleted goal %d for user %d",
             goal_id,
+            user_id,
         )
 
         return deleted_goal

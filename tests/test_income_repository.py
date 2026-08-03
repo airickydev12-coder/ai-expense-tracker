@@ -25,10 +25,12 @@ def test_save_and_load_income(db_path):
 
     save_income_to_file(
         original_income,
+        1,
         db_path,
     )
 
     loaded_income = load_income_from_file(
+        1,
         db_path,
     )
 
@@ -40,7 +42,7 @@ def test_load_income_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_income.db"
 
-    assert load_income_from_file(db_path) == []
+    assert load_income_from_file(1, db_path) == []
 
 
 def test_save_income_creates_parent_directory(
@@ -58,6 +60,7 @@ def test_save_income_creates_parent_directory(
 
     save_income_to_file(
         income_entries,
+        1,
         db_path,
     )
 
@@ -77,4 +80,4 @@ def test_load_income_rejects_invalid_database_file(
         ValueError,
         match="Failed to load income",
     ):
-        load_income_from_file(db_path)
+        load_income_from_file(1, db_path)

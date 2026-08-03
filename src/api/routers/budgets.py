@@ -1,7 +1,8 @@
 """API endpoints for budget management."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.api.dependencies import get_current_user
 from src.api.schemas.budgets import (
     BudgetCreateRequest,
     BudgetResponse,
@@ -9,6 +10,7 @@ from src.api.schemas.budgets import (
 )
 from src.financial.budgets import service as budget_service
 from src.financial.shared.categories import ExpenseCategory
+from src.financial.users.models import User
 
 router = APIRouter(
     prefix="/budgets",
@@ -20,10 +22,11 @@ router = APIRouter(
     "",
     response_model=list[BudgetResponse],
 )
-def get_budgets() -> list[BudgetResponse]:
+def get_budgets(current_user: User = Depends(get_current_user)) -> list[BudgetResponse]:
     """Return all budgets."""
     return [
-        BudgetResponse.model_validate(budget) for budget in budget_service.get_budgets()
+        BudgetResponse.model_validate(budget)
+        for budget in budget_service.get_budgets(current_user.id)
     ]
 
 
@@ -31,9 +34,12 @@ def get_budgets() -> list[BudgetResponse]:
     "/{category}",
     response_model=BudgetResponse,
 )
-def get_budget(category: ExpenseCategory) -> BudgetResponse:
+def get_budget(
+    category: ExpenseCategory,
+    current_user: User = Depends(get_current_user),
+) -> BudgetResponse:
     """Return a budget by category."""
-    budget = budget_service.get_budget_by_category(category)
+    budget = budget_service.get_budget_by_category(current_user.id, category)
 
     if budget is None:
         raise HTTPException(
@@ -51,9 +57,11 @@ def get_budget(category: ExpenseCategory) -> BudgetResponse:
 )
 def create_budget(
     request: BudgetCreateRequest,
+    current_user: User = Depends(get_current_user),
 ) -> BudgetResponse:
     """Create a new budget or replace an existing one."""
     budget = budget_service.add_budget(
+        user_id=current_user.id,
         category=request.category,
         limit=request.limit,
     )
@@ -68,9 +76,10 @@ def create_budget(
 def update_budget(
     category: ExpenseCategory,
     request: BudgetUpdateRequest,
+    current_user: User = Depends(get_current_user),
 ) -> BudgetResponse:
     """Update an existing budget."""
-    existing_budget = budget_service.get_budget_by_category(category)
+    existing_budget = budget_service.get_budget_by_category(current_user.id, category)
 
     if existing_budget is None:
         raise HTTPException(
@@ -79,6 +88,7 @@ def update_budget(
         )
 
     budget = budget_service.update_budget(
+        user_id=current_user.id,
         category=category,
         limit=request.limit,
     )
@@ -92,9 +102,10 @@ def update_budget(
 )
 def delete_budget(
     category: ExpenseCategory,
+    current_user: User = Depends(get_current_user),
 ) -> BudgetResponse:
     """Delete a budget."""
-    deleted_budget = budget_service.delete_budget(category)
+    deleted_budget = budget_service.delete_budget(current_user.id, category)
 
     if deleted_budget is None:
         raise HTTPException(

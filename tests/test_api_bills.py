@@ -1,5 +1,6 @@
 """Tests for the bill API endpoints."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -8,9 +9,23 @@ from src.financial.bills.service import bills
 client = TestClient(app)
 
 
-def setup_function() -> None:
-    """Reset in-memory bills before each test."""
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, and reset in-memory bills."""
     bills.clear()
+    client.post(
+        "/auth/register",
+        json={
+            "username": "bill_tester",
+            "email": "bill_tester@example.com",
+            "password": "correct-password",
+        },
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "bill_tester", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def test_list_bills_returns_empty_list() -> None:
@@ -133,3 +148,28 @@ def test_delete_bill_returns_404_when_missing() -> None:
     response = client.delete("/bills/999")
 
     assert response.status_code == 404
+
+
+def test_bills_are_scoped_to_the_authenticated_user() -> None:
+    client.post(
+        "/bills",
+        json={"name": "Electric", "amount": 125.00, "due_day": 15},
+    )
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "other_bill_tester",
+            "email": "other_bill_tester@example.com",
+            "password": "correct-password",
+        },
+    )
+    other_token = client.post(
+        "/auth/login",
+        json={"username": "other_bill_tester", "password": "correct-password"},
+    ).json()["access_token"]
+
+    response = client.get("/bills", headers={"Authorization": f"Bearer {other_token}"})
+
+    assert response.status_code == 200
+    assert response.json() == []

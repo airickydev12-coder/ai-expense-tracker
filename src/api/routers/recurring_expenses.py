@@ -1,7 +1,8 @@
 """Recurring expense template API endpoints."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.api.dependencies import get_current_user
 from src.api.schemas.recurring_expenses import (
     GeneratedExpensesResponse,
     RecurringExpenseTemplateCreateRequest,
@@ -10,20 +11,28 @@ from src.api.schemas.recurring_expenses import (
 )
 from src.financial.recurring_expenses import service as recurring_expense_service
 from src.financial.recurring_expenses.models import RecurringExpenseTemplate
+from src.financial.users.models import User
 
 router = APIRouter(prefix="/recurring-expenses", tags=["Recurring Expenses"])
 
 
 @router.get("", response_model=list[RecurringExpenseTemplateResponse])
-def list_recurring_expense_templates() -> list[RecurringExpenseTemplate]:
+def list_recurring_expense_templates(
+    current_user: User = Depends(get_current_user),
+) -> list[RecurringExpenseTemplate]:
     """Return all recurring expense templates."""
-    return recurring_expense_service.get_recurring_expense_templates()
+    return recurring_expense_service.get_recurring_expense_templates(current_user.id)
 
 
 @router.get("/{template_id}", response_model=RecurringExpenseTemplateResponse)
-def get_recurring_expense_template(template_id: int) -> RecurringExpenseTemplateResponse:
+def get_recurring_expense_template(
+    template_id: int,
+    current_user: User = Depends(get_current_user),
+) -> RecurringExpenseTemplateResponse:
     """Return a recurring expense template by ID."""
-    template = recurring_expense_service.get_recurring_expense_template_by_id(template_id)
+    template = recurring_expense_service.get_recurring_expense_template_by_id(
+        current_user.id, template_id
+    )
     if template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -39,9 +48,11 @@ def get_recurring_expense_template(template_id: int) -> RecurringExpenseTemplate
 )
 def create_recurring_expense_template(
     request: RecurringExpenseTemplateCreateRequest,
+    current_user: User = Depends(get_current_user),
 ) -> RecurringExpenseTemplateResponse:
     """Create a new recurring expense template."""
     template = recurring_expense_service.add_recurring_expense_template(
+        user_id=current_user.id,
         name=request.name,
         category=request.category,
         amount=request.amount,
@@ -56,6 +67,7 @@ def create_recurring_expense_template(
 def update_recurring_expense_template(
     template_id: int,
     request: RecurringExpenseTemplateUpdateRequest,
+    current_user: User = Depends(get_current_user),
 ) -> RecurringExpenseTemplateResponse:
     """Update an existing recurring expense template."""
     if (
@@ -71,6 +83,7 @@ def update_recurring_expense_template(
             detail="At least one field must be provided.",
         )
     template = recurring_expense_service.update_recurring_expense_template(
+        user_id=current_user.id,
         template_id=template_id,
         name=request.name,
         category=request.category,
@@ -88,9 +101,14 @@ def update_recurring_expense_template(
 
 
 @router.delete("/{template_id}", response_model=RecurringExpenseTemplateResponse)
-def delete_recurring_expense_template(template_id: int) -> RecurringExpenseTemplateResponse:
+def delete_recurring_expense_template(
+    template_id: int,
+    current_user: User = Depends(get_current_user),
+) -> RecurringExpenseTemplateResponse:
     """Delete and return a recurring expense template by ID."""
-    template = recurring_expense_service.delete_recurring_expense_template(template_id)
+    template = recurring_expense_service.delete_recurring_expense_template(
+        current_user.id, template_id
+    )
     if template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -100,9 +118,11 @@ def delete_recurring_expense_template(template_id: int) -> RecurringExpenseTempl
 
 
 @router.post("/generate", response_model=GeneratedExpensesResponse)
-def generate_due_expenses() -> GeneratedExpensesResponse:
+def generate_due_expenses(
+    current_user: User = Depends(get_current_user),
+) -> GeneratedExpensesResponse:
     """Generate real expenses for every active template that is due."""
-    generated = recurring_expense_service.generate_due_expenses()
+    generated = recurring_expense_service.generate_due_expenses(current_user.id)
     return GeneratedExpensesResponse(
         generated_count=len(generated),
         expense_ids=[expense.id for expense in generated],

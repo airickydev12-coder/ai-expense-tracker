@@ -76,7 +76,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             name TEXT NOT NULL,
             account_type TEXT NOT NULL,
             balance TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -87,7 +87,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             amount TEXT NOT NULL,
             due_day INTEGER NOT NULL,
             is_paid INTEGER NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -95,7 +95,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
         CREATE TABLE IF NOT EXISTS budgets (
             category TEXT NOT NULL,
             "limit" TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, category)
         );
     """,
@@ -106,7 +106,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             balance TEXT NOT NULL,
             interest_rate REAL NOT NULL,
             minimum_payment TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -116,7 +116,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             name TEXT NOT NULL,
             category TEXT NOT NULL,
             amount TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -125,7 +125,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             id INTEGER NOT NULL,
             source TEXT NOT NULL,
             amount TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -135,7 +135,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             name TEXT NOT NULL,
             target_amount TEXT NOT NULL,
             current_amount TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -146,7 +146,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             note TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, recommendation_key)
         );
     """,
@@ -156,7 +156,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             target_date TEXT NOT NULL,
             planned_monthly_contribution TEXT NOT NULL,
             priority TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, goal_id)
         );
     """,
@@ -164,7 +164,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
         CREATE TABLE IF NOT EXISTS scenario_workspace (
             name TEXT NOT NULL,
             data TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, name)
         );
     """,
@@ -172,7 +172,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
         CREATE TABLE IF NOT EXISTS financial_history_category_totals (
             timestamp TEXT NOT NULL,
             data TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, timestamp)
         );
     """,
@@ -182,7 +182,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             created_at TEXT NOT NULL,
             title TEXT NOT NULL,
             content TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -195,7 +195,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             body TEXT NOT NULL,
             sent_at TEXT NOT NULL,
             status TEXT NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -208,7 +208,7 @@ _COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
             frequency TEXT NOT NULL,
             next_occurrence TEXT NOT NULL,
             is_active INTEGER NOT NULL,
-            user_id INTEGER NOT NULL REFERENCES users(id),
+            user_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, id)
         );
     """,
@@ -240,7 +240,7 @@ def _ensure_user_id_columns(connection: sqlite3.Connection) -> None:
     for table in _NULLABLE_USER_ID_TABLES:
         columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
         if "user_id" not in columns:
-            connection.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER REFERENCES users(id)")
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER")
 
 
 def _table_has_composite_user_pk(connection: sqlite3.Connection, table: str) -> bool:

@@ -1,5 +1,6 @@
 """Tests for the budget API endpoints."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -7,6 +8,20 @@ from src.financial.budgets.service import budgets
 from src.financial.shared.categories import ExpenseCategory
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def setup_function() -> None:

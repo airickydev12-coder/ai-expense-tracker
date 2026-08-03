@@ -338,17 +338,39 @@ def test_post_chat_endpoint_propagates_external_service_error_as_502(
     assert response.status_code == 502
 
 
+def _note_auth_headers(username: str = "note_tester") -> dict[str, str]:
+    """Register and log in a throwaway user, returning bearer auth headers for notes tests."""
+    client.post(
+        "/auth/register",
+        json={
+            "username": username,
+            "email": f"{username}@example.com",
+            "password": "correct-password",
+        },
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": username, "password": "correct-password"},
+    ).json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def test_list_notes_returns_empty_when_none_saved() -> None:
-    response = client.get("/coach/notes")
+    headers = _note_auth_headers()
+
+    response = client.get("/coach/notes", headers=headers)
 
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_create_and_list_notes() -> None:
+    headers = _note_auth_headers()
+
     create_response = client.post(
         "/coach/notes",
         json={"title": "Rent", "content": "Landlord raises rent every March."},
+        headers=headers,
     )
 
     assert create_response.status_code == 201
@@ -357,27 +379,32 @@ def test_create_and_list_notes() -> None:
     assert created["content"] == "Landlord raises rent every March."
     assert "created_at" in created
 
-    list_response = client.get("/coach/notes")
+    list_response = client.get("/coach/notes", headers=headers)
 
     assert list_response.status_code == 200
     assert len(list_response.json()) == 1
 
 
 def test_delete_note_removes_it() -> None:
+    headers = _note_auth_headers()
+
     created = client.post(
         "/coach/notes",
         json={"title": "Rent", "content": "Landlord raises rent every March."},
+        headers=headers,
     ).json()
 
-    delete_response = client.delete(f"/coach/notes/{created['id']}")
+    delete_response = client.delete(f"/coach/notes/{created['id']}", headers=headers)
 
     assert delete_response.status_code == 200
     assert delete_response.json()["title"] == "Rent"
-    assert client.get("/coach/notes").json() == []
+    assert client.get("/coach/notes", headers=headers).json() == []
 
 
 def test_delete_note_returns_404_for_unknown_id() -> None:
-    response = client.delete("/coach/notes/999999")
+    headers = _note_auth_headers()
+
+    response = client.delete("/coach/notes/999999", headers=headers)
 
     assert response.status_code == 404
 

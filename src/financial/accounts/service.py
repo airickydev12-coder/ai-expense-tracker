@@ -11,86 +11,97 @@ from src.financial.accounts.repository import (
 
 logger = get_logger(__name__)
 
-accounts: list[Account] = []
+accounts: dict[int, list[Account]] = {}
 
 
-def load_accounts(
-    file_path: Path = DB_PATH,
-) -> None:
-    """Load accounts into application memory."""
-    accounts.clear()
-    accounts.extend(load_accounts_from_file(file_path))
+def _ensure_loaded(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Lazily load a user's accounts into the cache on first access."""
+    if user_id not in accounts:
+        accounts[user_id] = load_accounts_from_file(user_id, db_path)
 
 
-def save_accounts(
-    file_path: Path = DB_PATH,
-) -> None:
-    """Save all accounts from application memory."""
-    save_accounts_to_file(
-        accounts,
-        file_path,
-    )
+def load_accounts(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Force-reload a user's accounts from the repository."""
+    accounts[user_id] = load_accounts_from_file(user_id, db_path)
 
 
-def get_accounts() -> list[Account]:
-    """Return a copy of all accounts."""
-    return accounts.copy()
+def save_accounts(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Save a user's accounts using the repository."""
+    save_accounts_to_file(accounts[user_id], user_id, db_path)
+
+
+def get_accounts(user_id: int, db_path: Path = DB_PATH) -> list[Account]:
+    """Return a copy of all of this user's accounts."""
+    _ensure_loaded(user_id, db_path)
+    return accounts[user_id].copy()
 
 
 def get_account_by_id(
+    user_id: int,
     account_id: int,
+    db_path: Path = DB_PATH,
 ) -> Account | None:
-    """Return an account by ID."""
-    for account in accounts:
+    """Return one of this user's accounts by its ID."""
+    _ensure_loaded(user_id, db_path)
+
+    for account in accounts[user_id]:
         if account.id == account_id:
             return account
 
     return None
 
 
-def get_next_account_id() -> int:
-    """Return the next available account ID."""
-    if not accounts:
+def get_next_account_id(user_id: int) -> int:
+    """Return the next available account ID for this user."""
+    user_accounts = accounts.get(user_id, [])
+    if not user_accounts:
         return 1
 
-    return max(account.id for account in accounts) + 1
+    return max(account.id for account in user_accounts) + 1
 
 
 def add_account(
+    user_id: int,
     name: str,
     account_type: str,
     balance: Decimal,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Account:
-    """Create and save a financial account."""
+    """Create and save a financial account for this user."""
+    _ensure_loaded(user_id, db_path)
+
     account = Account(
-        id=get_next_account_id(),
+        id=get_next_account_id(user_id),
         name=name,
         account_type=account_type,
         balance=balance,
     )
 
-    accounts.append(account)
-    save_accounts(file_path)
+    accounts[user_id].append(account)
+    save_accounts(user_id, db_path)
 
     logger.info(
-        "Added account %d (%s)",
+        "Added account %d (%s) for user %d",
         account.id,
         account.name,
+        user_id,
     )
 
     return account
 
 
 def update_account(
+    user_id: int,
     account_id: int,
     name: str | None = None,
     account_type: str | None = None,
     balance: Decimal | None = None,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Account | None:
-    """Update an existing account."""
-    account = get_account_by_id(account_id)
+    """Update one of this user's existing accounts."""
+    _ensure_loaded(user_id, db_path)
+
+    account = get_account_by_id(user_id, account_id, db_path)
 
     if account is None:
         return None
@@ -110,31 +121,36 @@ def update_account(
         balance=updated_balance,
     )
 
-    account_index = accounts.index(account)
-    accounts[account_index] = updated_account
+    account_index = accounts[user_id].index(account)
+    accounts[user_id][account_index] = updated_account
 
-    save_accounts(file_path)
+    save_accounts(user_id, db_path)
 
     logger.info(
-        "Updated account %d",
+        "Updated account %d for user %d",
         account_id,
+        user_id,
     )
 
     return updated_account
 
 
 def delete_account(
+    user_id: int,
     account_id: int,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Account | None:
-    """Delete an account by ID."""
-    for index, account in enumerate(accounts):
+    """Delete one of this user's accounts by ID."""
+    _ensure_loaded(user_id, db_path)
+
+    for index, account in enumerate(accounts[user_id]):
         if account.id == account_id:
-            deleted_account = accounts.pop(index)
-            save_accounts(file_path)
+            deleted_account = accounts[user_id].pop(index)
+            save_accounts(user_id, db_path)
             logger.info(
-                "Deleted account %d",
+                "Deleted account %d for user %d",
                 account_id,
+                user_id,
             )
             return deleted_account
 

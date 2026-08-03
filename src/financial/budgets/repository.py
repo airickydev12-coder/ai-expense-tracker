@@ -11,13 +11,15 @@ logger = get_logger(__name__)
 
 
 def load_budgets_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[Budget]:
-    """Load budgets from the database."""
+    """Load a user's budgets from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
-                'SELECT category, "limit" FROM budgets ORDER BY category'
+                'SELECT category, "limit" FROM budgets WHERE user_id = ? ORDER BY category',
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load budgets from {db_path}") from error
@@ -25,8 +27,9 @@ def load_budgets_from_file(
     budgets = [Budget.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d budget(s) from %s",
+        "Loaded %d budget(s) for user %d from %s",
         len(budgets),
+        user_id,
         db_path,
     )
 
@@ -35,21 +38,23 @@ def load_budgets_from_file(
 
 def save_budgets_to_file(
     budgets: list[Budget],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save budgets to the database, replacing all existing rows."""
+    """Save a user's budgets to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM budgets")
+            connection.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
             connection.executemany(
-                'INSERT INTO budgets (category, "limit") VALUES (:category, :limit)',
-                [budget.to_dict() for budget in budgets],
+                'INSERT INTO budgets (category, "limit", user_id) VALUES (:category, :limit, :user_id)',
+                [{**budget.to_dict(), "user_id": user_id} for budget in budgets],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save budgets to {db_path}") from error
 
     logger.debug(
-        "Saved %d budget(s) to %s",
+        "Saved %d budget(s) for user %d to %s",
         len(budgets),
+        user_id,
         db_path,
     )

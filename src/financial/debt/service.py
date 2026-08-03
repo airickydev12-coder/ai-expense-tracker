@@ -14,89 +14,101 @@ logger = get_logger(__name__)
 
 ZERO_MONEY = Decimal("0")
 
-debts: list[Debt] = []
+debts: dict[int, list[Debt]] = {}
 
 
-def load_debts(
-    file_path: Path = DB_PATH,
-) -> None:
-    """Load debts into application memory."""
-    debts.clear()
-    debts.extend(load_debts_from_file(file_path))
+def _ensure_loaded(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Lazily load a user's debts into the cache on first access."""
+    if user_id not in debts:
+        debts[user_id] = load_debts_from_file(user_id, db_path)
 
 
-def save_debts(
-    file_path: Path = DB_PATH,
-) -> None:
-    """Save all debts from application memory."""
-    save_debts_to_file(
-        debts,
-        file_path,
-    )
+def load_debts(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Force-reload a user's debts from the repository."""
+    debts[user_id] = load_debts_from_file(user_id, db_path)
 
 
-def get_debts() -> list[Debt]:
-    """Return a copy of all debts."""
-    return debts.copy()
+def save_debts(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Save a user's debts using the repository."""
+    save_debts_to_file(debts[user_id], user_id, db_path)
+
+
+def get_debts(user_id: int, db_path: Path = DB_PATH) -> list[Debt]:
+    """Return a copy of all of this user's debts."""
+    _ensure_loaded(user_id, db_path)
+    return debts[user_id].copy()
 
 
 def get_debt_by_id(
+    user_id: int,
     debt_id: int,
+    db_path: Path = DB_PATH,
 ) -> Debt | None:
-    """Return a debt by ID."""
-    for debt in debts:
+    """Return one of this user's debts by ID."""
+    _ensure_loaded(user_id, db_path)
+
+    for debt in debts[user_id]:
         if debt.id == debt_id:
             return debt
 
     return None
 
 
-def get_next_debt_id() -> int:
-    """Return the next available debt ID."""
-    if not debts:
+def get_next_debt_id(user_id: int, db_path: Path = DB_PATH) -> int:
+    """Return the next available debt ID for this user."""
+    _ensure_loaded(user_id, db_path)
+    user_debts = debts[user_id]
+    if not user_debts:
         return 1
 
-    return max(debt.id for debt in debts) + 1
+    return max(debt.id for debt in user_debts) + 1
 
 
 def add_debt(
+    user_id: int,
     name: str,
     balance: Decimal,
     interest_rate: float,
     minimum_payment: Decimal,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Debt:
-    """Create and save a debt."""
+    """Create and save a debt for this user."""
+    _ensure_loaded(user_id, db_path)
+
     debt = Debt(
-        id=get_next_debt_id(),
+        id=get_next_debt_id(user_id, db_path),
         name=name,
         balance=balance,
         interest_rate=interest_rate,
         minimum_payment=minimum_payment,
     )
 
-    debts.append(debt)
-    save_debts(file_path)
+    debts[user_id].append(debt)
+    save_debts(user_id, db_path)
 
     logger.info(
-        "Added debt %d (%s)",
+        "Added debt %d (%s) for user %d",
         debt.id,
         debt.name,
+        user_id,
     )
 
     return debt
 
 
 def update_debt(
+    user_id: int,
     debt_id: int,
     name: str | None = None,
     balance: Decimal | None = None,
     interest_rate: float | None = None,
     minimum_payment: Decimal | None = None,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Debt | None:
-    """Update an existing debt."""
-    debt = get_debt_by_id(debt_id)
+    """Update one of this user's existing debts."""
+    _ensure_loaded(user_id, db_path)
+
+    debt = get_debt_by_id(user_id, debt_id, db_path)
 
     if debt is None:
         return None
@@ -113,29 +125,33 @@ def update_debt(
         ),
     )
 
-    debt_index = debts.index(debt)
-    debts[debt_index] = updated_debt
+    debt_index = debts[user_id].index(debt)
+    debts[user_id][debt_index] = updated_debt
 
-    save_debts(file_path)
+    save_debts(user_id, db_path)
 
     logger.info(
-        "Updated debt %d",
+        "Updated debt %d for user %d",
         debt_id,
+        user_id,
     )
 
     return updated_debt
 
 
 def apply_payment_to_debt(
+    user_id: int,
     debt_id: int,
     payment: Decimal,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Debt | None:
-    """Apply a payment to an existing debt."""
+    """Apply a payment to one of this user's existing debts."""
     if payment < ZERO_MONEY:
         raise ValidationError("Debt payment cannot be negative.")
 
-    debt = get_debt_by_id(debt_id)
+    _ensure_loaded(user_id, db_path)
+
+    debt = get_debt_by_id(user_id, debt_id, db_path)
 
     if debt is None:
         return None
@@ -146,32 +162,38 @@ def apply_payment_to_debt(
     )
 
     updated_debt = update_debt(
+        user_id=user_id,
         debt_id=debt.id,
         balance=updated_balance,
-        file_path=file_path,
+        db_path=db_path,
     )
 
     logger.info(
-        "Applied payment of %s to debt %d",
+        "Applied payment of %s to debt %d for user %d",
         payment,
         debt_id,
+        user_id,
     )
 
     return updated_debt
 
 
 def delete_debt(
+    user_id: int,
     debt_id: int,
-    file_path: Path = DB_PATH,
+    db_path: Path = DB_PATH,
 ) -> Debt | None:
-    """Delete a debt by ID."""
-    for index, debt in enumerate(debts):
+    """Delete one of this user's debts by ID."""
+    _ensure_loaded(user_id, db_path)
+
+    for index, debt in enumerate(debts[user_id]):
         if debt.id == debt_id:
-            deleted_debt = debts.pop(index)
-            save_debts(file_path)
+            deleted_debt = debts[user_id].pop(index)
+            save_debts(user_id, db_path)
             logger.info(
-                "Deleted debt %d",
+                "Deleted debt %d for user %d",
                 debt_id,
+                user_id,
             )
             return deleted_debt
 
