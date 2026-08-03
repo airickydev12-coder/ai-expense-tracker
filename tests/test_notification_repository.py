@@ -9,6 +9,9 @@ from src.financial.notifications.repository import (
 )
 
 
+USER_ID = 1
+
+
 def test_save_and_load_notification_log(db_path):
     original_entries = [
         NotificationLogEntry(
@@ -33,10 +36,12 @@ def test_save_and_load_notification_log(db_path):
 
     save_notification_log_to_file(
         original_entries,
+        USER_ID,
         db_path,
     )
 
     loaded_entries = load_notification_log_from_file(
+        USER_ID,
         db_path,
     )
 
@@ -48,7 +53,7 @@ def test_load_notification_log_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_notification_log.db"
 
-    assert load_notification_log_from_file(db_path) == []
+    assert load_notification_log_from_file(USER_ID, db_path) == []
 
 
 def test_save_notification_log_creates_parent_directory(
@@ -70,6 +75,7 @@ def test_save_notification_log_creates_parent_directory(
 
     save_notification_log_to_file(
         entries,
+        USER_ID,
         db_path,
     )
 
@@ -89,4 +95,4 @@ def test_load_notification_log_rejects_invalid_database_file(
         ValueError,
         match="Failed to load notification log",
     ):
-        load_notification_log_from_file(db_path)
+        load_notification_log_from_file(USER_ID, db_path)

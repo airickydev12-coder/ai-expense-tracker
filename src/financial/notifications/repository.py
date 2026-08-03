@@ -11,16 +11,18 @@ logger = get_logger(__name__)
 
 
 def load_notification_log_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[NotificationLogEntry]:
-    """Load the notification log from the database."""
+    """Load a user's notification log from the database."""
     try:
         with get_connection(db_path) as connection:
             rows = connection.execute(
                 """
                 SELECT id, notification_key, channel, subject, body, sent_at, status
-                FROM notification_log ORDER BY id
-                """
+                FROM notification_log WHERE user_id = ? ORDER BY id
+                """,
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load notification log from {db_path}") from error
@@ -28,8 +30,9 @@ def load_notification_log_from_file(
     entries = [NotificationLogEntry.from_dict(dict(row)) for row in rows]
 
     logger.debug(
-        "Loaded %d notification log entr(y/ies) from %s",
+        "Loaded %d notification log entr(y/ies) for user %d from %s",
         len(entries),
+        user_id,
         db_path,
     )
 
@@ -38,26 +41,28 @@ def load_notification_log_from_file(
 
 def save_notification_log_to_file(
     entries: list[NotificationLogEntry],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save the notification log to the database, replacing all existing rows."""
+    """Save a user's notification log to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM notification_log")
+            connection.execute("DELETE FROM notification_log WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
                 INSERT INTO notification_log
-                    (id, notification_key, channel, subject, body, sent_at, status)
+                    (id, notification_key, channel, subject, body, sent_at, status, user_id)
                 VALUES
-                    (:id, :notification_key, :channel, :subject, :body, :sent_at, :status)
+                    (:id, :notification_key, :channel, :subject, :body, :sent_at, :status, :user_id)
                 """,
-                [entry.to_dict() for entry in entries],
+                [{**entry.to_dict(), "user_id": user_id} for entry in entries],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save notification log to {db_path}") from error
 
     logger.debug(
-        "Saved %d notification log entr(y/ies) to %s",
+        "Saved %d notification log entr(y/ies) for user %d to %s",
         len(entries),
+        user_id,
         db_path,
     )

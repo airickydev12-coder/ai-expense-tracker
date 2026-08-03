@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -9,6 +10,25 @@ from src.financial.notifications.models import NotificationLogEntry
 from src.financial.notifications.service import notification_log
 
 client = TestClient(app)
+current_user_id: int | None = None
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    global current_user_id
+
+    register_response = client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    current_user_id = register_response.json()["id"]
+
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def setup_function() -> None:
@@ -24,7 +44,7 @@ def test_get_notification_log_returns_empty_list() -> None:
 
 
 def test_get_notification_log_returns_entries_most_recent_first() -> None:
-    notification_log.append(
+    notification_log[current_user_id] = [
         NotificationLogEntry(
             id=1,
             notification_key="a",
@@ -33,9 +53,7 @@ def test_get_notification_log_returns_entries_most_recent_first() -> None:
             body="Older body",
             sent_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
             status="SENT",
-        )
-    )
-    notification_log.append(
+        ),
         NotificationLogEntry(
             id=2,
             notification_key="b",
@@ -44,8 +62,8 @@ def test_get_notification_log_returns_entries_most_recent_first() -> None:
             body="Newer body",
             sent_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
             status="FAILED",
-        )
-    )
+        ),
+    ]
 
     response = client.get("/notifications/log")
 

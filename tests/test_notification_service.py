@@ -22,13 +22,15 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.shared.categories import ExpenseCategory
 
+USER_ID = 1
+
 
 def setup_function():
     """Clear notification log state before every test."""
     notification_log.clear()
 
 
-def build_snapshot_with_bill_due_soon():
+def build_snapshot_with_bill_due_soon(user_id=None):
     bill = Bill(id=1, name="Electric", amount=Decimal("125.00"), due_day=17)
     return build_real_snapshot(
         income_entries=[],
@@ -42,7 +44,7 @@ def build_snapshot_with_bill_due_soon():
     )
 
 
-def build_snapshot_with_budget_overrun():
+def build_snapshot_with_budget_overrun(user_id=None):
     expenses = [
         Expense(id=1, name="Groceries", category=ExpenseCategory.FOOD, amount=Decimal("600.00"))
     ]
@@ -59,7 +61,7 @@ def build_snapshot_with_budget_overrun():
     )
 
 
-def build_empty_snapshot():
+def build_empty_snapshot(user_id=None):
     return build_real_snapshot(
         income_entries=[],
         expenses=[],
@@ -83,14 +85,14 @@ def build_high_priority_recommendation() -> Recommendation:
     )
 
 
-def _no_recommendations(priority=None, category=None, limit=None):
+def _no_recommendations(user_id=None, priority=None, category=None, limit=None):
     return []
 
 
 def test_sends_email_for_bill_due_soon(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     sent: dict = {}
 
-    def fake_send(subject: str, body: str) -> None:
+    def fake_send(subject: str, body: str, to_email=None) -> None:
         sent["subject"] = subject
         sent["body"] = body
 
@@ -101,6 +103,7 @@ def test_sends_email_for_bill_due_soon(monkeypatch: pytest.MonkeyPatch, tmp_path
     monkeypatch.setattr(notification_service, "build_recommendations", _no_recommendations)
 
     entries = check_and_send_notifications(
+        USER_ID,
         as_of=date(2026, 9, 15),
         file_path=tmp_path / "notifications.db",
     )
@@ -108,7 +111,7 @@ def test_sends_email_for_bill_due_soon(monkeypatch: pytest.MonkeyPatch, tmp_path
     assert len(entries) == 1
     assert entries[0].status == "SENT"
     assert "Electric" in sent["body"]
-    assert get_next_notification_log_id() == 2
+    assert get_next_notification_log_id(USER_ID) == 2
 
 
 def test_sends_email_for_budget_overrun(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
@@ -117,7 +120,7 @@ def test_sends_email_for_budget_overrun(monkeypatch: pytest.MonkeyPatch, tmp_pat
     monkeypatch.setattr(
         notification_service,
         "send_notification_email",
-        lambda subject, body: sent.update(subject=subject, body=body),
+        lambda subject, body, to_email=None: sent.update(subject=subject, body=body),
     )
     monkeypatch.setattr(
         notification_service, "build_financial_snapshot", build_snapshot_with_budget_overrun
@@ -125,6 +128,7 @@ def test_sends_email_for_budget_overrun(monkeypatch: pytest.MonkeyPatch, tmp_pat
     monkeypatch.setattr(notification_service, "build_recommendations", _no_recommendations)
 
     entries = check_and_send_notifications(
+        USER_ID,
         as_of=date(2026, 9, 15),
         file_path=tmp_path / "notifications.db",
     )
@@ -140,11 +144,11 @@ def test_sends_email_for_urgent_recommendation(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setattr(
         notification_service,
         "send_notification_email",
-        lambda subject, body: sent.update(subject=subject, body=body),
+        lambda subject, body, to_email=None: sent.update(subject=subject, body=body),
     )
     monkeypatch.setattr(notification_service, "build_financial_snapshot", build_empty_snapshot)
 
-    def fake_build_recommendations(priority=None, category=None, limit=None):
+    def fake_build_recommendations(user_id=None, priority=None, category=None, limit=None):
         if priority == "HIGH":
             return [build_high_priority_recommendation()]
         return []
@@ -154,6 +158,7 @@ def test_sends_email_for_urgent_recommendation(monkeypatch: pytest.MonkeyPatch, 
     )
 
     entries = check_and_send_notifications(
+        USER_ID,
         as_of=date(2026, 9, 15),
         file_path=tmp_path / "notifications.db",
     )
@@ -166,12 +171,15 @@ def test_returns_empty_when_nothing_new(monkeypatch: pytest.MonkeyPatch, tmp_pat
     monkeypatch.setattr(
         notification_service,
         "send_notification_email",
-        lambda subject, body: pytest.fail("Should not send when there are no candidates"),
+        lambda subject, body, to_email=None: pytest.fail(
+            "Should not send when there are no candidates"
+        ),
     )
     monkeypatch.setattr(notification_service, "build_financial_snapshot", build_empty_snapshot)
     monkeypatch.setattr(notification_service, "build_recommendations", _no_recommendations)
 
     entries = check_and_send_notifications(
+        USER_ID,
         as_of=date(2026, 9, 15),
         file_path=tmp_path / "notifications.db",
     )
@@ -182,7 +190,7 @@ def test_returns_empty_when_nothing_new(monkeypatch: pytest.MonkeyPatch, tmp_pat
 def test_skips_candidate_already_sent_today(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     call_count = {"n": 0}
 
-    def fake_send(subject: str, body: str) -> None:
+    def fake_send(subject: str, body: str, to_email=None) -> None:
         call_count["n"] += 1
 
     monkeypatch.setattr(notification_service, "send_notification_email", fake_send)
@@ -192,8 +200,8 @@ def test_skips_candidate_already_sent_today(monkeypatch: pytest.MonkeyPatch, tmp
     monkeypatch.setattr(notification_service, "build_recommendations", _no_recommendations)
 
     db_path = tmp_path / "notifications.db"
-    first = check_and_send_notifications(as_of=date(2026, 9, 15), file_path=db_path)
-    second = check_and_send_notifications(as_of=date(2026, 9, 15), file_path=db_path)
+    first = check_and_send_notifications(USER_ID, as_of=date(2026, 9, 15), file_path=db_path)
+    second = check_and_send_notifications(USER_ID, as_of=date(2026, 9, 15), file_path=db_path)
 
     assert len(first) == 1
     assert second == []
@@ -203,7 +211,7 @@ def test_skips_candidate_already_sent_today(monkeypatch: pytest.MonkeyPatch, tmp
 def test_records_failed_status_on_smtp_error_and_allows_retry(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
-    def failing_send(subject: str, body: str) -> None:
+    def failing_send(subject: str, body: str, to_email=None) -> None:
         raise ExternalServiceError("Failed to send notification email: boom")
 
     monkeypatch.setattr(notification_service, "send_notification_email", failing_send)
@@ -213,25 +221,25 @@ def test_records_failed_status_on_smtp_error_and_allows_retry(
     monkeypatch.setattr(notification_service, "build_recommendations", _no_recommendations)
 
     db_path = tmp_path / "notifications.db"
-    first = check_and_send_notifications(as_of=date(2026, 9, 15), file_path=db_path)
+    first = check_and_send_notifications(USER_ID, as_of=date(2026, 9, 15), file_path=db_path)
     assert len(first) == 1
     assert first[0].status == "FAILED"
 
     call_count = {"n": 0}
 
-    def succeeding_send(subject: str, body: str) -> None:
+    def succeeding_send(subject: str, body: str, to_email=None) -> None:
         call_count["n"] += 1
 
     monkeypatch.setattr(notification_service, "send_notification_email", succeeding_send)
 
-    second = check_and_send_notifications(as_of=date(2026, 9, 15), file_path=db_path)
+    second = check_and_send_notifications(USER_ID, as_of=date(2026, 9, 15), file_path=db_path)
     assert len(second) == 1
     assert second[0].status == "SENT"
     assert call_count["n"] == 1
 
 
 def test_get_notification_log_returns_most_recent_first() -> None:
-    notification_log.append(
+    notification_log[USER_ID] = [
         notification_service.NotificationLogEntry(
             id=1,
             notification_key="a",
@@ -240,9 +248,7 @@ def test_get_notification_log_returns_most_recent_first() -> None:
             body="b",
             sent_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
             status="SENT",
-        )
-    )
-    notification_log.append(
+        ),
         notification_service.NotificationLogEntry(
             id=2,
             notification_key="b",
@@ -251,9 +257,9 @@ def test_get_notification_log_returns_most_recent_first() -> None:
             body="b",
             sent_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
             status="SENT",
-        )
-    )
+        ),
+    ]
 
-    log = get_notification_log()
+    log = get_notification_log(USER_ID)
 
     assert [entry.id for entry in log] == [2, 1]
