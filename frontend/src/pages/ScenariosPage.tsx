@@ -12,6 +12,7 @@ import {
 } from '../api/scenarios'
 import { CombinedPlanBuilder } from '../components/scenarios/CombinedPlanBuilder'
 import { OptimizeForm } from '../components/scenarios/OptimizeForm'
+import { RankedScenarioChart } from '../components/scenarios/RankedScenarioChart'
 import { RankedScenarioList } from '../components/scenarios/RankedScenarioList'
 import { ScenarioResultView } from '../components/scenarios/ScenarioResultView'
 import { ScenarioRunForm } from '../components/scenarios/ScenarioRunForm'
@@ -270,6 +271,7 @@ export function ScenariosPage() {
                   ))}
                 </ul>
               )}
+              <RankedScenarioChart scenarios={optimizeResult.data.ranked_scenarios} />
               <RankedScenarioList scenarios={optimizeResult.data.ranked_scenarios} />
             </div>
           )}

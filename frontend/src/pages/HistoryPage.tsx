@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { getTrends, listHistory, recordSnapshot } from '../api/history'
+import { formatChartCurrency } from '../charts/format'
+import { CHART_CHROME, CHART_SERIES } from '../charts/palette'
 import type { FinancialSnapshotResponse, MetricTrend, TrendSummary } from '../types/history'
 
 type LoadState =
@@ -22,6 +34,75 @@ function directionClass(direction: string): string {
     default:
       return 'bg-gray-100 text-gray-500 italic'
   }
+}
+
+function formatSnapshotDate(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString()
+}
+
+function FinancialsChart({ snapshots }: { snapshots: FinancialSnapshotResponse[] }) {
+  if (snapshots.length === 0) {
+    return <p className="text-sm text-gray-500">No snapshots recorded yet.</p>
+  }
+
+  const data = snapshots.map((snapshot) => ({
+    date: formatSnapshotDate(snapshot.timestamp),
+    'Net Worth': snapshot.net_worth,
+    Income: snapshot.total_income,
+    Expenses: snapshot.total_expenses,
+  }))
+
+  return (
+    <div className="h-64 rounded border border-gray-200 p-2" style={{ background: CHART_CHROME.surface }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_CHROME.grid} vertical={false} />
+          <XAxis dataKey="date" stroke={CHART_CHROME.axis} tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }} />
+          <YAxis stroke={CHART_CHROME.axis} tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }} />
+          <Tooltip formatter={formatChartCurrency} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Line type="monotone" dataKey="Net Worth" stroke={CHART_SERIES.blue} strokeWidth={2} dot={{ r: 4 }} />
+          <Line type="monotone" dataKey="Income" stroke={CHART_SERIES.aqua} strokeWidth={2} dot={{ r: 4 }} />
+          <Line type="monotone" dataKey="Expenses" stroke={CHART_SERIES.orange} strokeWidth={2} dot={{ r: 4 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function HealthScoreChart({ snapshots }: { snapshots: FinancialSnapshotResponse[] }) {
+  if (snapshots.length === 0) {
+    return <p className="text-sm text-gray-500">No snapshots recorded yet.</p>
+  }
+
+  const data = snapshots.map((snapshot) => ({
+    date: formatSnapshotDate(snapshot.timestamp),
+    'Health Score': snapshot.health_score,
+  }))
+
+  return (
+    <div className="h-48 rounded border border-gray-200 p-2" style={{ background: CHART_CHROME.surface }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_CHROME.grid} vertical={false} />
+          <XAxis dataKey="date" stroke={CHART_CHROME.axis} tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }} />
+          <YAxis
+            domain={[0, 100]}
+            stroke={CHART_CHROME.axis}
+            tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }}
+          />
+          <Tooltip />
+          <Line
+            type="monotone"
+            dataKey="Health Score"
+            stroke={CHART_SERIES.blue}
+            strokeWidth={2}
+            dot={{ r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
 }
 
 function TrendBadge({ label, trend }: { label: string; trend: MetricTrend }) {
@@ -122,6 +203,16 @@ export function HistoryPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Net Worth, Income &amp; Expenses</h2>
+        <FinancialsChart snapshots={snapshots} />
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-medium text-gray-900">Health Score</h2>
+        <HealthScoreChart snapshots={snapshots} />
       </div>
 
       <div>

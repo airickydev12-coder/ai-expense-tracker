@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { getForecast, getStandardForecasts } from '../api/forecasting'
+import { formatChartNumber } from '../charts/format'
+import { CHART_CHROME, CHART_SERIES } from '../charts/palette'
 import type { FinancialForecastResponse, MetricProjectionResponse } from '../types/forecasting'
 
 type StandardState =
@@ -29,15 +41,59 @@ function StatCard({ projection }: { projection: MetricProjectionResponse }) {
   )
 }
 
+// Health score (0-100) is deliberately excluded from the chart below and
+// kept as a StatCard only — it's a different scale than the other five
+// dollar-denominated metrics, and mixing scales on one axis is misleading.
+function ForecastChart({ forecast }: { forecast: FinancialForecastResponse }) {
+  const data = [
+    forecast.net_worth,
+    forecast.cash_flow,
+    forecast.account_balance,
+    forecast.goal_progress,
+    forecast.total_debt,
+  ].map((item) => ({
+    metric: item.metric,
+    Current: item.current_value,
+    Projected: item.projected_value,
+  }))
+
+  return (
+    <div className="h-64 rounded border border-gray-200 p-2" style={{ background: CHART_CHROME.surface }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_CHROME.grid} vertical={false} />
+          <XAxis
+            dataKey="metric"
+            stroke={CHART_CHROME.axis}
+            tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }}
+            interval={0}
+            angle={-20}
+            textAnchor="end"
+            height={50}
+          />
+          <YAxis stroke={CHART_CHROME.axis} tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }} />
+          <Tooltip formatter={formatChartNumber} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar dataKey="Current" fill={CHART_SERIES.blue} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Projected" fill={CHART_SERIES.orange} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 function ForecastGrid({ forecast }: { forecast: FinancialForecastResponse }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <StatCard projection={forecast.net_worth} />
-      <StatCard projection={forecast.cash_flow} />
-      <StatCard projection={forecast.account_balance} />
-      <StatCard projection={forecast.goal_progress} />
-      <StatCard projection={forecast.total_debt} />
-      <StatCard projection={forecast.health_score} />
+    <div className="space-y-3">
+      <ForecastChart forecast={forecast} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard projection={forecast.net_worth} />
+        <StatCard projection={forecast.cash_flow} />
+        <StatCard projection={forecast.account_balance} />
+        <StatCard projection={forecast.goal_progress} />
+        <StatCard projection={forecast.total_debt} />
+        <StatCard projection={forecast.health_score} />
+      </div>
     </div>
   )
 }

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getDashboard } from '../api/dashboard'
 import { getHealth } from '../api/health'
+import { formatChartCurrency } from '../charts/format'
+import { CHART_CHROME, CHART_SERIES } from '../charts/palette'
 import type { DashboardResponse } from '../types/dashboard'
 import type { HealthResponse } from '../types/health'
 
@@ -73,7 +76,8 @@ export function DashboardPage() {
 
       <div>
         <h2 className="mb-2 text-lg font-medium text-gray-900">Category Totals</h2>
-        <ul className="divide-y divide-gray-200 rounded border border-gray-200">
+        <CategoryTotalsChart categoryTotals={dashboard.category_totals} />
+        <ul className="mt-3 divide-y divide-gray-200 rounded border border-gray-200">
           {Object.entries(dashboard.category_totals).map(([category, total]) => (
             <li key={category} className="flex justify-between px-3 py-2 text-sm">
               <span className="text-gray-700">{category}</span>
@@ -82,6 +86,36 @@ export function DashboardPage() {
           ))}
         </ul>
       </div>
+    </div>
+  )
+}
+
+function CategoryTotalsChart({ categoryTotals }: { categoryTotals: Record<string, number> }) {
+  const data = Object.entries(categoryTotals).map(([category, total]) => ({ category, total }))
+
+  if (data.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="h-64 rounded border border-gray-200 p-2" style={{ background: CHART_CHROME.surface }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_CHROME.grid} vertical={false} />
+          <XAxis
+            dataKey="category"
+            stroke={CHART_CHROME.axis}
+            tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }}
+            interval={0}
+            angle={-25}
+            textAnchor="end"
+            height={50}
+          />
+          <YAxis stroke={CHART_CHROME.axis} tick={{ fill: CHART_CHROME.mutedText, fontSize: 11 }} />
+          <Tooltip formatter={formatChartCurrency} />
+          <Bar dataKey="total" fill={CHART_SERIES.blue} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }
