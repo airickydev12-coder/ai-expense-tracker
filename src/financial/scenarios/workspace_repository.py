@@ -190,13 +190,15 @@ def _result_from_dict(
 
 
 def load_workspace_from_file(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> list[ScenarioResult]:
-    """Load saved scenario results from the database."""
+    """Load a user's saved scenario results from the database."""
     try:
         with get_connection(file_path) as connection:
             rows = connection.execute(
-                "SELECT data FROM scenario_workspace ORDER BY name"
+                "SELECT data FROM scenario_workspace WHERE user_id = ? ORDER BY name",
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(
@@ -212,8 +214,9 @@ def load_workspace_from_file(
         raise PersistenceError("Scenario workspace contains invalid JSON.") from error
 
     logger.debug(
-        "Loaded %d scenario result(s) from %s",
+        "Loaded %d scenario result(s) for user %d from %s",
         len(results),
+        user_id,
         file_path,
     )
 
@@ -222,22 +225,24 @@ def load_workspace_from_file(
 
 def save_workspace_to_file(
     results: list[ScenarioResult],
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Save scenario results to the database, replacing all existing rows."""
+    """Save a user's scenario results to the database, replacing their existing rows."""
     records = [
         {
             "name": result.name,
             "data": json.dumps(result.to_dict(), cls=_DecimalEncoder),
+            "user_id": user_id,
         }
         for result in results
     ]
 
     try:
         with get_connection(file_path) as connection:
-            connection.execute("DELETE FROM scenario_workspace")
+            connection.execute("DELETE FROM scenario_workspace WHERE user_id = ?", (user_id,))
             connection.executemany(
-                "INSERT INTO scenario_workspace (name, data) VALUES (:name, :data)",
+                "INSERT INTO scenario_workspace (name, data, user_id) VALUES (:name, :data, :user_id)",
                 records,
             )
     except sqlite3.Error as error:
@@ -246,19 +251,21 @@ def save_workspace_to_file(
         ) from error
 
     logger.debug(
-        "Saved %d scenario result(s) to %s",
+        "Saved %d scenario result(s) for user %d to %s",
         len(results),
+        user_id,
         file_path,
     )
 
 
 def clear_workspace_file(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Remove all persisted scenario workspace results."""
+    """Remove all of a user's persisted scenario workspace results."""
     try:
         with get_connection(file_path) as connection:
-            connection.execute("DELETE FROM scenario_workspace")
+            connection.execute("DELETE FROM scenario_workspace WHERE user_id = ?", (user_id,))
     except sqlite3.Error as error:
         raise PersistenceError(
             f"Failed to clear scenario workspace at {file_path}"

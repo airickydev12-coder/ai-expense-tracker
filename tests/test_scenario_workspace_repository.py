@@ -17,6 +17,9 @@ from src.financial.scenarios.workspace_repository import (
 )
 
 
+USER_ID = 1
+
+
 def build_snapshot() -> dict:
     """Create a reusable scenario snapshot."""
     return {
@@ -81,10 +84,11 @@ def test_save_and_load_workspace(
 
     save_workspace_to_file(
         original_results,
+        USER_ID,
         db_path,
     )
 
-    loaded_results = load_workspace_from_file(db_path)
+    loaded_results = load_workspace_from_file(USER_ID, db_path)
 
     assert loaded_results == original_results
 
@@ -135,10 +139,11 @@ def test_save_and_load_workspace_with_decimal_snapshot(
 
     save_workspace_to_file(
         [result],
+        USER_ID,
         db_path,
     )
 
-    loaded_results = load_workspace_from_file(db_path)
+    loaded_results = load_workspace_from_file(USER_ID, db_path)
 
     loaded_snapshot = loaded_results[0].original_snapshot
 
@@ -159,7 +164,7 @@ def test_load_workspace_returns_empty_when_db_missing(
 ):
     db_path = tmp_path / "missing_workspace.db"
 
-    assert load_workspace_from_file(db_path) == []
+    assert load_workspace_from_file(USER_ID, db_path) == []
 
 
 def test_save_workspace_creates_parent_directory(
@@ -169,6 +174,7 @@ def test_save_workspace_creates_parent_directory(
 
     save_workspace_to_file(
         [build_result()],
+        USER_ID,
         db_path,
     )
 
@@ -189,7 +195,7 @@ def test_load_workspace_rejects_invalid_database_file(
         ValueError,
         match="Failed to load scenario workspace",
     ):
-        load_workspace_from_file(db_path)
+        load_workspace_from_file(USER_ID, db_path)
 
 
 def test_load_workspace_rejects_unknown_scenario_type(
@@ -200,10 +206,11 @@ def test_load_workspace_rejects_unknown_scenario_type(
 
     with get_connection(db_path) as connection:
         connection.execute(
-            "INSERT INTO scenario_workspace (name, data) VALUES (:name, :data)",
+            "INSERT INTO scenario_workspace (name, data, user_id) VALUES (:name, :data, :user_id)",
             {
                 "name": data["name"],
                 "data": json.dumps(data),
+                "user_id": USER_ID,
             },
         )
 
@@ -211,7 +218,7 @@ def test_load_workspace_rejects_unknown_scenario_type(
         ValueError,
         match="Unknown scenario type",
     ):
-        load_workspace_from_file(db_path)
+        load_workspace_from_file(USER_ID, db_path)
 
 
 def test_clear_workspace_file(
@@ -219,14 +226,15 @@ def test_clear_workspace_file(
 ):
     save_workspace_to_file(
         [build_result()],
+        USER_ID,
         db_path,
     )
 
-    assert load_workspace_from_file(db_path) != []
+    assert load_workspace_from_file(USER_ID, db_path) != []
 
-    clear_workspace_file(db_path)
+    clear_workspace_file(USER_ID, db_path)
 
-    assert load_workspace_from_file(db_path) == []
+    assert load_workspace_from_file(USER_ID, db_path) == []
 
 
 def test_clear_workspace_with_no_rows_is_safe(
@@ -234,6 +242,6 @@ def test_clear_workspace_with_no_rows_is_safe(
 ):
     db_path = tmp_path / "missing_workspace.db"
 
-    clear_workspace_file(db_path)
+    clear_workspace_file(USER_ID, db_path)
 
-    assert load_workspace_from_file(db_path) == []
+    assert load_workspace_from_file(USER_ID, db_path) == []
