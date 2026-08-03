@@ -106,6 +106,12 @@ export interface MonthlyReviewNextActionDict {
   priority: string
 }
 
+export interface MonthlyReviewCategoryTrendDict {
+  category: string
+  change: number
+  direction: string
+}
+
 export interface MonthlyReviewDict {
   status: 'ok' | 'no_history' | 'insufficient_recent_history'
   message: string | null
@@ -121,6 +127,7 @@ export interface MonthlyReviewDict {
   goal_status: MonthlyReviewSectionDict | null
   health_score: MonthlyReviewHealthScoreDict | null
   top_actions: MonthlyReviewNextActionDict[] | null
+  category_trends: MonthlyReviewCategoryTrendDict[] | null
   known_gaps: string[] | null
 }
 

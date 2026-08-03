@@ -50,6 +50,35 @@ def test_record_snapshot(tmp_path):
     assert file_path.exists()
 
 
+def test_record_snapshot_captures_category_totals(tmp_path):
+    file_path = tmp_path / "financial_history.json"
+
+    load_history(file_path)
+
+    snapshot = build_snapshot()
+    snapshot["category_totals"] = {"Food": 245.50, "Utilities": 125.00}
+
+    record = record_snapshot(
+        snapshot,
+        file_path=file_path,
+    )
+
+    assert record.category_totals == {"Food": 245.50, "Utilities": 125.00}
+
+
+def test_record_snapshot_defaults_category_totals_when_absent(tmp_path):
+    file_path = tmp_path / "financial_history.json"
+
+    load_history(file_path)
+
+    record = record_snapshot(
+        build_snapshot(),
+        file_path=file_path,
+    )
+
+    assert record.category_totals == {}
+
+
 def test_record_snapshot_is_restored_after_reload(
     tmp_path,
 ):

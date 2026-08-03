@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime
+from decimal import Decimal
 
 import anthropic
 
@@ -11,16 +12,20 @@ from src.core.logging import get_logger
 from src.financial.application.recommendation_application_service import (
     build_recommendations,
 )
-from src.financial.history.analytics import filter_history_within_days
+from src.financial.history.analytics import (
+    filter_history_within_days,
+    get_category_totals_change,
+)
 from src.financial.history.models import FinancialSnapshotRecord
 from src.financial.history.service import get_history
 from src.financial.history.trend_summary import FinancialTrendSummary
-from src.financial.history.trends import analyze_financial_trends
+from src.financial.history.trends import CURRENCY_TREND_THRESHOLD, analyze_financial_trends
 from src.financial.recommendations.models import Recommendation
 
 logger = get_logger(__name__)
 
 REVIEW_WINDOW_DAYS = 31
+CATEGORY_TREND_LIMIT = 3
 
 _CATEGORY_TREND_GAP_NOTE = (
     "Category-level spending trends aren't available in this review because "
@@ -64,11 +69,31 @@ def _format_goal_line(goal: dict) -> str:
     )
 
 
+def _build_category_trends(category_changes: dict[str, Decimal]) -> list[dict]:
+    """Filter, sort, and cap category-level spending changes for display."""
+    notable = [
+        (category, change)
+        for category, change in category_changes.items()
+        if abs(change) >= CURRENCY_TREND_THRESHOLD
+    ]
+    notable.sort(key=lambda item: abs(item[1]), reverse=True)
+
+    return [
+        {
+            "category": category,
+            "change": change,
+            "direction": "Increasing" if change > 0 else "Decreasing",
+        }
+        for category, change in notable[:CATEGORY_TREND_LIMIT]
+    ]
+
+
 def _build_prompt(
     current_snapshot: dict,
     trend: FinancialTrendSummary,
     top_actions: list[Recommendation],
     window_days: int,
+    category_trends: list[dict],
 ) -> str:
     """Build the monthly-review prompt from real, precomputed data."""
     goal_lines = (
@@ -83,18 +108,27 @@ def _build_prompt(
         or "No active recommendations."
     )
 
+    category_trend_lines = (
+        "\n".join(
+            f"- {item['category']}: {item['direction']} by ${abs(item['change']):,.2f}"
+            for item in category_trends
+        )
+        or "No notable category-level spending shifts this period."
+    )
+
     return (
         "Write a monthly financial review covering the last "
         f"{window_days} days, grounded only in the real numbers given "
         "below -- do not invent numbers. Respond with: overall_summary "
         "(2-3 sentences); income_expenses_narrative (income vs. expenses "
-        "this period); cash_flow_narrative; debt_narrative; "
-        "savings_narrative; goals_narrative (current progress, using the "
-        "goal list below); health_score_narrative (referencing the change "
-        "over the period, not just the current score); and "
-        "next_actions_narrative (introducing the top actions below, "
-        "without inventing new ones). Each field should be 1-3 sentences "
-        "of plain prose, no markdown.\n\n"
+        "this period, mentioning any notable category-level spending "
+        "shifts listed below if there are any); cash_flow_narrative; "
+        "debt_narrative; savings_narrative; goals_narrative (current "
+        "progress, using the goal list below); health_score_narrative "
+        "(referencing the change over the period, not just the current "
+        "score); and next_actions_narrative (introducing the top actions "
+        "below, without inventing new ones). Each field should be 1-3 "
+        "sentences of plain prose, no markdown.\n\n"
         f"Current health score: {current_snapshot['health_score']}/100 "
         f"({current_snapshot['health_status']})\n"
         f"Health score change over period: {trend.health_score.change} "
@@ -110,6 +144,7 @@ def _build_prompt(
         f"Overall momentum: {trend.overall_momentum.value}\n"
         f"Current total debt: ${current_snapshot['total_debt']:,.2f}\n"
         f"Current net worth: ${current_snapshot['net_worth']:,.2f}\n"
+        f"Notable category-level spending shifts this period:\n{category_trend_lines}\n"
         f"Goals:\n{goal_lines}\n"
         f"Top recommended actions:\n{action_lines}"
     )
@@ -178,9 +213,16 @@ def _build_ok_review(
     windowed: list[FinancialSnapshotRecord],
 ) -> dict:
     """Build the full review, calling the LLM for narrative sections only."""
+    category_changes = get_category_totals_change(windowed)
+    category_trends = _build_category_trends(category_changes)
+
     review = _request_review(
-        _build_prompt(current_snapshot, trend, top_actions, REVIEW_WINDOW_DAYS)
+        _build_prompt(
+            current_snapshot, trend, top_actions, REVIEW_WINDOW_DAYS, category_trends
+        )
     )
+
+    known_gaps = [] if category_changes else [_CATEGORY_TREND_GAP_NOTE]
 
     return {
         "status": "ok",
@@ -223,7 +265,8 @@ def _build_ok_review(
             }
             for action in top_actions
         ],
-        "known_gaps": [_CATEGORY_TREND_GAP_NOTE],
+        "category_trends": category_trends,
+        "known_gaps": known_gaps,
     }
 
 

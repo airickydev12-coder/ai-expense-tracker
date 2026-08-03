@@ -457,6 +457,18 @@ export function CoachPage() {
                     </ul>
                   </div>
                 )}
+                {monthlyReviewState.review.category_trends && monthlyReviewState.review.category_trends.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">Category Spending Shifts</h3>
+                    <ul className="list-disc pl-5 text-gray-700">
+                      {monthlyReviewState.review.category_trends.map((trend) => (
+                        <li key={trend.category}>
+                          {`${trend.category}: ${trend.direction === 'Increasing' ? '+' : '-'}$${Math.abs(trend.change).toFixed(2)}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {monthlyReviewState.review.known_gaps && monthlyReviewState.review.known_gaps.length > 0 && (
                   <ul className="list-disc pl-5 text-xs text-gray-500">
                     {monthlyReviewState.review.known_gaps.map((gap, idx) => (

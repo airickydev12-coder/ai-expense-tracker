@@ -104,6 +104,11 @@ CREATE TABLE IF NOT EXISTS monthly_review_history (
     data TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS financial_history_category_totals (
+    timestamp TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS goal_ledger_entries (
     entry_id TEXT PRIMARY KEY,
     goal_id INTEGER NOT NULL,

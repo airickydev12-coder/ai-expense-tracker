@@ -88,6 +88,7 @@ const monthlyReview: MonthlyReviewDict = {
   goal_status: null,
   health_score: null,
   top_actions: null,
+  category_trends: null,
   known_gaps: null,
 }
 
@@ -207,6 +208,7 @@ describe('CoachPage', () => {
       goal_status: null,
       health_score: null,
       top_actions: null,
+      category_trends: null,
       known_gaps: null,
     }
 
@@ -223,5 +225,33 @@ describe('CoachPage', () => {
 
     expect(await screen.findByText(/Saved/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save This Review' })).not.toBeInTheDocument()
+  })
+
+  it('renders category spending shifts when present in the monthly review', async () => {
+    vi.mocked(coachApi.listInsights).mockResolvedValue(insights)
+    vi.mocked(coachApi.getCoachingSession).mockResolvedValue(session)
+    vi.mocked(coachApi.getMonthlyReview).mockResolvedValue({
+      status: 'ok',
+      message: null,
+      last_recorded_snapshot: null,
+      generated_at: null,
+      period_start: '2026-07-01T00:00:00+00:00',
+      period_end: '2026-08-01T00:00:00+00:00',
+      overall_summary: 'Overall summary.',
+      income_vs_expenses: null,
+      cash_flow: null,
+      debt_progress: null,
+      savings_progress: null,
+      goal_status: null,
+      health_score: null,
+      top_actions: null,
+      category_trends: [{ category: 'Food', change: 45.5, direction: 'Increasing' }],
+      known_gaps: [],
+    })
+
+    render(<CoachPage />)
+
+    expect(await screen.findByText('Category Spending Shifts')).toBeInTheDocument()
+    expect(screen.getByText('Food: +$45.50')).toBeInTheDocument()
   })
 })

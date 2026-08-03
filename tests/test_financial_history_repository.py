@@ -82,3 +82,30 @@ def test_load_history_rejects_invalid_database_file(
         match="Failed to load history",
     ):
         load_history_from_file(db_path)
+
+
+def test_save_and_load_history_round_trips_category_totals(db_path):
+    record = build_record()
+    record.category_totals = {
+        "Food": Decimal("245.50"),
+        "Utilities": Decimal("125.00"),
+    }
+
+    save_history_to_file([record], db_path)
+
+    loaded_history = load_history_from_file(db_path)
+
+    assert loaded_history == [record]
+    assert loaded_history[0].category_totals == {
+        "Food": Decimal("245.50"),
+        "Utilities": Decimal("125.00"),
+    }
+
+
+def test_load_history_defaults_missing_category_totals_to_empty_dict(db_path):
+    """A legacy row with no matching category-totals row loads as {}."""
+    save_history_to_file([build_record()], db_path)
+
+    loaded_history = load_history_from_file(db_path)
+
+    assert loaded_history[0].category_totals == {}

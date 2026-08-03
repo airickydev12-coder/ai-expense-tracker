@@ -95,6 +95,14 @@ class MonthlyReviewNextActionResponse(BaseModel):
     priority: str
 
 
+class MonthlyReviewCategoryTrendResponse(BaseModel):
+    """One notable category-level spending change surfaced in a monthly review."""
+
+    category: str
+    change: Decimal
+    direction: str
+
+
 class MonthlyReviewResponse(BaseModel):
     """
     Response body for a monthly financial review.
@@ -120,6 +128,7 @@ class MonthlyReviewResponse(BaseModel):
     goal_status: MonthlyReviewGoalStatusResponse | None = None
     health_score: MonthlyReviewHealthScoreResponse | None = None
     top_actions: list[MonthlyReviewNextActionResponse] | None = None
+    category_trends: list[MonthlyReviewCategoryTrendResponse] | None = None
     known_gaps: list[str] | None = None
 
 

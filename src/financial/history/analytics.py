@@ -88,3 +88,22 @@ def get_expense_change(
     ordered_history = _sort_history(history)
 
     return ordered_history[-1].total_expenses - ordered_history[0].total_expenses
+
+
+def get_category_totals_change(
+    history: list[FinancialSnapshotRecord],
+) -> dict[str, Decimal]:
+    """Return per-category spending change from oldest to newest snapshot."""
+    if len(history) < 2:
+        return {}
+
+    ordered_history = _sort_history(history)
+    oldest = ordered_history[0].category_totals
+    newest = ordered_history[-1].category_totals
+
+    categories = set(oldest) | set(newest)
+
+    return {
+        category: newest.get(category, ZERO) - oldest.get(category, ZERO)
+        for category in categories
+    }

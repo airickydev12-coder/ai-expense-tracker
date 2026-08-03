@@ -4,6 +4,7 @@ from decimal import Decimal
 from src.financial.history.analytics import (
     filter_history_within_days,
     get_cash_flow_change,
+    get_category_totals_change,
     get_expense_change,
     get_health_score_change,
     get_income_change,
@@ -111,3 +112,33 @@ def test_filter_history_within_days_uses_now_parameter():
 
 def test_filter_history_within_days_returns_empty_for_empty_history():
     assert filter_history_within_days([], 31) == []
+
+
+def test_get_category_totals_change_computes_per_category_delta():
+    newer, older = build_history()
+    older.category_totals = {"Food": Decimal("200.00"), "Utilities": Decimal("100.00")}
+    newer.category_totals = {"Food": Decimal("245.50"), "Utilities": Decimal("100.00")}
+
+    change = get_category_totals_change([newer, older])
+
+    assert change == {"Food": Decimal("45.50"), "Utilities": Decimal("0.00")}
+
+
+def test_get_category_totals_change_handles_category_added_or_removed():
+    newer, older = build_history()
+    older.category_totals = {"Food": Decimal("200.00")}
+    newer.category_totals = {"Entertainment": Decimal("50.00")}
+
+    change = get_category_totals_change([newer, older])
+
+    assert change == {"Food": Decimal("-200.00"), "Entertainment": Decimal("50.00")}
+
+
+def test_get_category_totals_change_returns_empty_for_insufficient_history():
+    assert get_category_totals_change([build_history()[0]]) == {}
+
+
+def test_get_category_totals_change_returns_empty_when_no_category_data():
+    newer, older = build_history()
+
+    assert get_category_totals_change([newer, older]) == {}

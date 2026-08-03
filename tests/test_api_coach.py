@@ -162,7 +162,10 @@ def test_get_monthly_review_ok(monkeypatch: pytest.MonkeyPatch) -> None:
                     "priority": "HIGH",
                 }
             ],
-            "known_gaps": ["Category-level spending trends aren't available."],
+            "category_trends": [
+                {"category": "Food", "change": Decimal("45.50"), "direction": "Increasing"}
+            ],
+            "known_gaps": [],
         }
 
     monkeypatch.setattr(
@@ -178,6 +181,7 @@ def test_get_monthly_review_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body["status"] == "ok"
     assert body["overall_summary"] == "Overall summary."
     assert body["top_actions"][0]["title"] == "High Interest Debt"
+    assert body["category_trends"][0]["category"] == "Food"
 
 
 def test_post_monthly_review_saves_when_status_ok(

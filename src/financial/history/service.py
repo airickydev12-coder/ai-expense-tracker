@@ -73,6 +73,10 @@ def record_snapshot(
         net_worth=to_money(snapshot["net_worth"]),
         health_score=int(snapshot["health_score"]),
         health_status=str(snapshot["health_status"]),
+        category_totals={
+            category: to_money(amount)
+            for category, amount in snapshot.get("category_totals", {}).items()
+        },
     )
 
     _history.append(record)

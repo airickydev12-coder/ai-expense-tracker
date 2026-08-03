@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 
@@ -24,6 +24,8 @@ class FinancialSnapshotRecord:
     health_score: int
     health_status: str
 
+    category_totals: dict[str, Decimal] = field(default_factory=dict)
+
     def __post_init__(self) -> None:
         """Normalize monetary fields to Decimal."""
         self.total_income = to_money(self.total_income)
@@ -33,6 +35,9 @@ class FinancialSnapshotRecord:
         self.total_goal_progress = to_money(self.total_goal_progress)
         self.total_debt = to_money(self.total_debt)
         self.net_worth = to_money(self.net_worth)
+        self.category_totals = {
+            category: to_money(amount) for category, amount in self.category_totals.items()
+        }
 
     def to_dict(self) -> dict:
         """Convert the snapshot to a dictionary."""
@@ -47,6 +52,10 @@ class FinancialSnapshotRecord:
             "net_worth": money_to_json(self.net_worth),
             "health_score": self.health_score,
             "health_status": self.health_status,
+            "category_totals": {
+                category: money_to_json(amount)
+                for category, amount in self.category_totals.items()
+            },
         }
 
     @classmethod
@@ -66,4 +75,8 @@ class FinancialSnapshotRecord:
             net_worth=money_from_json(str(data["net_worth"])),
             health_score=int(data["health_score"]),
             health_status=data["health_status"],
+            category_totals={
+                category: money_from_json(str(amount))
+                for category, amount in data.get("category_totals", {}).items()
+            },
         )

@@ -32,7 +32,12 @@ def build_current_snapshot() -> dict:
     }
 
 
-def build_snapshot_record(days_ago: int, *, now: datetime) -> FinancialSnapshotRecord:
+def build_snapshot_record(
+    days_ago: int,
+    *,
+    now: datetime,
+    category_totals: dict | None = None,
+) -> FinancialSnapshotRecord:
     return FinancialSnapshotRecord(
         timestamp=now - timedelta(days=days_ago),
         total_income=Decimal("5000.00"),
@@ -44,6 +49,7 @@ def build_snapshot_record(days_ago: int, *, now: datetime) -> FinancialSnapshotR
         net_worth=Decimal("5000.00"),
         health_score=80,
         health_status="Good",
+        category_totals=category_totals or {},
     )
 
 
@@ -149,6 +155,69 @@ def test_generate_monthly_review_ok_status_calls_llm_with_two_recent_snapshots(
     assert result["cash_flow"]["narrative"] == "Cash flow narrative."
     assert result["top_actions"][0]["title"] == "High Interest Debt"
     assert result["known_gaps"] == [monthly_review._CATEGORY_TREND_GAP_NOTE]
+    assert result["category_trends"] == []
+
+
+def test_generate_monthly_review_surfaces_real_category_trends(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When category history exists, the gap note drops and trends are real."""
+    now = datetime.now(timezone.utc)
+    history = [
+        build_snapshot_record(
+            20, now=now, category_totals={"Food": Decimal("200.00")}
+        ),
+        build_snapshot_record(
+            1, now=now, category_totals={"Food": Decimal("260.00")}
+        ),
+    ]
+
+    monkeypatch.setattr(monthly_review, "get_history", lambda: history)
+    monkeypatch.setattr(
+        monthly_review, "build_recommendations", lambda limit: [build_recommendation()]
+    )
+    monkeypatch.setattr(
+        monthly_review,
+        "_request_review",
+        lambda prompt: {
+            "overall_summary": "Overall summary.",
+            "income_expenses_narrative": "Income narrative.",
+            "cash_flow_narrative": "Cash flow narrative.",
+            "debt_narrative": "Debt narrative.",
+            "savings_narrative": "Savings narrative.",
+            "goals_narrative": "Goals narrative.",
+            "health_score_narrative": "Health score narrative.",
+            "next_actions_narrative": "Next actions narrative.",
+        },
+    )
+
+    result = monthly_review.generate_monthly_review(
+        build_current_snapshot(),
+        now=now,
+    )
+
+    assert result["known_gaps"] == []
+    assert result["category_trends"] == [
+        {"category": "Food", "change": Decimal("60.00"), "direction": "Increasing"}
+    ]
+
+
+def test_build_category_trends_filters_sorts_and_caps() -> None:
+    changes = {
+        "Food": Decimal("60.00"),
+        "Utilities": Decimal("5.00"),  # below threshold, dropped
+        "Entertainment": Decimal("-90.00"),
+        "Housing": Decimal("30.00"),
+        "Healthcare": Decimal("-200.00"),
+    }
+
+    trends = monthly_review._build_category_trends(changes)
+
+    assert trends == [
+        {"category": "Healthcare", "change": Decimal("-200.00"), "direction": "Decreasing"},
+        {"category": "Entertainment", "change": Decimal("-90.00"), "direction": "Decreasing"},
+        {"category": "Food", "change": Decimal("60.00"), "direction": "Increasing"},
+    ]
 
 
 def test_request_review_wraps_anthropic_errors(
