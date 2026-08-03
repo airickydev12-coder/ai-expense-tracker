@@ -1,5 +1,6 @@
 """Tests for the AI financial coach tool-use chat loop."""
 
+import contextlib
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -7,8 +8,12 @@ import anthropic
 import httpx
 import pytest
 
+from src.core.db import clear_test_database, initialize_database, set_test_database
 from src.core.exceptions import ExternalServiceError, ValidationError
+from src.financial.budgets.service import budgets as _budgets
 from src.financial.coach import chat
+from src.financial.expenses.service import add_expense, expenses as _expenses
+from src.financial.goals.service import goals as _goals
 from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.history_service import (
     get_recommendation_record,
@@ -23,6 +28,19 @@ from src.financial.scenarios.workspace import scenario_workspace
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace as _real_save_result_to_workspace,
 )
+from src.financial.shared.categories import ExpenseCategory
+
+
+@contextlib.contextmanager
+def _isolated_test_database(tmp_path):
+    """Redirect all SQLite writes to a throwaway DB for the duration of a test."""
+    test_db_path = tmp_path / "test_stage4_write_tools.db"
+    initialize_database(test_db_path)
+    set_test_database(test_db_path)
+    try:
+        yield
+    finally:
+        clear_test_database()
 
 
 def _text_message(text: str) -> SimpleNamespace:
@@ -579,3 +597,224 @@ def test_run_coach_chat_executes_save_scenario_tool(
 
     assert reply == "Saved that scenario for you."
     assert received == {"scenario_type": "Additional Savings", "confirmed": True}
+
+
+# --- add_goal: confirmed flag gate ------------------------------------------
+
+
+def test_tool_add_goal_refuses_when_not_confirmed(tmp_path) -> None:
+    _goals.clear()
+    with _isolated_test_database(tmp_path):
+        result = chat._tool_add_goal(
+            name="Vacation Fund", target_amount=2000.0, confirmed=False
+        )
+
+        assert result["added"] is False
+        assert _goals == []
+
+
+def test_tool_add_goal_creates_real_goal_when_confirmed(tmp_path) -> None:
+    _goals.clear()
+    try:
+        with _isolated_test_database(tmp_path):
+            result = chat._tool_add_goal(
+                name="Vacation Fund",
+                target_amount=2000.0,
+                confirmed=True,
+                current_amount=250.0,
+            )
+
+            assert result["added"] is True
+            assert result["goal"]["name"] == "Vacation Fund"
+            assert len(_goals) == 1
+            assert _goals[0].name == "Vacation Fund"
+    finally:
+        _goals.clear()
+
+
+def test_run_coach_chat_executes_add_goal_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "add_goal",
+                input={
+                    "name": "Vacation Fund",
+                    "target_amount": 2000.0,
+                    "confirmed": True,
+                },
+            ),
+            _text_message("Added your Vacation Fund goal."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_add_goal(name: str, target_amount: float, confirmed: bool = False, **kwargs: object) -> dict:
+        received["name"] = name
+        received["target_amount"] = target_amount
+        received["confirmed"] = confirmed
+        return {"added": True, "goal": {"id": 1, "name": name}}
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "add_goal", fake_add_goal)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, add that goal."}]
+    )
+
+    assert reply == "Added your Vacation Fund goal."
+    assert received == {"name": "Vacation Fund", "target_amount": 2000.0, "confirmed": True}
+
+
+# --- update_budget: confirmed flag gate -------------------------------------
+
+
+def test_tool_update_budget_refuses_when_not_confirmed(tmp_path) -> None:
+    _budgets.clear()
+    with _isolated_test_database(tmp_path):
+        result = chat._tool_update_budget(
+            category="Food", limit=400.0, confirmed=False
+        )
+
+        assert result["updated"] is False
+        assert _budgets == []
+
+
+def test_tool_update_budget_updates_real_budget_when_confirmed(tmp_path) -> None:
+    _budgets.clear()
+    try:
+        with _isolated_test_database(tmp_path):
+            result = chat._tool_update_budget(
+                category="Food", limit=400.0, confirmed=True
+            )
+
+            assert result["updated"] is True
+            assert result["budget"]["category"] == "Food"
+            assert result["budget"]["limit"] == "400.00"
+            assert len(_budgets) == 1
+            assert _budgets[0].category == ExpenseCategory.FOOD
+    finally:
+        _budgets.clear()
+
+
+def test_run_coach_chat_executes_update_budget_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "update_budget",
+                input={"category": "Food", "limit": 400.0, "confirmed": True},
+            ),
+            _text_message("Set your Food budget to $400."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_update_budget(category: str, limit: float, confirmed: bool = False) -> dict:
+        received["category"] = category
+        received["limit"] = limit
+        received["confirmed"] = confirmed
+        return {"updated": True, "budget": {"category": category, "limit": str(limit)}}
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "update_budget", fake_update_budget)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, set that budget."}]
+    )
+
+    assert reply == "Set your Food budget to $400."
+    assert received == {"category": "Food", "limit": 400.0, "confirmed": True}
+
+
+# --- categorize_expense: confirmed flag gate --------------------------------
+
+
+def test_tool_categorize_expense_refuses_when_not_confirmed(tmp_path) -> None:
+    _expenses.clear()
+    try:
+        with _isolated_test_database(tmp_path):
+            expense = add_expense(
+                name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
+            )
+
+            result = chat._tool_categorize_expense(
+                expense_id=expense.id, category="Food", confirmed=False
+            )
+
+            assert result["categorized"] is False
+            assert _expenses[0].category == ExpenseCategory.OTHER
+    finally:
+        _expenses.clear()
+
+
+def test_tool_categorize_expense_recategorizes_real_expense_when_confirmed(
+    tmp_path,
+) -> None:
+    _expenses.clear()
+    try:
+        with _isolated_test_database(tmp_path):
+            expense = add_expense(
+                name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
+            )
+
+            result = chat._tool_categorize_expense(
+                expense_id=expense.id, category="Food", confirmed=True
+            )
+
+            assert result["categorized"] is True
+            assert result["expense"]["category"] == "Food"
+            assert _expenses[0].category == ExpenseCategory.FOOD
+    finally:
+        _expenses.clear()
+
+
+def test_tool_categorize_expense_rejects_unknown_expense_id(tmp_path) -> None:
+    _expenses.clear()
+    try:
+        with _isolated_test_database(tmp_path):
+            result = chat._tool_categorize_expense(
+                expense_id=999999, category="Food", confirmed=True
+            )
+
+            assert result["categorized"] is False
+            assert "get_expense_details" in result["reason"]
+    finally:
+        _expenses.clear()
+
+
+def test_run_coach_chat_executes_categorize_expense_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "categorize_expense",
+                input={"expense_id": 7, "category": "Food", "confirmed": True},
+            ),
+            _text_message("Moved that expense to Food."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_categorize_expense(
+        expense_id: int, category: str, confirmed: bool = False
+    ) -> dict:
+        received["expense_id"] = expense_id
+        received["category"] = category
+        received["confirmed"] = confirmed
+        return {"categorized": True, "expense": {"id": expense_id, "category": category}}
+
+    monkeypatch.setitem(chat._TOOL_FUNCTIONS, "categorize_expense", fake_categorize_expense)
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "Yes, recategorize it."}]
+    )
+
+    assert reply == "Moved that expense to Food."
+    assert received == {"expense_id": 7, "category": "Food", "confirmed": True}

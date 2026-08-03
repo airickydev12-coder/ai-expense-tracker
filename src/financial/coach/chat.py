@@ -9,6 +9,7 @@ import anthropic
 from src.core import ai_client
 from src.core.exceptions import ExternalServiceError
 from src.core.logging import get_logger
+from src.core.money import to_money
 from src.financial.accounts.service import get_accounts
 from src.financial.application.financial_state import build_current_financial_snapshot
 from src.financial.bills.analytics import (
@@ -18,7 +19,7 @@ from src.financial.bills.analytics import (
 )
 from src.financial.bills.service import get_bills
 from src.financial.budgets.analytics import get_budget_summary
-from src.financial.budgets.service import get_budgets
+from src.financial.budgets.service import get_budgets, update_budget
 from src.financial.application.recommendation_application_service import (
     build_recommendations,
 )
@@ -38,9 +39,9 @@ from src.financial.expenses.analytics import (
     get_lowest_expense,
     get_total,
 )
-from src.financial.expenses.service import get_expenses
+from src.financial.expenses.service import get_expenses, update_expense
 from src.financial.goals.analytics import get_goal_progress_percentage, get_total_goal_progress
-from src.financial.goals.service import get_goals
+from src.financial.goals.service import add_goal, get_goals
 from src.financial.income.analytics import get_average_income, get_total_income
 from src.financial.income.service import get_income_entries
 from src.financial.recommendations.history_service import dismiss_recommendation
@@ -48,6 +49,7 @@ from src.financial.scenarios.models import ScenarioRequest, ScenarioResult, Scen
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 from src.financial.scenarios.service import run_financial_scenario
 from src.financial.scenarios.workspace_service import save_result_to_workspace
+from src.financial.shared.categories import ExpenseCategory
 
 logger = get_logger(__name__)
 
@@ -60,27 +62,30 @@ _SYSTEM_PROMPT = (
     "calculation, or simulates a real scenario. Never guess a number or "
     "invent an outcome; call a tool to get it. If no tool covers what's "
     "being asked, say so rather than inventing data.\n\n"
-    "You are read-only over the user's core stored data: you cannot create, "
-    "modify, or delete any expense, budget, debt, goal, bill, income entry, "
-    "or account. Running a scenario is different — it is a pure, "
-    "non-persisted calculation, not a data mutation, so you CAN and should "
-    "run one whenever the user asks a \"what if\" question (e.g. \"what if "
-    "I cut dining out by 20%\" or \"what if I paid an extra $100 toward my "
-    "credit card\"), using the run_scenario tool. For a debt scenario, call "
-    "get_debt_details first to find the real debt_id before calling "
-    "run_scenario — never guess an id. After running a scenario, present "
-    "the real calculated result to the user and compare it against their "
-    "current numbers rather than restating the raw tool output verbatim.\n\n"
-    "Two actions ARE allowed to write: dismissing a recommendation "
-    "(dismiss_recommendation) and saving a scenario you already ran "
-    "(save_scenario). Both require explicit approval first: describe the "
-    "specific action in plain language and wait for the user's explicit "
-    "'yes' or equivalent approval in a later message before calling the "
-    "tool with confirmed: true. Never set confirmed: true unless the "
-    "user's most recent message clearly approves that specific action — if "
-    "it's ambiguous, ask for clarification instead of guessing. For "
-    "dismiss_recommendation, call list_recommendations first so you have a "
-    "real recommendation_key — never guess one.\n\n"
+    "You cannot delete anything, and you cannot touch debts, bills, income "
+    "entries, or accounts at all -- those stay strictly read-only. Running "
+    "a scenario is different from a mutation — it is a pure, non-persisted "
+    "calculation, so you CAN and should run one whenever the user asks a "
+    "\"what if\" question (e.g. \"what if I cut dining out by 20%\" or "
+    "\"what if I paid an extra $100 toward my credit card\"), using the "
+    "run_scenario tool. For a debt scenario, call get_debt_details first to "
+    "find the real debt_id before calling run_scenario — never guess an id. "
+    "After running a scenario, present the real calculated result to the "
+    "user and compare it against their current numbers rather than "
+    "restating the raw tool output verbatim.\n\n"
+    "Exactly five actions are allowed to write, and each requires explicit "
+    "approval first: describe the specific action in plain language and "
+    "wait for the user's explicit 'yes' or equivalent approval in a later "
+    "message before calling the tool with confirmed: true. Never set "
+    "confirmed: true unless the user's most recent message clearly approves "
+    "that specific action — if it's ambiguous, ask for clarification "
+    "instead of guessing. The five actions: dismiss_recommendation (call "
+    "list_recommendations first for a real recommendation_key — never "
+    "guess one); save_scenario (save a scenario you already ran with "
+    "run_scenario); add_goal (create a new savings goal); update_budget "
+    "(set a category's monthly limit — creates the budget if none exists "
+    "yet); and categorize_expense (call get_expense_details first for a "
+    "real expense_id — never guess one).\n\n"
     "When asked what to prioritize or which recommendations matter most, "
     "call list_recommendations rather than inventing a priority order. "
     "When asked why a specific recommendation matters or what impact acting "
@@ -359,6 +364,69 @@ def _tool_save_scenario(
     return {"saved": True, "name": result.name, "description": result.description}
 
 
+def _tool_add_goal(
+    name: str,
+    target_amount: float,
+    confirmed: bool = False,
+    current_amount: float = 0.0,
+) -> dict:
+    if not confirmed:
+        return {
+            "added": False,
+            "reason": (
+                "Not added -- confirmed must be true, and should only be "
+                "set once the user has explicitly approved adding this "
+                "exact goal in their most recent message."
+            ),
+        }
+    goal = add_goal(name=name, target_amount=target_amount, current_amount=current_amount)
+    return {"added": True, "goal": goal.to_dict()}
+
+
+def _tool_update_budget(
+    category: str,
+    limit: float,
+    confirmed: bool = False,
+) -> dict:
+    if not confirmed:
+        return {
+            "updated": False,
+            "reason": (
+                "Not updated -- confirmed must be true, and should only be "
+                "set once the user has explicitly approved this exact "
+                "budget change in their most recent message."
+            ),
+        }
+    budget = update_budget(category=ExpenseCategory(category), limit=to_money(limit))
+    return {"updated": True, "budget": budget.to_dict()}
+
+
+def _tool_categorize_expense(
+    expense_id: int,
+    category: str,
+    confirmed: bool = False,
+) -> dict:
+    if not confirmed:
+        return {
+            "categorized": False,
+            "reason": (
+                "Not categorized -- confirmed must be true, and should only "
+                "be set once the user has explicitly approved this exact "
+                "recategorization in their most recent message."
+            ),
+        }
+    expense = update_expense(expense_id, category=ExpenseCategory(category))
+    if expense is None:
+        return {
+            "categorized": False,
+            "reason": (
+                "That expense ID doesn't exist -- call get_expense_details "
+                "first to get a real one. Never guess an id."
+            ),
+        }
+    return {"categorized": True, "expense": expense.to_dict()}
+
+
 _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_financial_snapshot": _tool_financial_snapshot,
     "get_expense_details": _tool_expense_details,
@@ -375,6 +443,9 @@ _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "search_saved_content": _tool_search_saved_content,
     "dismiss_recommendation": _tool_dismiss_recommendation,
     "save_scenario": _tool_save_scenario,
+    "add_goal": _tool_add_goal,
+    "update_budget": _tool_update_budget,
+    "categorize_expense": _tool_categorize_expense,
 }
 
 _EMPTY_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -542,6 +613,90 @@ _SAVE_SCENARIO_SCHEMA = {
     "additionalProperties": False,
 }
 
+_ADD_GOAL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "A short name for the goal, e.g. 'Emergency Fund'.",
+        },
+        "target_amount": {
+            "type": "number",
+            "description": "The dollar amount the goal is aiming for. Must be greater than 0.",
+        },
+        "current_amount": {
+            "type": "number",
+            "description": "Amount already saved toward the goal. Defaults to 0.",
+        },
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved adding this exact goal in their most recent "
+                "message."
+            ),
+        },
+    },
+    "required": ["name", "target_amount", "confirmed"],
+    "additionalProperties": False,
+}
+
+_UPDATE_BUDGET_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "category": {
+            "type": "string",
+            "enum": [category.value for category in ExpenseCategory],
+            "description": "Which expense category's budget to set.",
+        },
+        "limit": {
+            "type": "number",
+            "description": (
+                "The new monthly budget limit for this category. If no "
+                "budget exists yet for this category, one is created."
+            ),
+        },
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved this exact budget change in their most recent "
+                "message."
+            ),
+        },
+    },
+    "required": ["category", "limit", "confirmed"],
+    "additionalProperties": False,
+}
+
+_CATEGORIZE_EXPENSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "expense_id": {
+            "type": "integer",
+            "description": (
+                "The real expense ID from get_expense_details. Never guess "
+                "this value."
+            ),
+        },
+        "category": {
+            "type": "string",
+            "enum": [category.value for category in ExpenseCategory],
+            "description": "The category to move this expense into.",
+        },
+        "confirmed": {
+            "type": "boolean",
+            "description": (
+                "Must be true, and only true once the user has explicitly "
+                "approved this exact recategorization in their most recent "
+                "message."
+            ),
+        },
+    },
+    "required": ["expense_id", "category", "confirmed"],
+    "additionalProperties": False,
+}
+
 _TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "get_financial_snapshot",
@@ -681,6 +836,40 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "current data and stores the result."
         ),
         "input_schema": _SAVE_SCENARIO_SCHEMA,
+    },
+    {
+        "name": "add_goal",
+        "description": (
+            "Call this to add a new savings goal, but ONLY after the user "
+            "has explicitly approved adding it in their most recent message "
+            "-- first describe the goal (name and target amount) and wait "
+            "for their approval."
+        ),
+        "input_schema": _ADD_GOAL_SCHEMA,
+    },
+    {
+        "name": "update_budget",
+        "description": (
+            "Call this to set or change the monthly budget limit for an "
+            "expense category, but ONLY after the user has explicitly "
+            "approved this exact change in their most recent message -- "
+            "first describe the new limit and wait for their approval. "
+            "Creates the budget if one doesn't already exist for that "
+            "category."
+        ),
+        "input_schema": _UPDATE_BUDGET_SCHEMA,
+    },
+    {
+        "name": "categorize_expense",
+        "description": (
+            "Call this to move an expense into a different category, but "
+            "ONLY after the user has explicitly approved this exact change "
+            "in their most recent message -- first describe which expense "
+            "and the new category, and wait for their approval. Call "
+            "get_expense_details first to find the real expense_id; never "
+            "guess it."
+        ),
+        "input_schema": _CATEGORIZE_EXPENSE_SCHEMA,
     },
 ]
 
