@@ -83,8 +83,12 @@ def test_get_dashboard_with_financial_data(
     }
 
     assert data["budget_count"] == 2
-    assert data["health_score"] == 65
-    assert data["health_status"] == "Fair"
+
+    # Net cash flow is negative (no income, $150 in expenses) and there's no
+    # debt: 50 baseline - 20 cash flow + 15 no debt = 45, "Needs Attention".
+    assert data["health_score"] == 45
+    assert data["health_status"] == "Needs Attention"
+    assert data["recommendation_count"] > 0
 
 
 def test_get_dashboard_without_financial_data(

@@ -4,14 +4,19 @@ from decimal import Decimal
 
 import pytest
 
+from src.financial.accounts import service as account_service
 from src.financial.application.dashboard_service import (
     Dashboard,
     build_dashboard,
 )
+from src.financial.bills import service as bill_service
 from src.financial.budgets import service as budget_service
 from src.financial.budgets.models import Budget
+from src.financial.debt import service as debt_service
 from src.financial.expenses import service as expense_service
 from src.financial.expenses.models import Expense
+from src.financial.goals import service as goal_service
+from src.financial.income import service as income_service
 from src.financial.shared.categories import ExpenseCategory
 
 
@@ -58,6 +63,16 @@ def test_build_dashboard(
         test_budgets,
     )
 
+    # The dashboard now delegates to the canonical financial snapshot, which
+    # also reads accounts/goals/debts/bills/income — isolate all of them so
+    # the health score and recommendation count are deterministic regardless
+    # of what other tests leave in these module-level in-memory lists.
+    monkeypatch.setattr(account_service, "accounts", [])
+    monkeypatch.setattr(goal_service, "goals", [])
+    monkeypatch.setattr(debt_service, "debts", [])
+    monkeypatch.setattr(bill_service, "bills", [])
+    monkeypatch.setattr(income_service, "income_entries", [])
+
     dashboard = build_dashboard()
 
     assert isinstance(dashboard, Dashboard)
@@ -82,7 +97,14 @@ def test_build_dashboard(
     assert dashboard.remaining_budget == Decimal("600.00")
     assert dashboard.budget_used_percent == Decimal("20.00")
 
-    assert dashboard.recommendation_count == 0
+    # Net cash flow is negative (no income, $150 in expenses), there's no
+    # debt, and no goal/net-worth progress: 50 baseline - 20 cash flow + 15
+    # no debt + 0 + 0 = 45, which lands in the "Needs Attention" band.
+    assert dashboard.health_score == 45
+    assert dashboard.health_status == "Needs Attention"
 
-    assert dashboard.health_score == 65
-    assert dashboard.health_status == "Fair"
+    # This bare-bones snapshot (no income, no accounts, negative cash flow)
+    # trips several rule-engine conditions (e.g. zero income, negative cash
+    # flow) — asserting membership in a sane range rather than a brittle
+    # exact count tied to the current rule set.
+    assert dashboard.recommendation_count > 0
