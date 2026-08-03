@@ -13,7 +13,7 @@ from pathlib import Path
 from src.core.config import DB_PATH
 from src.core.exceptions import PersistenceError
 
-SCHEMA = """
+_SINGLE_USER_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -22,54 +22,6 @@ CREATE TABLE IF NOT EXISTS users (
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS accounts (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    account_type TEXT NOT NULL,
-    balance TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS bills (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    amount TEXT NOT NULL,
-    due_day INTEGER NOT NULL,
-    is_paid INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS budgets (
-    category TEXT PRIMARY KEY,
-    "limit" TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS debts (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    balance TEXT NOT NULL,
-    interest_rate REAL NOT NULL,
-    minimum_payment TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL,
-    amount TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS income (
-    id INTEGER PRIMARY KEY,
-    source TEXT NOT NULL,
-    amount TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS goals (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    target_amount TEXT NOT NULL,
-    current_amount TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS financial_history (
@@ -86,64 +38,12 @@ CREATE TABLE IF NOT EXISTS financial_history (
     health_status TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS recommendation_history (
-    recommendation_key TEXT PRIMARY KEY,
-    status TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    note TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS goal_planning_requests (
-    goal_id INTEGER PRIMARY KEY,
-    target_date TEXT NOT NULL,
-    planned_monthly_contribution TEXT NOT NULL,
-    priority TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS scenario_workspace (
-    name TEXT PRIMARY KEY,
-    data TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS monthly_review_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     generated_at TEXT NOT NULL,
     period_start TEXT NOT NULL,
     period_end TEXT NOT NULL,
     data TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS financial_history_category_totals (
-    timestamp TEXT PRIMARY KEY,
-    data TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS saved_notes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS notification_log (
-    id INTEGER PRIMARY KEY,
-    notification_key TEXT NOT NULL,
-    channel TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    body TEXT NOT NULL,
-    sent_at TEXT NOT NULL,
-    status TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS recurring_expense_templates (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL,
-    amount TEXT NOT NULL,
-    frequency TEXT NOT NULL,
-    next_occurrence TEXT NOT NULL,
-    is_active INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS goal_ledger_entries (
@@ -160,41 +60,240 @@ CREATE TABLE IF NOT EXISTS goal_ledger_entries (
 );
 """
 
+# Tables whose own id/key is assigned by the app itself (a per-list max+1
+# counter, or a deterministic/free-text value) rather than by SQLite
+# AUTOINCREMENT or a UUID. Once each user's data is isolated, two users'
+# rows would collide on an identical id/key unless user_id is part of the
+# primary key — so each of these gets a composite (user_id, <original key>)
+# PK instead of the single-column PK it had before Stage B. Column order
+# matches exactly what Stage A's _ensure_user_id_columns ALTER TABLE
+# appended (original columns, then user_id last), so the migration below
+# can copy rows with a plain `SELECT *` rather than an explicit column list.
+_COMPOSITE_PK_TABLE_SCHEMAS: dict[str, str] = {
+    "accounts": """
+        CREATE TABLE IF NOT EXISTS accounts (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            account_type TEXT NOT NULL,
+            balance TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "bills": """
+        CREATE TABLE IF NOT EXISTS bills (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            due_day INTEGER NOT NULL,
+            is_paid INTEGER NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "budgets": """
+        CREATE TABLE IF NOT EXISTS budgets (
+            category TEXT NOT NULL,
+            "limit" TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, category)
+        );
+    """,
+    "debts": """
+        CREATE TABLE IF NOT EXISTS debts (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            balance TEXT NOT NULL,
+            interest_rate REAL NOT NULL,
+            minimum_payment TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "expenses": """
+        CREATE TABLE IF NOT EXISTS expenses (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "income": """
+        CREATE TABLE IF NOT EXISTS income (
+            id INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "goals": """
+        CREATE TABLE IF NOT EXISTS goals (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            target_amount TEXT NOT NULL,
+            current_amount TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "recommendation_history": """
+        CREATE TABLE IF NOT EXISTS recommendation_history (
+            recommendation_key TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            note TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, recommendation_key)
+        );
+    """,
+    "goal_planning_requests": """
+        CREATE TABLE IF NOT EXISTS goal_planning_requests (
+            goal_id INTEGER NOT NULL,
+            target_date TEXT NOT NULL,
+            planned_monthly_contribution TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, goal_id)
+        );
+    """,
+    "scenario_workspace": """
+        CREATE TABLE IF NOT EXISTS scenario_workspace (
+            name TEXT NOT NULL,
+            data TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, name)
+        );
+    """,
+    "financial_history_category_totals": """
+        CREATE TABLE IF NOT EXISTS financial_history_category_totals (
+            timestamp TEXT NOT NULL,
+            data TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, timestamp)
+        );
+    """,
+    "saved_notes": """
+        CREATE TABLE IF NOT EXISTS saved_notes (
+            id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "notification_log": """
+        CREATE TABLE IF NOT EXISTS notification_log (
+            id INTEGER NOT NULL,
+            notification_key TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            sent_at TEXT NOT NULL,
+            status TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+    "recurring_expense_templates": """
+        CREATE TABLE IF NOT EXISTS recurring_expense_templates (
+            id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            next_occurrence TEXT NOT NULL,
+            is_active INTEGER NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            PRIMARY KEY (user_id, id)
+        );
+    """,
+}
 
-_USER_OWNED_TABLES = [
-    "accounts",
-    "bills",
-    "budgets",
-    "debts",
-    "expenses",
-    "income",
-    "goals",
+SCHEMA = _SINGLE_USER_SCHEMA + "\n".join(_COMPOSITE_PK_TABLE_SCHEMAS.values())
+
+
+_NULLABLE_USER_ID_TABLES = [
     "financial_history",
-    "recommendation_history",
-    "goal_planning_requests",
-    "scenario_workspace",
     "monthly_review_history",
-    "financial_history_category_totals",
-    "saved_notes",
-    "notification_log",
-    "recurring_expense_templates",
     "goal_ledger_entries",
 ]
 
+_COMPOSITE_PK_TABLES = list(_COMPOSITE_PK_TABLE_SCHEMAS)
+
 
 def _ensure_user_id_columns(connection: sqlite3.Connection) -> None:
-    """Add a nullable user_id column to every user-owned table if missing.
+    """Add a nullable user_id column to the DB-assigned-id tables if missing.
 
     CREATE TABLE IF NOT EXISTS is a no-op on tables that already exist, so a
     new column can't be added by editing SCHEMA alone once a real database
     file exists. This runs an idempotent ALTER TABLE ADD COLUMN for any
     table missing it, mirroring how SCHEMA itself is re-run on every
-    connection.
+    connection. Scoped to the 3 tables whose own id/key is already globally
+    unique (DB AUTOINCREMENT or a UUID) — the other 14 get user_id baked
+    into a composite primary key instead, via _ensure_composite_primary_keys.
     """
-    for table in _USER_OWNED_TABLES:
+    for table in _NULLABLE_USER_ID_TABLES:
         columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
         if "user_id" not in columns:
             connection.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER REFERENCES users(id)")
+
+
+def _table_has_composite_user_pk(connection: sqlite3.Connection, table: str) -> bool:
+    """Return whether `table`'s user_id column is already part of its primary key."""
+    for row in connection.execute(f"PRAGMA table_info({table})"):
+        if row["name"] == "user_id" and row["pk"] > 0:
+            return True
+    return False
+
+
+def _ensure_composite_primary_keys(connection: sqlite3.Connection) -> None:
+    """Migrate each table in _COMPOSITE_PK_TABLES to a (user_id, <original
+    key>) primary key, if not already migrated.
+
+    SQLite can't ALTER a PRIMARY KEY in place, so an already-existing table
+    (the real upgraded data/app.db, whose 14 tables gained a plain nullable
+    user_id column in Stage A) is migrated by renaming it aside, creating
+    the new composite-PK table from _COMPOSITE_PK_TABLE_SCHEMAS, copying
+    every row across, and dropping the renamed original. Column order in
+    the new schema exactly matches the old ALTER-added order (original
+    columns, then user_id last), so `SELECT *` copies correctly without an
+    explicit column list.
+
+    A brand-new database (every test, via initialize_database()) never
+    exercises the migration branch at all: SCHEMA already declares these
+    14 tables in their final composite-PK shape, so this function's
+    up-front check finds them already migrated and no-ops immediately.
+    """
+    for table in _COMPOSITE_PK_TABLES:
+        if _table_has_composite_user_pk(connection, table):
+            continue
+
+        # SQLite's DDL statements (CREATE/ALTER/DROP) auto-commit immediately
+        # unless wrapped in an explicit transaction, so without this BEGIN a
+        # failed INSERT (e.g. a row with a NULL user_id that predates the
+        # backfill) would leave the table mid-migration: renamed aside with
+        # an empty new-shape table in its place, rather than either fully
+        # migrated or fully untouched.
+        old_table = f"{table}_pre_composite_pk"
+        connection.execute("BEGIN")
+        try:
+            # executescript() (unlike execute()) implicitly COMMITs any
+            # pending transaction before running, which would silently
+            # defeat this whole BEGIN/ROLLBACK block — use execute() since
+            # each schema entry is a single CREATE TABLE statement.
+            connection.execute(f"ALTER TABLE {table} RENAME TO {old_table}")
+            connection.execute(_COMPOSITE_PK_TABLE_SCHEMAS[table])
+            connection.execute(f"INSERT INTO {table} SELECT * FROM {old_table}")
+            connection.execute(f"DROP TABLE {old_table}")
+            connection.execute("COMMIT")
+        except sqlite3.Error:
+            connection.execute("ROLLBACK")
+            raise
 
 
 _test_db_path_override: Path | None = None
@@ -235,6 +334,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
     _ensure_user_id_columns(connection)
+    _ensure_composite_primary_keys(connection)
 
     return connection
 

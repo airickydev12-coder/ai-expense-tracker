@@ -14,8 +14,15 @@ Run from the repo root as a module (so `src` resolves on sys.path):
 from __future__ import annotations
 
 from src.core.config import DB_PATH
-from src.core.db import _USER_OWNED_TABLES, get_connection, initialize_database
+from src.core.db import (
+    _COMPOSITE_PK_TABLES,
+    _NULLABLE_USER_ID_TABLES,
+    get_connection,
+    initialize_database,
+)
 from src.core.exceptions import ValidationError
+
+_USER_OWNED_TABLES = _NULLABLE_USER_ID_TABLES + _COMPOSITE_PK_TABLES
 from src.financial.users import service as user_service
 from src.financial.users.repository import get_user_by_username
 
