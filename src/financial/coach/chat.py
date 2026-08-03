@@ -45,6 +45,7 @@ from src.financial.goals.service import add_goal, get_goals
 from src.financial.income.analytics import get_average_income, get_total_income
 from src.financial.income.service import get_income_entries
 from src.financial.recommendations.history_service import dismiss_recommendation
+from src.financial.scenarios.combined import run_combined_scenario_plan
 from src.financial.scenarios.models import ScenarioRequest, ScenarioResult, ScenarioType
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 from src.financial.scenarios.service import run_financial_scenario
@@ -72,7 +73,14 @@ _SYSTEM_PROMPT = (
     "find the real debt_id before calling run_scenario — never guess an id. "
     "After running a scenario, present the real calculated result to the "
     "user and compare it against their current numbers rather than "
-    "restating the raw tool output verbatim.\n\n"
+    "restating the raw tool output verbatim. If the question combines two "
+    "or more simultaneous changes (e.g. \"what if I paid extra on my debt "
+    "AND saved more each month\"), use build_combined_plan instead of "
+    "separate run_scenario calls — it applies the steps cumulatively and "
+    "surfaces any real conflicts between the combined commitments (e.g. "
+    "they exceed available cash flow together even though each looks fine "
+    "alone); always mention any conflicts it returns rather than presenting "
+    "the combined numbers as risk-free.\n\n"
     "Exactly five actions are allowed to write, and each requires explicit "
     "approval first: describe the specific action in plain language and "
     "wait for the user's explicit 'yes' or equivalent approval in a later "
@@ -199,7 +207,7 @@ _SCENARIO_PARAM_KEYS: dict[ScenarioType, tuple[str, ...]] = {
 }
 
 
-def _build_and_run_scenario(
+def _build_scenario_request(
     scenario_type: str,
     name: str,
     description: str = "",
@@ -210,8 +218,8 @@ def _build_and_run_scenario(
     extra_monthly_payment: float | None = None,
     additional_monthly_savings: float | None = None,
     horizon_months: int | None = None,
-) -> ScenarioResult:
-    """Build a ScenarioRequest from tool arguments and run it for real."""
+) -> ScenarioRequest:
+    """Build a ScenarioRequest from flat tool arguments."""
     scenario_type_enum = ScenarioType(scenario_type)
 
     all_fields = {
@@ -229,14 +237,41 @@ def _build_and_run_scenario(
         key: all_fields[key] for key in relevant_keys if all_fields[key] is not None
     }
 
-    snapshot = build_current_financial_snapshot()
-
-    request = ScenarioRequest(
+    return ScenarioRequest(
         scenario_type=scenario_type_enum,
         name=name,
         description=description,
         parameters=parameters,
     )
+
+
+def _build_and_run_scenario(
+    scenario_type: str,
+    name: str,
+    description: str = "",
+    category: str | None = None,
+    reduction_percentage: float | None = None,
+    increase_percentage: float | None = None,
+    debt_id: int | None = None,
+    extra_monthly_payment: float | None = None,
+    additional_monthly_savings: float | None = None,
+    horizon_months: int | None = None,
+) -> ScenarioResult:
+    """Build a ScenarioRequest from tool arguments and run it for real."""
+    request = _build_scenario_request(
+        scenario_type,
+        name,
+        description,
+        category,
+        reduction_percentage,
+        increase_percentage,
+        debt_id,
+        extra_monthly_payment,
+        additional_monthly_savings,
+        horizon_months,
+    )
+
+    snapshot = build_current_financial_snapshot()
 
     return run_financial_scenario(request, snapshot)
 
@@ -267,6 +302,40 @@ def _tool_run_scenario(
         horizon_months,
     )
     return result.to_dict()
+
+
+def _tool_build_combined_plan(
+    name: str,
+    steps: list[dict],
+    description: str = "",
+) -> dict:
+    """Chain multiple what-if scenarios together and surface any conflicts."""
+    requests = [
+        _build_scenario_request(
+            scenario_type=step["scenario_type"],
+            name=step["name"],
+            description=step.get("description", ""),
+            category=step.get("category"),
+            reduction_percentage=step.get("reduction_percentage"),
+            increase_percentage=step.get("increase_percentage"),
+            debt_id=step.get("debt_id"),
+            extra_monthly_payment=step.get("extra_monthly_payment"),
+            additional_monthly_savings=step.get("additional_monthly_savings"),
+            horizon_months=step.get("horizon_months"),
+        )
+        for step in steps
+    ]
+
+    snapshot = build_current_financial_snapshot()
+
+    plan = run_combined_scenario_plan(
+        name=name,
+        description=description,
+        requests=requests,
+        snapshot=snapshot,
+    )
+
+    return plan.to_dict()
 
 
 def _tool_list_recommendations(
@@ -438,6 +507,7 @@ _TOOL_FUNCTIONS: dict[str, Callable[..., dict]] = {
     "get_account_details": _tool_account_details,
     "get_coach_analysis": _tool_coach_analysis,
     "run_scenario": _tool_run_scenario,
+    "build_combined_plan": _tool_build_combined_plan,
     "list_recommendations": _tool_list_recommendations,
     "recommendation_evidence": _tool_recommendation_evidence,
     "search_saved_content": _tool_search_saved_content,
@@ -508,6 +578,38 @@ _RUN_SCENARIO_SCHEMA = {
         },
     },
     "required": ["scenario_type", "name"],
+    "additionalProperties": False,
+}
+
+_SCENARIO_STEP_SCHEMA = {
+    "type": "object",
+    "properties": dict(_RUN_SCENARIO_SCHEMA["properties"]),
+    "required": ["scenario_type", "name"],
+    "additionalProperties": False,
+}
+
+_BUILD_COMBINED_PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "A short name for the overall combined plan.",
+        },
+        "description": {
+            "type": "string",
+            "description": "A one-sentence description of what this combined plan models.",
+        },
+        "steps": {
+            "type": "array",
+            "items": _SCENARIO_STEP_SCHEMA,
+            "description": (
+                "Two or more scenario steps to apply in sequence, each in "
+                "the same shape as run_scenario's parameters. Steps apply "
+                "cumulatively -- step 2 sees the effect of step 1."
+            ),
+        },
+    },
+    "required": ["name", "steps"],
     "additionalProperties": False,
 }
 
@@ -779,6 +881,21 @@ _TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "debt_id; never guess it."
         ),
         "input_schema": _RUN_SCENARIO_SCHEMA,
+    },
+    {
+        "name": "build_combined_plan",
+        "description": (
+            "Call this instead of separate run_scenario calls when the "
+            "user's question combines two or more simultaneous changes "
+            "(e.g. \"what if I paid extra on my debt AND saved more each "
+            "month\"). Applies each step in sequence — later steps see the "
+            "effect of earlier ones — and returns the cumulative result "
+            "plus any real conflicts between the combined commitments (e.g. "
+            "they exceed available cash flow together even if each looks "
+            "fine alone). Always mention any conflicts returned rather than "
+            "presenting the combined numbers as risk-free."
+        ),
+        "input_schema": _BUILD_COMBINED_PLAN_SCHEMA,
     },
     {
         "name": "list_recommendations",

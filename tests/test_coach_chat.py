@@ -818,3 +818,127 @@ def test_run_coach_chat_executes_categorize_expense_tool(
 
     assert reply == "Moved that expense to Food."
     assert received == {"expense_id": 7, "category": "Food", "confirmed": True}
+
+
+# --- build_combined_plan -----------------------------------------------------
+
+
+def _combined_plan_snapshot(net_cash_flow: Decimal) -> dict:
+    return {
+        "total_income": Decimal("5000.00"),
+        "total_expenses": Decimal("3000.00"),
+        "net_cash_flow": net_cash_flow,
+        "total_account_balance": Decimal("9000.00"),
+        "total_goal_progress": Decimal("2500.00"),
+        "total_debt": Decimal("0"),
+        "net_worth": Decimal("11500.00"),
+        "health_score": 85,
+        "health_status": "Excellent",
+    }
+
+
+def test_tool_build_combined_plan_executes_real_steps_end_to_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Prove the flat-step-to-ScenarioRequest mapping works against real handlers."""
+    reset_scenario_handlers()
+    register_default_scenario_handlers()
+
+    snapshot = _combined_plan_snapshot(Decimal("2000.00"))
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+
+    result = chat._tool_build_combined_plan(
+        name="Save More, Twice",
+        steps=[
+            {
+                "scenario_type": "Additional Savings",
+                "name": "Save $100",
+                "additional_monthly_savings": 100.0,
+            },
+            {
+                "scenario_type": "Additional Savings",
+                "name": "Save $150 More",
+                "additional_monthly_savings": 150.0,
+            },
+        ],
+    )
+
+    assert result["name"] == "Save More, Twice"
+    assert len(result["steps"]) == 2
+    assert result["cumulative_report"]["summary"]
+    assert result["conflicts"] == []
+
+
+def test_tool_build_combined_plan_surfaces_real_conflicts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Combined commitments that exceed net cash flow must be flagged as conflicts."""
+    reset_scenario_handlers()
+    register_default_scenario_handlers()
+
+    snapshot = _combined_plan_snapshot(Decimal("500.00"))
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+
+    result = chat._tool_build_combined_plan(
+        name="Overcommitted Plan",
+        steps=[
+            {
+                "scenario_type": "Additional Savings",
+                "name": "Save $400",
+                "additional_monthly_savings": 400.0,
+            },
+            {
+                "scenario_type": "Additional Savings",
+                "name": "Save $400 More",
+                "additional_monthly_savings": 400.0,
+            },
+        ],
+    )
+
+    assert result["conflicts"] != []
+
+
+def test_run_coach_chat_executes_build_combined_plan_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _tool_use_message(
+                "build_combined_plan",
+                input={
+                    "name": "Debt + Savings Plan",
+                    "steps": [
+                        {
+                            "scenario_type": "Additional Savings",
+                            "name": "Save More",
+                            "additional_monthly_savings": 200.0,
+                        },
+                    ],
+                },
+            ),
+            _text_message("Here's the combined plan with no conflicts."),
+        ]
+    )
+
+    monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
+
+    received: dict = {}
+
+    def fake_build_combined_plan(
+        name: str, steps: list[dict], description: str = ""
+    ) -> dict:
+        received["name"] = name
+        received["steps"] = steps
+        return {"name": name, "conflicts": [], "steps": steps}
+
+    monkeypatch.setitem(
+        chat._TOOL_FUNCTIONS, "build_combined_plan", fake_build_combined_plan
+    )
+
+    reply = chat.run_coach_chat(
+        [{"role": "user", "content": "What if I paid extra on debt and saved more?"}]
+    )
+
+    assert reply == "Here's the combined plan with no conflicts."
+    assert received["name"] == "Debt + Savings Plan"
+    assert len(received["steps"]) == 1
