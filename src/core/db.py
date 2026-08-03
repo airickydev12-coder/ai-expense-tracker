@@ -116,6 +116,16 @@ CREATE TABLE IF NOT EXISTS saved_notes (
     content TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS recurring_expense_templates (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount TEXT NOT NULL,
+    frequency TEXT NOT NULL,
+    next_occurrence TEXT NOT NULL,
+    is_active INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS goal_ledger_entries (
     entry_id TEXT PRIMARY KEY,
     goal_id INTEGER NOT NULL,

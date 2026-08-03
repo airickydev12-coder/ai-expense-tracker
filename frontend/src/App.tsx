@@ -11,6 +11,7 @@ import { GoalsPage } from './pages/GoalsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { IncomePage } from './pages/IncomePage'
 import { RecommendationsPage } from './pages/RecommendationsPage'
+import { RecurringExpensesPage } from './pages/RecurringExpensesPage'
 import { ScenariosPage } from './pages/ScenariosPage'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/recurring-expenses" element={<RecurringExpensesPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/bills" element={<BillsPage />} />
           <Route path="/income" element={<IncomePage />} />

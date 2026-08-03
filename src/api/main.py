@@ -28,6 +28,9 @@ from src.api.routers.income import router as income_router
 from src.api.routers.recommendations import (
     router as recommendations_router,
 )
+from src.api.routers.recurring_expenses import (
+    router as recurring_expenses_router,
+)
 from src.api.routers.scenarios import router as scenarios_router
 from src.core.db import initialize_database
 from src.core.exceptions import (
@@ -117,3 +120,4 @@ app.include_router(scenarios_router)
 app.include_router(coach_router)
 app.include_router(dashboard.router)
 app.include_router(recommendations_router)
+app.include_router(recurring_expenses_router)

@@ -41,6 +41,9 @@ from src.financial.income.service import (
 from src.financial.recommendations.history_service import (
     load_recommendation_history,
 )
+from src.financial.recurring_expenses.service import (
+    load_recurring_expense_templates,
+)
 from src.financial.scenarios.workspace_service import (
     load_scenario_workspace,
 )
@@ -60,6 +63,7 @@ def load_financial_state() -> None:
     load_scenario_workspace()
     load_monthly_review_history()
     load_notes()
+    load_recurring_expense_templates()
 
 
 def get_financial_state() -> dict:

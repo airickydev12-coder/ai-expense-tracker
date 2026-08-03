@@ -20,6 +20,12 @@ export function Layout() {
               Expenses
             </NavLink>
             <NavLink
+              to="/recurring-expenses"
+              className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+            >
+              Recurring Expenses
+            </NavLink>
+            <NavLink
               to="/accounts"
               className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
             >
