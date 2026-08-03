@@ -1,0 +1,56 @@
+"""
+Password hashing and JWT access-token helpers for the Financial Core application.
+
+Infrastructure-layer utilities (ADR-001): no domain or FastAPI concepts here,
+just cryptographic primitives used by src/financial/users/service.py and
+src/api/dependencies.py.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
+
+from src.core.config import JWT_ALGORITHM, JWT_EXPIRY_MINUTES, JWT_SECRET_KEY
+from src.core.exceptions import AuthenticationError
+
+_hasher = PasswordHasher()
+
+
+def hash_password(password: str) -> str:
+    """Hash a plaintext password using Argon2id."""
+    return _hasher.hash(password)
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Check a plaintext password against a stored Argon2 hash."""
+    try:
+        return _hasher.verify(password_hash, password)
+    except (VerifyMismatchError, InvalidHashError):
+        return False
+
+
+def create_access_token(user_id: int, username: str) -> str:
+    """Issue a signed JWT access token for the given user."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "username": username,
+        "iat": now,
+        "exp": now + timedelta(minutes=JWT_EXPIRY_MINUTES),
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_access_token(token: str) -> dict[str, Any]:
+    """Decode and verify a JWT access token, raising AuthenticationError if invalid."""
+    try:
+        return jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError as error:
+        raise AuthenticationError("Token has expired.") from error
+    except jwt.InvalidTokenError as error:
+        raise AuthenticationError("Invalid authentication token.") from error

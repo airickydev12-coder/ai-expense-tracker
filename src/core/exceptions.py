@@ -30,3 +30,11 @@ class PersistenceError(AppError):
 
 class ExternalServiceError(AppError):
     """Raised when a call to an external service fails or is unavailable."""
+
+
+class AuthenticationError(AppError):
+    """Raised when credentials are invalid or a token is missing/invalid/expired."""
+
+
+class AuthorizationError(AppError):
+    """Raised when an authenticated user attempts to access a resource they don't own."""

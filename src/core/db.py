@@ -14,6 +14,16 @@ from src.core.config import DB_PATH
 from src.core.exceptions import PersistenceError
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -151,6 +161,42 @@ CREATE TABLE IF NOT EXISTS goal_ledger_entries (
 """
 
 
+_USER_OWNED_TABLES = [
+    "accounts",
+    "bills",
+    "budgets",
+    "debts",
+    "expenses",
+    "income",
+    "goals",
+    "financial_history",
+    "recommendation_history",
+    "goal_planning_requests",
+    "scenario_workspace",
+    "monthly_review_history",
+    "financial_history_category_totals",
+    "saved_notes",
+    "notification_log",
+    "recurring_expense_templates",
+    "goal_ledger_entries",
+]
+
+
+def _ensure_user_id_columns(connection: sqlite3.Connection) -> None:
+    """Add a nullable user_id column to every user-owned table if missing.
+
+    CREATE TABLE IF NOT EXISTS is a no-op on tables that already exist, so a
+    new column can't be added by editing SCHEMA alone once a real database
+    file exists. This runs an idempotent ALTER TABLE ADD COLUMN for any
+    table missing it, mirroring how SCHEMA itself is re-run on every
+    connection.
+    """
+    for table in _USER_OWNED_TABLES:
+        columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+        if "user_id" not in columns:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER REFERENCES users(id)")
+
+
 _test_db_path_override: Path | None = None
 
 
@@ -188,6 +234,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
+    _ensure_user_id_columns(connection)
 
     return connection
 

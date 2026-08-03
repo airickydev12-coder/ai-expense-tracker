@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 
 from src.api.routers import dashboard
 from src.api.routers.accounts import router as accounts_router
+from src.api.routers.auth import router as auth_router
 from src.api.routers.bills import router as bills_router
 from src.api.routers.budgets import router as budgets_router
 from src.api.routers.coach import router as coach_router
@@ -35,9 +36,11 @@ from src.api.routers.recurring_expenses import (
     router as recurring_expenses_router,
 )
 from src.api.routers.scenarios import router as scenarios_router
-from src.core.config import NOTIFICATION_CHECK_INTERVAL_MINUTES
+from src.core.config import JWT_SECRET_KEY, NOTIFICATION_CHECK_INTERVAL_MINUTES
 from src.core.db import initialize_database
 from src.core.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
     BusinessRuleError,
     ExternalServiceError,
     NotFoundError,
@@ -61,6 +64,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_database()
     load_financial_state()
     register_default_scenario_handlers()
+
+    if JWT_SECRET_KEY == "dev-insecure-secret-change-me":
+        logger.warning(
+            "JWT_SECRET_KEY is using the insecure default — set a real secret "
+            "in .env before relying on auth for anything real."
+        )
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -130,7 +139,24 @@ def handle_external_service_error(
     return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
+@app.exception_handler(AuthenticationError)
+def handle_authentication_error(
+    request: Request, exc: AuthenticationError
+) -> JSONResponse:
+    """Map missing/invalid credentials or tokens to a 401 response."""
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+@app.exception_handler(AuthorizationError)
+def handle_authorization_error(
+    request: Request, exc: AuthorizationError
+) -> JSONResponse:
+    """Map access to a resource the caller doesn't own to a 403 response."""
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(expenses_router)
 app.include_router(budgets_router)
 app.include_router(accounts_router)
