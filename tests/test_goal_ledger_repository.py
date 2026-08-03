@@ -14,6 +14,8 @@ from src.financial.goal_ledger.repository import (
     save_goal_ledger_to_file,
 )
 
+USER_ID = 1
+
 
 def build_entry(
     *,
@@ -41,10 +43,11 @@ def test_save_and_load_goal_ledger(db_path):
 
     save_goal_ledger_to_file(
         original_entries,
+        USER_ID,
         db_path,
     )
 
-    loaded_entries = load_goal_ledger_from_file(db_path)
+    loaded_entries = load_goal_ledger_from_file(USER_ID, db_path)
 
     assert loaded_entries == original_entries
 
@@ -54,7 +57,7 @@ def test_load_goal_ledger_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_goal_ledger.db"
 
-    assert load_goal_ledger_from_file(db_path) == []
+    assert load_goal_ledger_from_file(USER_ID, db_path) == []
 
 
 def test_save_goal_ledger_creates_parent_directory(
@@ -64,6 +67,7 @@ def test_save_goal_ledger_creates_parent_directory(
 
     save_goal_ledger_to_file(
         [build_entry()],
+        USER_ID,
         db_path,
     )
 
@@ -83,19 +87,19 @@ def test_load_goal_ledger_rejects_invalid_database_file(
         ValueError,
         match="Failed to load goal ledger",
     ):
-        load_goal_ledger_from_file(db_path)
+        load_goal_ledger_from_file(USER_ID, db_path)
 
 
 def test_append_goal_ledger_entry(db_path):
     first_entry = build_entry(goal_id=1)
 
-    append_goal_ledger_entry(first_entry, db_path)
+    append_goal_ledger_entry(first_entry, USER_ID, db_path)
 
     second_entry = build_entry(goal_id=1, amount=Decimal("50.00"))
 
-    append_goal_ledger_entry(second_entry, db_path)
+    append_goal_ledger_entry(second_entry, USER_ID, db_path)
 
-    loaded_entries = load_goal_ledger_from_file(db_path)
+    loaded_entries = load_goal_ledger_from_file(USER_ID, db_path)
 
     assert loaded_entries == [first_entry, second_entry]
 
@@ -112,5 +116,6 @@ def test_save_goal_ledger_rejects_duplicate_entry_ids(db_path):
     ):
         save_goal_ledger_to_file(
             [entry_one, entry_two],
+            USER_ID,
             db_path,
         )

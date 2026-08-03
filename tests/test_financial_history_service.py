@@ -8,6 +8,8 @@ from src.financial.history.service import (
     record_snapshot,
 )
 
+USER_ID = 1
+
 
 def setup_function():
     """Clear history before each service test."""
@@ -37,28 +39,30 @@ def build_snapshot() -> dict:
 def test_record_snapshot(tmp_path):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
     record = record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
     )
 
     assert record.total_income == 5000
     assert record.net_worth == 3500
-    assert len(get_history()) == 1
+    assert len(get_history(USER_ID)) == 1
     assert file_path.exists()
 
 
 def test_record_snapshot_captures_category_totals(tmp_path):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
     snapshot = build_snapshot()
     snapshot["category_totals"] = {"Food": 245.50, "Utilities": 125.00}
 
     record = record_snapshot(
+        USER_ID,
         snapshot,
         file_path=file_path,
     )
@@ -69,9 +73,10 @@ def test_record_snapshot_captures_category_totals(tmp_path):
 def test_record_snapshot_defaults_category_totals_when_absent(tmp_path):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
     record = record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
     )
@@ -84,19 +89,20 @@ def test_record_snapshot_is_restored_after_reload(
 ):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
     record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
     )
 
     clear_history()
 
-    assert get_history() == []
+    assert get_history(USER_ID) == []
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
-    history = get_history()
+    history = get_history(USER_ID)
 
     assert len(history) == 1
     assert history[0].health_status == "Excellent"
@@ -107,27 +113,29 @@ def test_get_latest_snapshot_uses_timestamp(
 ):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
     now = datetime.now(timezone.utc)
 
     newer_record = record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
         timestamp=now,
     )
 
     record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
         timestamp=now - timedelta(days=1),
     )
 
-    assert get_latest_snapshot() == newer_record
+    assert get_latest_snapshot(USER_ID) == newer_record
 
 
 def test_get_latest_snapshot_returns_none_when_empty():
-    assert get_latest_snapshot() is None
+    assert get_latest_snapshot(USER_ID) is None
 
 
 def test_get_history_returns_copy(
@@ -135,13 +143,14 @@ def test_get_history_returns_copy(
 ):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
     record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
     )
 
-    returned_history = get_history()
+    returned_history = get_history(USER_ID)
     returned_history.clear()
 
-    assert len(get_history()) == 1
+    assert len(get_history(USER_ID)) == 1

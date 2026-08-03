@@ -58,6 +58,7 @@ def load_goals(
     goals[user_id] = load_goals_from_file(user_id, file_path)
 
     migrate_existing_goal_balances(
+        user_id,
         goals[user_id],
         ledger_file_path=resolved_ledger_path,
     )
@@ -136,6 +137,7 @@ def add_goal(
 
     if normalized_current > ZERO:
         migrate_existing_goal_balances(
+            user_id,
             [goal],
             ledger_file_path=resolved_ledger_path,
         )
@@ -231,6 +233,7 @@ def contribute_to_goal(
     )
 
     record_contribution(
+        user_id,
         goal,
         normalized_contribution,
         goals=goals[user_id],
@@ -277,6 +280,7 @@ def withdraw_from_goal(
     )
 
     record_withdrawal(
+        user_id,
         goal,
         to_money(amount),
         goals=goals[user_id],
@@ -323,6 +327,7 @@ def adjust_goal_balance(
     )
 
     record_adjustment(
+        user_id,
         goal,
         to_money(amount),
         goals=goals[user_id],
@@ -369,6 +374,7 @@ def reverse_goal_ledger_entry(
     )
 
     reverse_entry(
+        user_id,
         entry_id,
         goal=goal,
         goals=goals[user_id],
@@ -398,7 +404,7 @@ def get_goal_ledger_entries(
     """Return all ledger entries recorded for one of this user's goals."""
     _ensure_loaded(user_id, ledger_file_path)
 
-    entries = load_goal_ledger_from_file(ledger_file_path)
+    entries = load_goal_ledger_from_file(user_id, ledger_file_path)
 
     return [entry for entry in entries if entry.goal_id == goal_id]
 
@@ -414,7 +420,7 @@ def reconcile_goal(
     if goal is None:
         return None
 
-    return reconcile_goal_balance(goal, ledger_file_path=ledger_file_path)
+    return reconcile_goal_balance(user_id, goal, ledger_file_path=ledger_file_path)
 
 
 def delete_goal(

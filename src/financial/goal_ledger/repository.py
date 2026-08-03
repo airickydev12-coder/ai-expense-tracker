@@ -16,16 +16,20 @@ logger = get_logger(__name__)
 
 
 def load_goal_ledger_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[GoalLedgerEntry]:
-    """Load all goal-ledger entries."""
+    """Load all of this user's goal-ledger entries."""
     try:
         with get_connection(db_path) as connection:
-            rows = connection.execute("""
+            rows = connection.execute(
+                """
                 SELECT entry_id, goal_id, entry_type, amount, effective_date,
                        created_at, source, note, correlation_id, reverses_entry_id
-                FROM goal_ledger_entries ORDER BY created_at
-                """).fetchall()
+                FROM goal_ledger_entries WHERE user_id = ? ORDER BY created_at
+                """,
+                (user_id,),
+            ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load goal ledger from {db_path}") from error
 
@@ -34,8 +38,9 @@ def load_goal_ledger_from_file(
     _validate_ledger(entries)
 
     logger.debug(
-        "Loaded %d goal ledger entry(ies) from %s",
+        "Loaded %d goal ledger entry(ies) for user %d from %s",
         len(entries),
+        user_id,
         db_path,
     )
 
@@ -44,48 +49,52 @@ def load_goal_ledger_from_file(
 
 def save_goal_ledger_to_file(
     entries: list[GoalLedgerEntry],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save the complete ledger, replacing all existing rows."""
+    """Save this user's complete ledger, replacing their existing rows."""
     _validate_ledger(entries)
 
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM goal_ledger_entries")
+            connection.execute("DELETE FROM goal_ledger_entries WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
                 INSERT INTO goal_ledger_entries (
                     entry_id, goal_id, entry_type, amount, effective_date,
-                    created_at, source, note, correlation_id, reverses_entry_id
+                    created_at, source, note, correlation_id, reverses_entry_id, user_id
                 )
                 VALUES (
                     :entry_id, :goal_id, :entry_type, :amount, :effective_date,
-                    :created_at, :source, :note, :correlation_id, :reverses_entry_id
+                    :created_at, :source, :note, :correlation_id, :reverses_entry_id, :user_id
                 )
                 """,
-                [entry.to_dict() for entry in entries],
+                [{**entry.to_dict(), "user_id": user_id} for entry in entries],
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to save goal ledger to {db_path}") from error
 
     logger.debug(
-        "Saved %d goal ledger entry(ies) to %s",
+        "Saved %d goal ledger entry(ies) for user %d to %s",
         len(entries),
+        user_id,
         db_path,
     )
 
 
 def append_goal_ledger_entry(
     entry: GoalLedgerEntry,
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Append one immutable entry to the ledger."""
-    entries = load_goal_ledger_from_file(db_path)
+    """Append one immutable entry to this user's ledger."""
+    entries = load_goal_ledger_from_file(user_id, db_path)
 
     entries.append(entry)
 
     save_goal_ledger_to_file(
         entries,
+        user_id,
         db_path,
     )
 

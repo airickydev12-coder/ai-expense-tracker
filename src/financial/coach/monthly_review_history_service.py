@@ -10,39 +10,38 @@ from src.financial.coach.monthly_review_repository import (
 
 logger = get_logger(__name__)
 
-_reviews: list[dict] = []
-_loaded_file_path: Path = DB_PATH
+_reviews: dict[int, list[dict]] = {}
+
+
+def _ensure_loaded(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Lazily load a user's monthly reviews into the cache on first access."""
+    if user_id not in _reviews:
+        _reviews[user_id] = load_monthly_review_history_from_file(user_id, db_path)
 
 
 def load_monthly_review_history(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Load saved monthly reviews into application memory."""
-    global _loaded_file_path
-
-    _reviews.clear()
-    _reviews.extend(load_monthly_review_history_from_file(file_path))
-
-    _loaded_file_path = file_path
+    """Load a user's saved monthly reviews into application memory."""
+    _reviews[user_id] = load_monthly_review_history_from_file(user_id, file_path)
 
 
-def save_monthly_review_history(
-    file_path: Path | None = None,
-) -> None:
-    """Save all saved monthly reviews."""
-    target_path = file_path if file_path is not None else _loaded_file_path
-
-    save_monthly_review_history_to_file(_reviews, target_path)
+def save_monthly_review_history(user_id: int, file_path: Path = DB_PATH) -> None:
+    """Save all of a user's saved monthly reviews."""
+    save_monthly_review_history_to_file(_reviews[user_id], user_id, file_path)
 
 
-def get_monthly_review_history() -> list[dict]:
-    """Return a copy of all saved monthly reviews."""
-    return _reviews.copy()
+def get_monthly_review_history(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
+    """Return a copy of all of a user's saved monthly reviews."""
+    _ensure_loaded(user_id, db_path)
+    return _reviews[user_id].copy()
 
 
 def record_monthly_review(
+    user_id: int,
     review: dict,
-    file_path: Path | None = None,
+    file_path: Path = DB_PATH,
     *,
     now: datetime | None = None,
 ) -> dict:
@@ -53,6 +52,8 @@ def record_monthly_review(
     (no_history / insufficient_recent_history) have nothing meaningful to
     save or later search.
     """
+    _ensure_loaded(user_id, file_path)
+
     stamped_review = {
         **review,
         "generated_at": (
@@ -60,18 +61,28 @@ def record_monthly_review(
         ).isoformat(),
     }
 
-    _reviews.append(stamped_review)
-    save_monthly_review_history(file_path)
+    _reviews[user_id].append(stamped_review)
+    save_monthly_review_history(user_id, file_path)
 
     logger.info(
-        "Recorded monthly review for period %s to %s",
+        "Recorded monthly review for period %s to %s for user %d",
         review.get("period_start"),
         review.get("period_end"),
+        user_id,
     )
 
     return stamped_review
 
 
-def clear_monthly_review_history() -> None:
-    """Clear saved monthly reviews from application memory."""
-    _reviews.clear()
+def clear_monthly_review_history(user_id: int | None = None) -> None:
+    """Clear saved monthly reviews from application memory.
+
+    Clears every cached user's reviews when `user_id` is omitted (test
+    convenience, matching the old module-level-list behavior), or just one
+    user's reviews when given.
+    """
+    if user_id is None:
+        _reviews.clear()
+        return
+
+    _reviews[user_id] = []

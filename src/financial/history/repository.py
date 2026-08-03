@@ -30,19 +30,24 @@ def _decode_category_totals(raw: str) -> dict:
 
 
 def load_history_from_file(
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> list[FinancialSnapshotRecord]:
-    """Load historical financial snapshots from the database."""
+    """Load a user's historical financial snapshots from the database."""
     try:
         with get_connection(db_path) as connection:
-            rows = connection.execute("""
+            rows = connection.execute(
+                """
                 SELECT timestamp, total_income, total_expenses, net_cash_flow,
                        total_account_balance, total_goal_progress, total_debt,
                        net_worth, health_score, health_status
-                FROM financial_history ORDER BY id
-                """).fetchall()
+                FROM financial_history WHERE user_id = ? ORDER BY id
+                """,
+                (user_id,),
+            ).fetchall()
             category_rows = connection.execute(
-                "SELECT timestamp, data FROM financial_history_category_totals"
+                "SELECT timestamp, data FROM financial_history_category_totals WHERE user_id = ?",
+                (user_id,),
             ).fetchall()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load history from {db_path}") from error
@@ -60,8 +65,9 @@ def load_history_from_file(
         history.append(record)
 
     logger.debug(
-        "Loaded %d snapshot(s) from %s",
+        "Loaded %d snapshot(s) for user %d from %s",
         len(history),
+        user_id,
         db_path,
     )
 
@@ -70,37 +76,41 @@ def load_history_from_file(
 
 def save_history_to_file(
     history: list[FinancialSnapshotRecord],
+    user_id: int,
     db_path: Path = DB_PATH,
 ) -> None:
-    """Save historical snapshots to the database, replacing all existing rows."""
+    """Save a user's historical snapshots to the database, replacing their existing rows."""
     try:
         with get_connection(db_path) as connection:
-            connection.execute("DELETE FROM financial_history")
+            connection.execute("DELETE FROM financial_history WHERE user_id = ?", (user_id,))
             connection.executemany(
                 """
                 INSERT INTO financial_history (
                     timestamp, total_income, total_expenses, net_cash_flow,
                     total_account_balance, total_goal_progress, total_debt,
-                    net_worth, health_score, health_status
+                    net_worth, health_score, health_status, user_id
                 )
                 VALUES (
                     :timestamp, :total_income, :total_expenses, :net_cash_flow,
                     :total_account_balance, :total_goal_progress, :total_debt,
-                    :net_worth, :health_score, :health_status
+                    :net_worth, :health_score, :health_status, :user_id
                 )
                 """,
-                [record.to_dict() for record in history],
+                [{**record.to_dict(), "user_id": user_id} for record in history],
             )
-            connection.execute("DELETE FROM financial_history_category_totals")
+            connection.execute(
+                "DELETE FROM financial_history_category_totals WHERE user_id = ?", (user_id,)
+            )
             connection.executemany(
                 """
-                INSERT INTO financial_history_category_totals (timestamp, data)
-                VALUES (:timestamp, :data)
+                INSERT INTO financial_history_category_totals (timestamp, data, user_id)
+                VALUES (:timestamp, :data, :user_id)
                 """,
                 [
                     {
                         "timestamp": record.timestamp.isoformat(),
                         "data": _encode_category_totals(record.category_totals),
+                        "user_id": user_id,
                     }
                     for record in history
                 ],
@@ -109,7 +119,8 @@ def save_history_to_file(
         raise PersistenceError(f"Failed to save history to {db_path}") from error
 
     logger.debug(
-        "Saved %d snapshot(s) to %s",
+        "Saved %d snapshot(s) for user %d to %s",
         len(history),
+        user_id,
         db_path,
     )

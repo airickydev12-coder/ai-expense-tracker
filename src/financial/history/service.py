@@ -12,56 +12,62 @@ from src.financial.history.repository import (
 
 logger = get_logger(__name__)
 
-_history: list[FinancialSnapshotRecord] = []
-_loaded_file_path: Path = DB_PATH
+_history: dict[int, list[FinancialSnapshotRecord]] = {}
+
+
+def _ensure_loaded(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Lazily load a user's history into the cache on first access."""
+    if user_id not in _history:
+        _history[user_id] = load_history_from_file(user_id, db_path)
 
 
 def load_history(
+    user_id: int,
     file_path: Path = DB_PATH,
 ) -> None:
-    """Load historical snapshots into application memory."""
-    global _loaded_file_path
-
-    _history.clear()
-    _history.extend(load_history_from_file(file_path))
-
-    _loaded_file_path = file_path
+    """Load a user's historical snapshots into application memory."""
+    _history[user_id] = load_history_from_file(user_id, file_path)
 
 
-def save_history(
-    file_path: Path | None = None,
-) -> None:
-    """Save all historical snapshots."""
-    target_path = file_path if file_path is not None else _loaded_file_path
-
+def save_history(user_id: int, file_path: Path = DB_PATH) -> None:
+    """Save all of a user's historical snapshots."""
     save_history_to_file(
-        _history,
-        target_path,
+        _history[user_id],
+        user_id,
+        file_path,
     )
 
 
-def get_history() -> list[FinancialSnapshotRecord]:
-    """Return a copy of all historical snapshots."""
-    return _history.copy()
+def get_history(user_id: int, db_path: Path = DB_PATH) -> list[FinancialSnapshotRecord]:
+    """Return a copy of all of a user's historical snapshots."""
+    _ensure_loaded(user_id, db_path)
+    return _history[user_id].copy()
 
 
-def get_latest_snapshot() -> FinancialSnapshotRecord | None:
-    """Return the most recent historical snapshot."""
-    if not _history:
+def get_latest_snapshot(
+    user_id: int, db_path: Path = DB_PATH
+) -> FinancialSnapshotRecord | None:
+    """Return a user's most recent historical snapshot."""
+    _ensure_loaded(user_id, db_path)
+
+    if not _history[user_id]:
         return None
 
     return max(
-        _history,
+        _history[user_id],
         key=lambda record: record.timestamp,
     )
 
 
 def record_snapshot(
+    user_id: int,
     snapshot: dict,
-    file_path: Path | None = None,
+    file_path: Path = DB_PATH,
     timestamp: datetime | None = None,
 ) -> FinancialSnapshotRecord:
-    """Create and persist a historical snapshot record."""
+    """Create and persist a historical snapshot record for this user."""
+    _ensure_loaded(user_id, file_path)
+
     record = FinancialSnapshotRecord(
         timestamp=(timestamp if timestamp is not None else datetime.now(timezone.utc)),
         total_income=to_money(snapshot["total_income"]),
@@ -79,18 +85,28 @@ def record_snapshot(
         },
     )
 
-    _history.append(record)
-    save_history(file_path)
+    _history[user_id].append(record)
+    save_history(user_id, file_path)
 
     logger.info(
-        "Recorded financial snapshot at %s (health score %d)",
+        "Recorded financial snapshot at %s (health score %d) for user %d",
         record.timestamp.isoformat(),
         record.health_score,
+        user_id,
     )
 
     return record
 
 
-def clear_history() -> None:
-    """Clear historical snapshots from application memory."""
-    _history.clear()
+def clear_history(user_id: int | None = None) -> None:
+    """Clear historical snapshots from application memory.
+
+    Clears every cached user's history when `user_id` is omitted (test
+    convenience, matching the old module-level-list behavior), or just one
+    user's history when given.
+    """
+    if user_id is None:
+        _history.clear()
+        return
+
+    _history[user_id] = []

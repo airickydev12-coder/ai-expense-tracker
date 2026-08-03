@@ -9,6 +9,8 @@ from src.financial.history.repository import (
     save_history_to_file,
 )
 
+USER_ID = 1
+
 
 def build_record() -> FinancialSnapshotRecord:
     """Create a historical record for repository tests."""
@@ -38,10 +40,11 @@ def test_save_and_load_financial_history(db_path):
 
     save_history_to_file(
         original_history,
+        USER_ID,
         db_path,
     )
 
-    loaded_history = load_history_from_file(db_path)
+    loaded_history = load_history_from_file(USER_ID, db_path)
 
     assert loaded_history == original_history
 
@@ -51,7 +54,7 @@ def test_load_history_returns_empty_when_db_missing(
 ):
     db_path = tmp_path / "missing_history.db"
 
-    assert load_history_from_file(db_path) == []
+    assert load_history_from_file(USER_ID, db_path) == []
 
 
 def test_save_history_creates_parent_directory(
@@ -61,6 +64,7 @@ def test_save_history_creates_parent_directory(
 
     save_history_to_file(
         [build_record()],
+        USER_ID,
         db_path,
     )
 
@@ -81,7 +85,7 @@ def test_load_history_rejects_invalid_database_file(
         ValueError,
         match="Failed to load history",
     ):
-        load_history_from_file(db_path)
+        load_history_from_file(USER_ID, db_path)
 
 
 def test_save_and_load_history_round_trips_category_totals(db_path):
@@ -91,9 +95,9 @@ def test_save_and_load_history_round_trips_category_totals(db_path):
         "Utilities": Decimal("125.00"),
     }
 
-    save_history_to_file([record], db_path)
+    save_history_to_file([record], USER_ID, db_path)
 
-    loaded_history = load_history_from_file(db_path)
+    loaded_history = load_history_from_file(USER_ID, db_path)
 
     assert loaded_history == [record]
     assert loaded_history[0].category_totals == {
@@ -104,8 +108,8 @@ def test_save_and_load_history_round_trips_category_totals(db_path):
 
 def test_load_history_defaults_missing_category_totals_to_empty_dict(db_path):
     """A legacy row with no matching category-totals row loads as {}."""
-    save_history_to_file([build_record()], db_path)
+    save_history_to_file([build_record()], USER_ID, db_path)
 
-    loaded_history = load_history_from_file(db_path)
+    loaded_history = load_history_from_file(USER_ID, db_path)
 
     assert loaded_history[0].category_totals == {}

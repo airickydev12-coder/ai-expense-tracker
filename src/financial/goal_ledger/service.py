@@ -65,6 +65,7 @@ def create_ledger_entry(
 
 
 def migrate_existing_goal_balances(
+    user_id: int,
     goals: Sequence[Goal],
     *,
     ledger_file_path: Path = DB_PATH,
@@ -75,7 +76,7 @@ def migrate_existing_goal_balances(
     A goal is migrated only when it has no ledger records.
     Repeated calls are idempotent.
     """
-    entries = load_goal_ledger_from_file(ledger_file_path)
+    entries = load_goal_ledger_from_file(user_id, ledger_file_path)
 
     goal_ids_with_entries = {entry.goal_id for entry in entries}
 
@@ -104,6 +105,7 @@ def migrate_existing_goal_balances(
     if migrated_entries:
         save_goal_ledger_to_file(
             entries,
+            user_id,
             ledger_file_path,
         )
 
@@ -111,6 +113,7 @@ def migrate_existing_goal_balances(
 
 
 def record_contribution(
+    user_id: int,
     goal: Goal,
     amount: MoneyInput,
     *,
@@ -137,6 +140,7 @@ def record_contribution(
         raise ValidationError("Goal contribution must be greater than zero.")
 
     migrate_existing_goal_balances(
+        user_id,
         [goal],
         ledger_file_path=ledger_file_path,
     )
@@ -168,6 +172,7 @@ def record_contribution(
     )
 
     _append_entry_and_refresh_cache(
+        user_id,
         entry,
         goal=goal,
         goals=goals,
@@ -176,15 +181,17 @@ def record_contribution(
     )
 
     logger.info(
-        "Recorded contribution of %s to goal %d",
+        "Recorded contribution of %s to goal %d for user %d",
         recorded_amount,
         goal.id,
+        user_id,
     )
 
     return entry
 
 
 def record_withdrawal(
+    user_id: int,
     goal: Goal,
     amount: MoneyInput,
     *,
@@ -206,6 +213,7 @@ def record_withdrawal(
         raise ValidationError("Goal withdrawal must be greater than zero.")
 
     migrate_existing_goal_balances(
+        user_id,
         [goal],
         ledger_file_path=ledger_file_path,
     )
@@ -226,6 +234,7 @@ def record_withdrawal(
     )
 
     _append_entry_and_refresh_cache(
+        user_id,
         entry,
         goal=goal,
         goals=goals,
@@ -234,15 +243,17 @@ def record_withdrawal(
     )
 
     logger.info(
-        "Recorded withdrawal of %s from goal %d",
+        "Recorded withdrawal of %s from goal %d for user %d",
         normalized_amount,
         goal.id,
+        user_id,
     )
 
     return entry
 
 
 def record_adjustment(
+    user_id: int,
     goal: Goal,
     amount: MoneyInput,
     *,
@@ -261,6 +272,7 @@ def record_adjustment(
         raise ValidationError("Goal adjustment cannot be zero.")
 
     migrate_existing_goal_balances(
+        user_id,
         [goal],
         ledger_file_path=ledger_file_path,
     )
@@ -289,6 +301,7 @@ def record_adjustment(
     )
 
     _append_entry_and_refresh_cache(
+        user_id,
         entry,
         goal=goal,
         goals=goals,
@@ -297,15 +310,17 @@ def record_adjustment(
     )
 
     logger.info(
-        "Recorded adjustment of %s to goal %d",
+        "Recorded adjustment of %s to goal %d for user %d",
         normalized_amount,
         goal.id,
+        user_id,
     )
 
     return entry
 
 
 def reverse_entry(
+    user_id: int,
     entry_id: str,
     *,
     goal: Goal,
@@ -318,7 +333,7 @@ def reverse_entry(
     goals_file_path: Path = DB_PATH,
 ) -> GoalLedgerEntry:
     """Reverse a ledger entry without modifying history."""
-    entries = load_goal_ledger_from_file(ledger_file_path)
+    entries = load_goal_ledger_from_file(user_id, ledger_file_path)
 
     original = next(
         (entry for entry in entries if entry.entry_id == entry_id),
@@ -351,6 +366,7 @@ def reverse_entry(
     )
 
     _append_entry_and_refresh_cache(
+        user_id,
         reversal,
         goal=goal,
         goals=goals,
@@ -359,21 +375,23 @@ def reverse_entry(
     )
 
     logger.info(
-        "Reversed goal ledger entry %s for goal %d",
+        "Reversed goal ledger entry %s for goal %d for user %d",
         entry_id,
         goal.id,
+        user_id,
     )
 
     return reversal
 
 
 def reconcile_goal_balance(
+    user_id: int,
     goal: Goal,
     *,
     ledger_file_path: Path = DB_PATH,
 ) -> tuple[bool, Decimal]:
     """Compare cached and ledger-derived balances."""
-    entries = load_goal_ledger_from_file(ledger_file_path)
+    entries = load_goal_ledger_from_file(user_id, ledger_file_path)
 
     ledger_balance = calculate_goal_balance(
         entries,
@@ -386,6 +404,7 @@ def reconcile_goal_balance(
 
 
 def rebuild_goal_balance_cache(
+    user_id: int,
     goal: Goal,
     *,
     goals: list[Goal],
@@ -393,7 +412,7 @@ def rebuild_goal_balance_cache(
     goals_file_path: Path = DB_PATH,
 ) -> Goal:
     """Rebuild one cached balance from the ledger."""
-    entries = load_goal_ledger_from_file(ledger_file_path)
+    entries = load_goal_ledger_from_file(user_id, ledger_file_path)
 
     ledger_balance = calculate_goal_balance(
         entries,
@@ -401,6 +420,7 @@ def rebuild_goal_balance_cache(
     )
 
     return _replace_cached_goal(
+        user_id,
         goal,
         current_amount=ledger_balance,
         goals=goals,
@@ -409,6 +429,7 @@ def rebuild_goal_balance_cache(
 
 
 def _append_entry_and_refresh_cache(
+    user_id: int,
     entry: GoalLedgerEntry,
     *,
     goal: Goal,
@@ -424,10 +445,12 @@ def _append_entry_and_refresh_cache(
     """
     append_goal_ledger_entry(
         entry,
+        user_id,
         ledger_file_path,
     )
 
     return rebuild_goal_balance_cache(
+        user_id,
         goal,
         goals=goals,
         ledger_file_path=ledger_file_path,
@@ -436,6 +459,7 @@ def _append_entry_and_refresh_cache(
 
 
 def _replace_cached_goal(
+    user_id: int,
     goal: Goal,
     *,
     current_amount: MoneyInput,
@@ -458,6 +482,7 @@ def _replace_cached_goal(
 
         save_goals_to_file(
             goals,
+            user_id,
             goals_file_path,
         )
 

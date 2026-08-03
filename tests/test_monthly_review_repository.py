@@ -8,6 +8,9 @@ from src.financial.coach.monthly_review_repository import (
 )
 
 
+USER_ID = 1
+
+
 def build_review() -> dict:
     """Create a complete, saved-shape monthly review."""
     return {
@@ -53,18 +56,18 @@ def build_review() -> dict:
 def test_save_and_load_monthly_review_history(db_path):
     original_reviews = [build_review()]
 
-    save_monthly_review_history_to_file(original_reviews, db_path)
+    save_monthly_review_history_to_file(original_reviews, USER_ID, db_path)
 
-    loaded_reviews = load_monthly_review_history_from_file(db_path)
+    loaded_reviews = load_monthly_review_history_from_file(USER_ID, db_path)
 
     assert loaded_reviews == original_reviews
 
 
 def test_save_and_load_preserves_decimal_values(db_path):
     """Decimal fields at arbitrary depth must round-trip as Decimal, not float/str."""
-    save_monthly_review_history_to_file([build_review()], db_path)
+    save_monthly_review_history_to_file([build_review()], USER_ID, db_path)
 
-    loaded = load_monthly_review_history_from_file(db_path)[0]
+    loaded = load_monthly_review_history_from_file(USER_ID, db_path)[0]
 
     assert loaded["income_vs_expenses"]["income_change"] == Decimal("500.00")
     assert isinstance(loaded["income_vs_expenses"]["income_change"], Decimal)
@@ -75,7 +78,7 @@ def test_save_and_load_preserves_decimal_values(db_path):
 def test_load_monthly_review_history_returns_empty_when_db_missing(tmp_path):
     db_path = tmp_path / "missing.db"
 
-    assert load_monthly_review_history_from_file(db_path) == []
+    assert load_monthly_review_history_from_file(USER_ID, db_path) == []
 
 
 def test_load_monthly_review_history_rejects_invalid_database_file(tmp_path):
@@ -84,16 +87,16 @@ def test_load_monthly_review_history_rejects_invalid_database_file(tmp_path):
     db_path.write_text("not a valid sqlite database", encoding="utf-8")
 
     with pytest.raises(ValueError, match="Failed to load monthly review history"):
-        load_monthly_review_history_from_file(db_path)
+        load_monthly_review_history_from_file(USER_ID, db_path)
 
 
 def test_save_replaces_all_existing_rows(db_path):
-    save_monthly_review_history_to_file([build_review()], db_path)
+    save_monthly_review_history_to_file([build_review()], USER_ID, db_path)
 
     second_review = {**build_review(), "overall_summary": "A newer summary."}
-    save_monthly_review_history_to_file([second_review], db_path)
+    save_monthly_review_history_to_file([second_review], USER_ID, db_path)
 
-    loaded_reviews = load_monthly_review_history_from_file(db_path)
+    loaded_reviews = load_monthly_review_history_from_file(USER_ID, db_path)
 
     assert len(loaded_reviews) == 1
     assert loaded_reviews[0]["overall_summary"] == "A newer summary."
