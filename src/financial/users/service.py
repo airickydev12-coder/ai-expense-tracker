@@ -1,14 +1,25 @@
 from pathlib import Path
 
-from src.core.config import DB_PATH
-from src.core.exceptions import AuthenticationError, NotFoundError, ValidationError
+from src.core.config import (
+    DB_PATH,
+    LOGIN_LOCKOUT_MAX_ATTEMPTS,
+    LOGIN_LOCKOUT_WINDOW_MINUTES,
+)
+from src.core.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
 from src.core.logging import get_logger
 from src.core.security import hash_password, verify_password
 from src.financial.users.models import User
 from src.financial.users.repository import (
+    count_recent_failed_attempts,
     create_user,
     get_user_by_id,
     get_user_by_username,
+    record_login_attempt,
 )
 
 logger = get_logger(__name__)
@@ -47,16 +58,34 @@ def authenticate_user(
     password: str,
     db_path: Path = DB_PATH,
 ) -> User:
-    """Verify credentials and return the matching user, or raise AuthenticationError."""
+    """Verify credentials and return the matching user, or raise AuthenticationError.
+
+    Raises RateLimitError instead of even checking the password once a username has
+    LOGIN_LOCKOUT_MAX_ATTEMPTS recent failures within LOGIN_LOCKOUT_WINDOW_MINUTES —
+    keyed by the raw attempted username (not user_id), since a brute-force attempt
+    can target a username that doesn't exist at all.
+    """
     normalized_username = username.strip().lower()
+
+    if (
+        count_recent_failed_attempts(normalized_username, LOGIN_LOCKOUT_WINDOW_MINUTES, db_path)
+        >= LOGIN_LOCKOUT_MAX_ATTEMPTS
+    ):
+        raise RateLimitError(
+            f"Too many failed login attempts. Try again in {LOGIN_LOCKOUT_WINDOW_MINUTES} minutes."
+        )
+
     user = get_user_by_username(normalized_username, db_path)
 
     if user is None or not verify_password(password, user.password_hash):
+        record_login_attempt(normalized_username, succeeded=False, db_path=db_path)
         raise AuthenticationError(_INVALID_CREDENTIALS_MESSAGE)
 
     if not user.is_active:
+        record_login_attempt(normalized_username, succeeded=False, db_path=db_path)
         raise AuthenticationError("This account has been deactivated.")
 
+    record_login_attempt(normalized_username, succeeded=True, db_path=db_path)
     logger.info("Authenticated user %d (%s)", user.id, user.username)
 
     return user

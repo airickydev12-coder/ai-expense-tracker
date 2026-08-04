@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from src.core.config import DB_PATH
@@ -73,6 +73,41 @@ def get_user_by_id(user_id: int, db_path: Path = DB_PATH) -> User | None:
         raise PersistenceError(f"Failed to load user from {db_path}") from error
 
     return User.from_dict(dict(row)) if row is not None else None
+
+
+def record_login_attempt(username: str, succeeded: bool, db_path: Path = DB_PATH) -> None:
+    """Record one login attempt (success or failure) for a username."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "INSERT INTO login_attempts (username, attempted_at, succeeded) VALUES (?, ?, ?)",
+                (username, now, int(succeeded)),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to record login attempt in {db_path}") from error
+
+
+def count_recent_failed_attempts(
+    username: str, window_minutes: int, db_path: Path = DB_PATH
+) -> int:
+    """Count a username's failed login attempts within the trailing window."""
+    since = (datetime.now(timezone.utc) - timedelta(minutes=window_minutes)).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) AS count FROM login_attempts
+                WHERE username = ? AND succeeded = 0 AND attempted_at > ?
+                """,
+                (username, since),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to count login attempts in {db_path}") from error
+
+    return int(row["count"])
 
 
 def list_active_users(db_path: Path = DB_PATH) -> list[User]:

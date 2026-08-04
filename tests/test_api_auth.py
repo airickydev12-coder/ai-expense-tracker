@@ -101,6 +101,22 @@ def test_me_with_malformed_token_returns_401() -> None:
     assert response.status_code == 401
 
 
+def test_login_locks_out_after_max_failed_attempts() -> None:
+    from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
+
+    _register()
+
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        response = client.post("/auth/login", json={"username": "alice", "password": "wrong"})
+        assert response.status_code == 401
+
+    locked_out_response = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    )
+
+    assert locked_out_response.status_code == 429
+
+
 def test_me_with_expired_token_returns_401() -> None:
     now = datetime.now(timezone.utc)
     expired_token = jwt.encode(

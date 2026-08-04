@@ -38,3 +38,7 @@ class AuthenticationError(AppError):
 
 class AuthorizationError(AppError):
     """Raised when an authenticated user attempts to access a resource they don't own."""
+
+
+class RateLimitError(AppError):
+    """Raised when a caller exceeds an allowed rate (e.g. repeated failed login attempts)."""

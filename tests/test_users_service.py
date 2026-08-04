@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.exceptions import AuthenticationError, ValidationError
+from src.core.exceptions import AuthenticationError, RateLimitError, ValidationError
 from src.financial.users.service import authenticate_user, get_user, register_user
 
 
@@ -73,3 +73,42 @@ def test_get_user_returns_registered_user(db_path) -> None:
     fetched = get_user(registered.id, db_path)
 
     assert fetched.username == "alice"
+
+
+def test_authenticate_user_locks_out_after_max_failed_attempts(db_path) -> None:
+    from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
+
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        with pytest.raises(AuthenticationError):
+            authenticate_user("alice", "wrong-password", db_path)
+
+    with pytest.raises(RateLimitError):
+        authenticate_user("alice", "correct-password", db_path)
+
+
+def test_authenticate_user_lockout_applies_to_nonexistent_usernames(db_path) -> None:
+    from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
+
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        with pytest.raises(AuthenticationError):
+            authenticate_user("nobody", "whatever", db_path)
+
+    with pytest.raises(RateLimitError):
+        authenticate_user("nobody", "whatever", db_path)
+
+
+def test_authenticate_user_lockout_is_scoped_to_username(db_path) -> None:
+    from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
+
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+    register_user("bob", "bob@example.com", "correct-password", db_path)
+
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        with pytest.raises(AuthenticationError):
+            authenticate_user("alice", "wrong-password", db_path)
+
+    # Bob isn't locked out by Alice's failures.
+    authenticated = authenticate_user("bob", "correct-password", db_path)
+    assert authenticated.username == "bob"

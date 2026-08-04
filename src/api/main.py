@@ -45,6 +45,7 @@ from src.core.exceptions import (
     ExternalServiceError,
     NotFoundError,
     PersistenceError,
+    RateLimitError,
     ValidationError,
 )
 from src.core.logging import configure_logging, get_logger
@@ -169,6 +170,12 @@ def handle_authorization_error(
 ) -> JSONResponse:
     """Map access to a resource the caller doesn't own to a 403 response."""
     return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+
+@app.exception_handler(RateLimitError)
+def handle_rate_limit_error(request: Request, exc: RateLimitError) -> JSONResponse:
+    """Map an exceeded rate limit (e.g. repeated failed logins) to a 429 response."""
+    return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
 app.include_router(health_router)

@@ -24,6 +24,13 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    attempted_at TEXT NOT NULL,
+    succeeded INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS financial_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,
