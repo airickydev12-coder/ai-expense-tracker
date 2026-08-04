@@ -1,9 +1,15 @@
 """Auth API endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api.dependencies import get_current_user
-from src.api.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from src.api.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UpdateProfileRequest,
+    UserResponse,
+)
 from src.core.security import create_access_token
 from src.financial.users import service as user_service
 from src.financial.users.models import User
@@ -37,3 +43,22 @@ def login(request: LoginRequest) -> TokenResponse:
 def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """Return the currently authenticated user."""
     return UserResponse.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    request: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Update the currently authenticated user's username and/or email."""
+    if request.username is None and request.email is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one field must be provided.",
+        )
+    user = user_service.update_profile(
+        current_user.id,
+        username=request.username,
+        email=request.email,
+    )
+    return UserResponse.model_validate(user)

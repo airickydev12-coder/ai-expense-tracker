@@ -97,6 +97,12 @@ export function Layout() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm">
             {user && <span className="text-gray-600">{user.username}</span>}
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+            >
+              Settings
+            </NavLink>
             <button
               type="button"
               onClick={logout}

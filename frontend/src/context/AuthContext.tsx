@@ -17,6 +17,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -71,12 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession()
   }
 
+  async function refreshUser() {
+    const user = await authApi.me()
+    setState({ status: 'authenticated', user })
+  }
+
   const value: AuthContextValue = {
     status: state.status,
     user: state.status === 'authenticated' ? state.user : null,
     login,
     register,
     logout,
+    refreshUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

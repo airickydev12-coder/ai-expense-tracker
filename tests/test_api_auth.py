@@ -101,6 +101,59 @@ def test_me_with_malformed_token_returns_401() -> None:
     assert response.status_code == 401
 
 
+def test_update_profile_success() -> None:
+    _register()
+    token = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.patch(
+        "/auth/me",
+        json={"username": "alice2"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["username"] == "alice2"
+
+
+def test_update_profile_requires_at_least_one_field() -> None:
+    _register()
+    token = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.patch(
+        "/auth/me",
+        json={},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_update_profile_duplicate_username_returns_400() -> None:
+    _register("alice")
+    _register("bob")
+    token = client.post(
+        "/auth/login", json={"username": "bob", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.patch(
+        "/auth/me",
+        json={"username": "alice"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_update_profile_without_authorization_header_returns_401() -> None:
+    response = client.patch("/auth/me", json={"username": "alice2"})
+
+    assert response.status_code == 401
+
+
 def test_login_locks_out_after_max_failed_attempts() -> None:
     from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
 

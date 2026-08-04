@@ -82,6 +82,13 @@ export function apiDelete<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' })
 }
 
-export function apiPatch<T>(path: string): Promise<T> {
-  return request<T>(path, { method: 'PATCH' })
+export function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  if (body === undefined) {
+    return request<T>(path, { method: 'PATCH' })
+  }
+  return request<T>(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 }

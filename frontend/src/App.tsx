@@ -17,6 +17,7 @@ import { RecommendationsPage } from './pages/RecommendationsPage'
 import { RecurringExpensesPage } from './pages/RecurringExpensesPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ScenariosPage } from './pages/ScenariosPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/coach" element={<CoachPage />} />
             <Route path="/recommendations" element={<RecommendationsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Routes>

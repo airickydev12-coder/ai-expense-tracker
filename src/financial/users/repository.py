@@ -47,6 +47,52 @@ def create_user(
     return created_user
 
 
+def update_user(
+    user_id: int,
+    *,
+    username: str | None = None,
+    email: str | None = None,
+    db_path: Path = DB_PATH,
+) -> User:
+    """Update a user's username and/or email, raising ValidationError on a conflict."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    fields: list[str] = []
+    values: list[str] = []
+
+    if username is not None:
+        fields.append("username = ?")
+        values.append(username)
+
+    if email is not None:
+        fields.append("email = ?")
+        values.append(email)
+
+    fields.append("updated_at = ?")
+    values.append(now)
+    values.append(str(user_id))
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                f"UPDATE users SET {', '.join(fields)} WHERE id = ?",
+                values,
+            )
+    except sqlite3.IntegrityError as error:
+        raise ValidationError(
+            f"Username '{username}' or email '{email}' is already registered."
+        ) from error
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to update user {user_id} in {db_path}") from error
+
+    logger.debug("Updated user %d in %s", user_id, db_path)
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
 def get_user_by_username(username: str, db_path: Path = DB_PATH) -> User | None:
     """Look up a user by username, returning None if not found."""
     try:

@@ -9,6 +9,7 @@ from src.financial.users.repository import (
     get_user_by_id,
     get_user_by_username,
     record_login_attempt,
+    update_user,
 )
 
 
@@ -60,6 +61,32 @@ def test_get_user_by_id_found(db_path) -> None:
 
 def test_get_user_by_id_not_found(db_path) -> None:
     assert get_user_by_id(999, db_path) is None
+
+
+def test_update_user_updates_username_and_email(db_path) -> None:
+    created = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    updated = update_user(created.id, username="alice2", email="alice2@example.com", db_path=db_path)
+
+    assert updated.username == "alice2"
+    assert updated.email == "alice2@example.com"
+
+
+def test_update_user_updates_only_the_given_field(db_path) -> None:
+    created = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    updated = update_user(created.id, username="alice2", db_path=db_path)
+
+    assert updated.username == "alice2"
+    assert updated.email == "alice@example.com"
+
+
+def test_update_user_duplicate_username_raises_validation_error(db_path) -> None:
+    create_user("alice", "alice@example.com", "hashed-value", db_path)
+    bob = create_user("bob", "bob@example.com", "hashed-value", db_path)
+
+    with pytest.raises(ValidationError):
+        update_user(bob.id, username="alice", db_path=db_path)
 
 
 def test_count_recent_failed_attempts_counts_only_failures(db_path) -> None:

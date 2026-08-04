@@ -20,6 +20,13 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class UpdateProfileRequest(BaseModel):
+    """Request body for updating the current user's username and/or email."""
+
+    username: str | None = Field(default=None, min_length=3, max_length=50)
+    email: EmailStr | None = None
+
+
 class TokenResponse(BaseModel):
     """Response body containing an access token."""
 

@@ -3,7 +3,12 @@
 import pytest
 
 from src.core.exceptions import AuthenticationError, RateLimitError, ValidationError
-from src.financial.users.service import authenticate_user, get_user, register_user
+from src.financial.users.service import (
+    authenticate_user,
+    get_user,
+    register_user,
+    update_profile,
+)
 
 
 def test_register_user_normalizes_username_and_email_case(db_path) -> None:
@@ -73,6 +78,22 @@ def test_get_user_returns_registered_user(db_path) -> None:
     fetched = get_user(registered.id, db_path)
 
     assert fetched.username == "alice"
+
+
+def test_update_profile_normalizes_username_and_email_case(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    updated = update_profile(registered.id, username="Alice2", email="ALICE2@Example.com", db_path=db_path)
+
+    assert updated.username == "alice2"
+    assert updated.email == "alice2@example.com"
+
+
+def test_update_profile_rejects_blank_username(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    with pytest.raises(ValidationError):
+        update_profile(registered.id, username="   ", db_path=db_path)
 
 
 def test_authenticate_user_locks_out_after_max_failed_attempts(db_path) -> None:

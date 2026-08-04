@@ -20,6 +20,7 @@ from src.financial.users.repository import (
     get_user_by_id,
     get_user_by_username,
     record_login_attempt,
+    update_user,
 )
 
 logger = get_logger(__name__)
@@ -87,6 +88,29 @@ def authenticate_user(
 
     record_login_attempt(normalized_username, succeeded=True, db_path=db_path)
     logger.info("Authenticated user %d (%s)", user.id, user.username)
+
+    return user
+
+
+def update_profile(
+    user_id: int,
+    username: str | None = None,
+    email: str | None = None,
+    db_path: Path = DB_PATH,
+) -> User:
+    """Validate and persist a profile update (username and/or email)."""
+    normalized_username = username.strip().lower() if username is not None else None
+    normalized_email = email.strip().lower() if email is not None else None
+
+    if normalized_username is not None and not normalized_username:
+        raise ValidationError("Username cannot be empty.")
+
+    if normalized_email is not None and not normalized_email:
+        raise ValidationError("Email cannot be empty.")
+
+    user = update_user(user_id, username=normalized_username, email=normalized_email, db_path=db_path)
+
+    logger.info("Updated profile for user %d (%s)", user.id, user.username)
 
     return user
 
