@@ -7,13 +7,13 @@ from src.api.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserResponse,
 )
-from src.core.security import create_access_token
 from src.financial.users import service as user_service
 from src.financial.users.models import User
 
@@ -33,13 +33,20 @@ def register(request: RegisterRequest) -> UserResponse:
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: LoginRequest) -> TokenResponse:
-    """Authenticate a user and issue a JWT access token."""
+    """Authenticate a user and issue an access token + refresh token."""
     user = user_service.authenticate_user(
         username=request.username,
         password=request.password,
     )
-    token = create_access_token(user_id=user.id, username=user.username)
-    return TokenResponse(access_token=token)
+    access_token, refresh_token = user_service.issue_session(user.id, user.username)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(request: RefreshRequest) -> TokenResponse:
+    """Exchange a refresh token for a new access token + refresh token (rotated)."""
+    access_token, refresh_token = user_service.refresh_session(request.refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.get("/me", response_model=UserResponse)

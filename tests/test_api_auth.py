@@ -61,6 +61,8 @@ def test_login_success() -> None:
     body = response.json()
     assert body["token_type"] == "bearer"
     assert body["access_token"]
+    assert body["refresh_token"]
+    assert body["access_token"] != body["refresh_token"]
 
 
 def test_login_wrong_password_returns_401() -> None:
@@ -270,6 +272,47 @@ def test_reset_password_rejects_invalid_token() -> None:
     )
 
     assert response.status_code == 400
+
+
+def test_refresh_success() -> None:
+    _register()
+    login_response = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()
+
+    response = client.post(
+        "/auth/refresh", json={"refresh_token": login_response["refresh_token"]}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"]
+    assert body["refresh_token"]
+    assert body["refresh_token"] != login_response["refresh_token"]
+
+    # The new access token is valid.
+    me_response = client.get("/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert me_response.status_code == 200
+
+
+def test_refresh_rejects_already_rotated_token() -> None:
+    _register()
+    login_response = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()
+
+    client.post("/auth/refresh", json={"refresh_token": login_response["refresh_token"]})
+    reused_response = client.post(
+        "/auth/refresh", json={"refresh_token": login_response["refresh_token"]}
+    )
+
+    assert reused_response.status_code == 401
+
+
+def test_refresh_rejects_unknown_token() -> None:
+    response = client.post("/auth/refresh", json={"refresh_token": "not-a-real-refresh-token"})
+
+    assert response.status_code == 401
 
 
 def test_login_locks_out_after_max_failed_attempts() -> None:

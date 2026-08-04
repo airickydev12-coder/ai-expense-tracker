@@ -8,6 +8,8 @@ from src.financial.users.service import (
     authenticate_user,
     change_password,
     get_user,
+    issue_session,
+    refresh_session,
     register_user,
     request_password_reset,
     reset_password,
@@ -213,6 +215,42 @@ def test_reset_password_rejects_short_new_password(db_path, monkeypatch: pytest.
 
     with pytest.raises(ValidationError):
         reset_password(token, "short", db_path=db_path)
+
+
+def test_issue_session_returns_access_and_refresh_tokens(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    access_token, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    assert access_token
+    assert refresh_token
+    assert access_token != refresh_token
+
+
+def test_refresh_session_issues_new_tokens(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    new_access_token, new_refresh_token = refresh_session(refresh_token, db_path=db_path)
+
+    assert new_access_token
+    assert new_refresh_token
+    assert new_refresh_token != refresh_token
+
+
+def test_refresh_session_rotates_out_the_old_token(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    refresh_session(refresh_token, db_path=db_path)
+
+    with pytest.raises(AuthenticationError):
+        refresh_session(refresh_token, db_path=db_path)
+
+
+def test_refresh_session_rejects_unknown_token(db_path) -> None:
+    with pytest.raises(AuthenticationError):
+        refresh_session("not-a-real-refresh-token", db_path=db_path)
 
 
 def test_authenticate_user_locks_out_after_max_failed_attempts(db_path) -> None:

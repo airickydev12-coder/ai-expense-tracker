@@ -25,7 +25,22 @@ function authHeaders(init?: RequestInit): HeadersInit | undefined {
   return { ...init?.headers, Authorization: `Bearer ${authToken}` }
 }
 
-async function fetchOrThrow(path: string, init?: RequestInit): Promise<Response> {
+interface RequestOptions {
+  /**
+   * Set for pre-authentication/session-bootstrapping endpoints (login,
+   * register, refresh) whose own 401s (wrong password, invalid refresh
+   * token) have nothing to do with an existing session expiring, and must
+   * not trigger the unauthorized handler's silent-refresh flow -- doing so
+   * for the refresh endpoint itself would also risk a retry loop.
+   */
+  skipUnauthorizedHandling?: boolean
+}
+
+async function fetchOrThrow(
+  path: string,
+  init?: RequestInit,
+  options?: RequestOptions,
+): Promise<Response> {
   const res = await fetch(`${BASE_URL}${path}`, { ...init, headers: authHeaders(init) })
   if (!res.ok) {
     let message = `Request to ${path} failed with status ${res.status}`
@@ -35,14 +50,14 @@ async function fetchOrThrow(path: string, init?: RequestInit): Promise<Response>
     } catch {
       // response wasn't JSON — keep the generic message
     }
-    if (res.status === 401) unauthorizedHandler?.()
+    if (res.status === 401 && !options?.skipUnauthorizedHandling) unauthorizedHandler?.()
     throw new ApiError(res.status, message)
   }
   return res
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetchOrThrow(path, init)
+async function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
+  const res = await fetchOrThrow(path, init, options)
   if (res.status === 204) {
     return undefined as T
   }
@@ -62,12 +77,16 @@ export function apiGetBlob(path: string): Promise<Blob> {
   return requestBlob(path)
 }
 
-export function apiPost<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+export function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
+  return request<T>(
+    path,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    options,
+  )
 }
 
 export function apiPut<T>(path: string, body: unknown): Promise<T> {

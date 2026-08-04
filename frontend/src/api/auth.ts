@@ -3,6 +3,7 @@ import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  RefreshRequest,
   RegisterRequest,
   ResetPasswordRequest,
   TokenResponse,
@@ -11,11 +12,15 @@ import type {
 } from '../types/auth'
 
 export function register(request: RegisterRequest): Promise<UserResponse> {
-  return apiPost<UserResponse>('/auth/register', request)
+  return apiPost<UserResponse>('/auth/register', request, { skipUnauthorizedHandling: true })
 }
 
 export function login(request: LoginRequest): Promise<TokenResponse> {
-  return apiPost<TokenResponse>('/auth/login', request)
+  return apiPost<TokenResponse>('/auth/login', request, { skipUnauthorizedHandling: true })
+}
+
+export function refresh(request: RefreshRequest): Promise<TokenResponse> {
+  return apiPost<TokenResponse>('/auth/refresh', request, { skipUnauthorizedHandling: true })
 }
 
 export function me(): Promise<UserResponse> {

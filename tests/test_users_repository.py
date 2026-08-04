@@ -6,13 +6,16 @@ from src.core.exceptions import ValidationError
 from src.financial.users.repository import (
     count_recent_failed_attempts,
     create_password_reset_token,
+    create_refresh_token,
     create_user,
     get_password_reset_token,
+    get_refresh_token,
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
     mark_password_reset_token_used,
     record_login_attempt,
+    revoke_refresh_token,
     update_user,
 )
 
@@ -117,6 +120,45 @@ def test_get_password_reset_token_returns_none_once_used(db_path) -> None:
     mark_password_reset_token_used(token_row["id"], db_path)
 
     assert get_password_reset_token("a-token-hash", db_path) is None
+
+
+def test_refresh_token_round_trip(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(days=30)).isoformat()
+
+    create_refresh_token(user.id, "a-token-hash", now.isoformat(), expires_at, db_path)
+
+    found = get_refresh_token("a-token-hash", db_path)
+    assert found is not None
+    assert found["user_id"] == user.id
+
+
+def test_get_refresh_token_returns_none_when_expired(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expired_at = (now - timedelta(days=1)).isoformat()
+
+    create_refresh_token(user.id, "a-token-hash", now.isoformat(), expired_at, db_path)
+
+    assert get_refresh_token("a-token-hash", db_path) is None
+
+
+def test_get_refresh_token_returns_none_once_revoked(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(days=30)).isoformat()
+    create_refresh_token(user.id, "a-token-hash", now.isoformat(), expires_at, db_path)
+
+    revoke_refresh_token("a-token-hash", db_path)
+
+    assert get_refresh_token("a-token-hash", db_path) is None
 
 
 def test_update_user_updates_username_and_email(db_path) -> None:

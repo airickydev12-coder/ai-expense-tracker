@@ -242,6 +242,60 @@ def mark_password_reset_token_used(token_id: int, db_path: Path = DB_PATH) -> No
         ) from error
 
 
+def create_refresh_token(
+    user_id: int, token_hash: str, issued_at: str, expires_at: str, db_path: Path = DB_PATH
+) -> None:
+    """Insert a new refresh token row for a user."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO refresh_tokens (user_id, token_hash, issued_at, expires_at, revoked_at)
+                VALUES (?, ?, ?, ?, NULL)
+                """,
+                (user_id, token_hash, issued_at, expires_at),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to create refresh token in {db_path}") from error
+
+
+def get_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
+    """Look up an unrevoked, unexpired refresh token by its hash.
+
+    Returns a plain dict (id, user_id) rather than a domain model, since
+    this row has no dataclass of its own -- it's purely a lookup table.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT id, user_id FROM refresh_tokens
+                WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?
+                """,
+                (token_hash, now),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load refresh token from {db_path}") from error
+
+    return dict(row) if row is not None else None
+
+
+def revoke_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> None:
+    """Revoke a refresh token by its hash, so it can no longer be used or rotated."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE refresh_tokens SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL",
+                (now, token_hash),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to revoke refresh token in {db_path}") from error
+
+
 def list_active_users(db_path: Path = DB_PATH) -> list[User]:
     """Return every active user, ordered by id.
 

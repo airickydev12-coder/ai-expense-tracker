@@ -48,10 +48,17 @@ class ResetPasswordRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    """Response body containing an access token."""
+    """Response body containing an access token and refresh token."""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    """Request body for exchanging a refresh token for a new session."""
+
+    refresh_token: str = Field(min_length=1)
 
 
 class UserResponse(BaseModel):

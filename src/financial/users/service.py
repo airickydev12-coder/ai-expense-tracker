@@ -9,6 +9,7 @@ from src.core.config import (
     LOGIN_LOCKOUT_MAX_ATTEMPTS,
     LOGIN_LOCKOUT_WINDOW_MINUTES,
     PASSWORD_RESET_TOKEN_EXPIRY_MINUTES,
+    REFRESH_TOKEN_EXPIRY_DAYS,
 )
 from src.core.exceptions import (
     AuthenticationError,
@@ -17,19 +18,24 @@ from src.core.exceptions import (
     ValidationError,
 )
 from src.core.logging import get_logger
+from src.core.security import create_access_token
+from src.core.security import create_refresh_token as generate_refresh_token
 from src.core.security import hash_password, verify_password
 from src.financial.notifications.email_sender import send_notification_email
 from src.financial.users.models import User
 from src.financial.users.repository import (
     count_recent_failed_attempts,
     create_password_reset_token,
+    create_refresh_token,
     create_user,
     get_password_reset_token,
+    get_refresh_token,
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
     mark_password_reset_token_used,
     record_login_attempt,
+    revoke_refresh_token,
     update_password_hash,
     update_user,
 )
@@ -111,6 +117,48 @@ def authenticate_user(
     logger.info("Authenticated user %d (%s)", user.id, user.username)
 
     return user
+
+
+def issue_session(user_id: int, username: str, db_path: Path = DB_PATH) -> tuple[str, str]:
+    """Issue a new (access_token, refresh_token) pair for a user.
+
+    Called from both /auth/login and /auth/refresh (via refresh_session
+    below), so both paths create sessions the same way.
+    """
+    access_token = create_access_token(user_id=user_id, username=username)
+
+    raw_refresh_token = generate_refresh_token()
+    issued_at = datetime.now(timezone.utc)
+    expires_at = issued_at + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
+    create_refresh_token(
+        user_id,
+        _hash_token(raw_refresh_token),
+        issued_at.isoformat(),
+        expires_at.isoformat(),
+        db_path,
+    )
+
+    return access_token, raw_refresh_token
+
+
+def refresh_session(refresh_token: str, db_path: Path = DB_PATH) -> tuple[str, str]:
+    """Validate a refresh token and issue a new (access_token, refresh_token) pair.
+
+    Rotates the refresh token on every use (revokes the old one, issues a new
+    one) rather than reusing it -- this way a leaked-and-reused refresh token
+    stops working the instant the legitimate client rotates past it, instead
+    of remaining valid indefinitely until its natural expiry.
+    """
+    token_hash = _hash_token(refresh_token)
+    token_row = get_refresh_token(token_hash, db_path)
+
+    if token_row is None:
+        raise AuthenticationError("Invalid or expired refresh token.")
+
+    user = get_user(token_row["user_id"], db_path)
+    revoke_refresh_token(token_hash, db_path)
+
+    return issue_session(user.id, user.username, db_path)
 
 
 def update_profile(

@@ -8,6 +8,7 @@ src/api/dependencies.py.
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -44,6 +45,16 @@ def create_access_token(user_id: int, username: str) -> str:
         "exp": now + timedelta(minutes=JWT_EXPIRY_MINUTES),
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token() -> str:
+    """Generate a new high-entropy random refresh token.
+
+    Unlike the JWT access token, this carries no payload of its own -- the
+    caller looks up the (hashed) token server-side to resolve the session,
+    which is what makes it revocable, unlike a self-contained JWT.
+    """
+    return secrets.token_urlsafe(32)
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
