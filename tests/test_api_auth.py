@@ -28,6 +28,7 @@ def test_register_success() -> None:
     body = response.json()
     assert body["username"] == "alice"
     assert body["email"] == "alice@example.com"
+    assert body["role"] == "user"
     assert "password" not in body
     assert "password_hash" not in body
 

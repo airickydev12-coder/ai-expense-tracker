@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -7,10 +8,11 @@ from src.core.db import get_connection
 from src.core.exceptions import PersistenceError, ValidationError
 from src.core.logging import get_logger
 from src.financial.users.models import User
+from src.financial.users.role import PlatformRole
 
 logger = get_logger(__name__)
 
-_COLUMNS = "id, username, email, password_hash, is_active, created_at, updated_at"
+_COLUMNS = "id, username, email, password_hash, is_active, role, created_at, updated_at"
 
 
 def create_user(
@@ -107,6 +109,32 @@ def update_password_hash(user_id: int, password_hash: str, db_path: Path = DB_PA
         raise PersistenceError(f"Failed to update password for user {user_id} in {db_path}") from error
 
     logger.debug("Updated password hash for user %d in %s", user_id, db_path)
+
+
+def update_user_role(user_id: int, role: PlatformRole, db_path: Path = DB_PATH) -> User:
+    """Overwrite a user's platform role.
+
+    Deliberately separate from update_user() -- role assignment is a
+    privileged admin action, not a self-service profile edit, and shouldn't
+    share a code path (or authorization assumptions) with one.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET role = ?, updated_at = ? WHERE id = ?",
+                (role.value, now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to update role for user {user_id} in {db_path}") from error
+
+    logger.debug("Updated role for user %d to %s in %s", user_id, role.value, db_path)
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
 
 
 def get_user_by_username(username: str, db_path: Path = DB_PATH) -> User | None:
@@ -329,6 +357,50 @@ def revoke_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> None:
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to revoke refresh token in {db_path}") from error
+
+
+def create_admin_audit_event(
+    actor_user_id: int | None,
+    action: str,
+    *,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    reason: str | None = None,
+    metadata: dict | None = None,
+    db_path: Path = DB_PATH,
+) -> None:
+    """Record one admin audit event.
+
+    actor_user_id is nullable: NULL means system/script-initiated (e.g. the
+    initial SUPER_ADMIN bootstrap, which by definition has no acting admin
+    yet); non-null means a real admin acting through the API. Audit rows are
+    append-only -- no update/delete function exists for this table.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO admin_audit_events
+                    (actor_user_id, action, target_type, target_id, reason,
+                     request_id, ip_address, metadata, created_at)
+                VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+                """,
+                (
+                    actor_user_id,
+                    action,
+                    target_type,
+                    target_id,
+                    reason,
+                    json.dumps(metadata or {}),
+                    now,
+                ),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to record admin audit event in {db_path}") from error
+
+    logger.info("Admin audit event: %s (actor=%s, target=%s/%s)", action, actor_user_id, target_type, target_id)
 
 
 def list_active_users(db_path: Path = DB_PATH) -> list[User]:

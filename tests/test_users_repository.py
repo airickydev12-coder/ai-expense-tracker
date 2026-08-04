@@ -6,6 +6,7 @@ from src.core.exceptions import ValidationError
 from src.financial.users.repository import (
     count_recent_failed_attempts,
     count_recent_password_reset_requests,
+    create_admin_audit_event,
     create_password_reset_token,
     create_refresh_token,
     create_user,
@@ -19,7 +20,9 @@ from src.financial.users.repository import (
     record_password_reset_request,
     revoke_refresh_token,
     update_user,
+    update_user_role,
 )
+from src.financial.users.role import PlatformRole
 
 
 def test_create_user_returns_user_with_assigned_id(db_path) -> None:
@@ -30,6 +33,54 @@ def test_create_user_returns_user_with_assigned_id(db_path) -> None:
     assert user.email == "alice@example.com"
     assert user.password_hash == "hashed-value"
     assert user.is_active is True
+    assert user.role == PlatformRole.USER
+
+
+def test_update_user_role_changes_role(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    updated = update_user_role(user.id, PlatformRole.ADMIN, db_path)
+
+    assert updated.role == PlatformRole.ADMIN
+
+    reloaded = get_user_by_id(user.id, db_path)
+    assert reloaded is not None
+    assert reloaded.role == PlatformRole.ADMIN
+
+
+def test_update_user_role_does_not_affect_other_users(db_path) -> None:
+    alice = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    bob = create_user("bob", "bob@example.com", "hashed-value", db_path)
+
+    update_user_role(alice.id, PlatformRole.SUPER_ADMIN, db_path)
+
+    reloaded_bob = get_user_by_id(bob.id, db_path)
+    assert reloaded_bob is not None
+    assert reloaded_bob.role == PlatformRole.USER
+
+
+def test_create_admin_audit_event_does_not_raise(db_path) -> None:
+    from src.core.db import get_connection
+
+    create_admin_audit_event(
+        actor_user_id=None,
+        action="role.assign",
+        target_type="user",
+        target_id="1",
+        reason="Bootstrap promotion.",
+        metadata={"previous_role": "user", "new_role": "super_admin"},
+        db_path=db_path,
+    )
+
+    with get_connection(db_path) as connection:
+        row = connection.execute("SELECT * FROM admin_audit_events").fetchone()
+
+    assert row["action"] == "role.assign"
+    assert row["actor_user_id"] is None
+    assert row["target_type"] == "user"
+    assert row["target_id"] == "1"
+    assert row["reason"] == "Bootstrap promotion."
+    assert '"new_role": "super_admin"' in row["metadata"]
 
 
 def test_create_user_duplicate_username_raises_validation_error(db_path) -> None:

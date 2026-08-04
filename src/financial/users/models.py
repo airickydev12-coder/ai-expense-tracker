@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from src.core.exceptions import ValidationError
+from src.financial.users.role import PlatformRole
 
 
 @dataclass
@@ -13,6 +14,7 @@ class User:
     email: str
     password_hash: str
     is_active: bool
+    role: PlatformRole
     created_at: datetime
     updated_at: datetime
 
@@ -38,6 +40,7 @@ class User:
             "email": self.email,
             "password_hash": self.password_hash,
             "is_active": int(self.is_active),
+            "role": self.role.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
@@ -51,6 +54,7 @@ class User:
             email=data["email"],
             password_hash=data["password_hash"],
             is_active=bool(data["is_active"]),
+            role=PlatformRole(data["role"]),
             created_at=datetime.fromisoformat(data["created_at"]),
             updated_at=datetime.fromisoformat(data["updated_at"]),
         )

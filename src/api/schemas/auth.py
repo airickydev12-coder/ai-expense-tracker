@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from src.financial.users.role import PlatformRole
+
 
 class RegisterRequest(BaseModel):
     """Request body for registering a new user."""
@@ -76,5 +78,6 @@ class UserResponse(BaseModel):
     username: str
     email: str
     is_active: bool
+    role: PlatformRole
     created_at: datetime
     updated_at: datetime

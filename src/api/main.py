@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 
 from src.api.routers import dashboard
 from src.api.routers.accounts import router as accounts_router
+from src.api.routers.admin import router as admin_router
 from src.api.routers.auth import router as auth_router
 from src.api.routers.bills import router as bills_router
 from src.api.routers.budgets import router as budgets_router
@@ -195,3 +196,4 @@ app.include_router(dashboard.router)
 app.include_router(recommendations_router)
 app.include_router(recurring_expenses_router)
 app.include_router(notifications_router)
+app.include_router(admin_router)

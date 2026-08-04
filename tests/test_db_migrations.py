@@ -125,3 +125,39 @@ def test_fresh_database_never_exercises_migration_branch(tmp_path) -> None:
 
     assert pk_by_column["id"] > 0
     assert pk_by_column["user_id"] > 0
+
+
+def test_role_column_migration_adds_column_with_default(tmp_path) -> None:
+    """An old-shape users table (no role column) gets one added, with
+    'user' applied to every pre-existing row."""
+    db_path = tmp_path / "legacy_no_role.db"
+    _create_old_shape_database(db_path)
+
+    with get_connection(db_path) as connection:
+        row = connection.execute("SELECT role FROM users WHERE id = 7").fetchone()
+
+    assert row["role"] == "user"
+
+
+def test_role_column_migration_is_idempotent(tmp_path) -> None:
+    db_path = tmp_path / "legacy_no_role.db"
+    _create_old_shape_database(db_path)
+
+    with get_connection(db_path):
+        pass  # first connection performs the migration
+
+    with get_connection(db_path) as connection:
+        row = connection.execute("SELECT role FROM users WHERE id = 7").fetchone()
+
+    assert row["role"] == "user"
+
+
+def test_fresh_database_users_table_already_has_role_column(tmp_path) -> None:
+    """A brand-new database gets the role column directly from SCHEMA, so
+    the migration's up-front check should already see it as present."""
+    db_path = tmp_path / "fresh_role.db"
+
+    with get_connection(db_path) as connection:
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+
+    assert "role" in columns

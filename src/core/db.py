@@ -20,8 +20,22 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
+    role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_user_id INTEGER,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id TEXT,
+    reason TEXT,
+    request_id TEXT,
+    ip_address TEXT,
+    metadata TEXT NOT NULL,
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS login_attempts (
@@ -273,6 +287,20 @@ def _ensure_user_id_columns(connection: sqlite3.Connection) -> None:
             connection.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER")
 
 
+def _ensure_role_column(connection: sqlite3.Connection) -> None:
+    """Add a role column (default 'user') to `users` if missing.
+
+    Same idempotent-ALTER-TABLE pattern as _ensure_user_id_columns, for the
+    same reason: CREATE TABLE IF NOT EXISTS is a no-op once a real database
+    file already has a `users` table without this column. SQLite's ALTER
+    TABLE ADD COLUMN supports a constant DEFAULT, so every pre-existing row
+    gets 'user' applied automatically -- no row is ever left unprotected.
+    """
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+    if "role" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+
+
 def _table_has_composite_user_pk(connection: sqlite3.Connection, table: str) -> bool:
     """Return whether `table`'s user_id column is already part of its primary key."""
     for row in connection.execute(f"PRAGMA table_info({table})"):
@@ -363,6 +391,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
+    _ensure_role_column(connection)
     _ensure_user_id_columns(connection)
     _ensure_composite_primary_keys(connection)
 
