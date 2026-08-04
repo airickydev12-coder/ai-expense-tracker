@@ -16,6 +16,7 @@ from src.financial.recommendations.service import generate_recommendations
 
 
 def build_financial_snapshot(
+    user_id: int,
     income_entries: list[Income],
     expenses: list[Expense],
     budgets: list[Budget],
@@ -59,7 +60,7 @@ def build_financial_snapshot(
 
     rule_snapshot = build_rule_snapshot(financial_snapshot)
 
-    recommendations = generate_recommendations(rule_snapshot)
+    recommendations = generate_recommendations(user_id, rule_snapshot)
 
     snapshot = financial_snapshot.to_dict()
 

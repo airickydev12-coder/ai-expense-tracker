@@ -13,6 +13,7 @@ from src.financial.recommendations.service import (
 
 
 def build_recommendations(
+    user_id: int,
     priority: str | None = None,
     category: str | None = None,
     limit: int | None = None,
@@ -23,11 +24,11 @@ def build_recommendations(
     Filtering is applied before the result limit.
     """
 
-    financial_snapshot = build_financial_snapshot()
+    financial_snapshot = build_financial_snapshot(user_id)
 
     rule_snapshot = build_rule_snapshot(financial_snapshot)
 
-    recommendations = generate_recommendations(rule_snapshot)
+    recommendations = generate_recommendations(user_id, rule_snapshot)
 
     if priority is not None:
         normalized_priority = priority.strip().upper()
@@ -57,6 +58,7 @@ def build_recommendations(
 
 
 def get_recommendation_by_key(
+    user_id: int,
     key: str,
 ) -> Recommendation | None:
     """
@@ -65,7 +67,7 @@ def get_recommendation_by_key(
     Returns None if no recommendation exists.
     """
 
-    recommendations = build_recommendations()
+    recommendations = build_recommendations(user_id)
 
     return next(
         (

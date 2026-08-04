@@ -22,12 +22,13 @@ def _matches(record_json: str, query: str) -> bool:
 
 
 def search_monthly_reviews(
+    user_id: int,
     query: str | None = None,
     limit: int = 5,
 ) -> list[dict]:
-    """Return saved monthly reviews, most recent first, optionally keyword-filtered."""
+    """Return a user's saved monthly reviews, most recent first, optionally keyword-filtered."""
     reviews = sorted(
-        get_monthly_review_history(),
+        get_monthly_review_history(user_id),
         key=lambda review: review["generated_at"],
         reverse=True,
     )
@@ -43,11 +44,12 @@ def search_monthly_reviews(
 
 
 def search_saved_scenarios(
+    user_id: int,
     query: str | None = None,
     limit: int = 5,
 ) -> list[dict]:
-    """Return saved scenario_workspace results, optionally keyword-filtered."""
-    results = get_scenario_workspace().get_results()
+    """Return a user's saved scenario_workspace results, optionally keyword-filtered."""
+    results = get_scenario_workspace(user_id).get_results()
 
     if query:
         results = [
@@ -60,12 +62,13 @@ def search_saved_scenarios(
 
 
 def search_saved_notes(
+    user_id: int,
     query: str | None = None,
     limit: int = 5,
 ) -> list[dict]:
-    """Return saved notes, most recent first, optionally keyword-filtered."""
+    """Return a user's saved notes, most recent first, optionally keyword-filtered."""
     notes = sorted(
-        get_notes(),
+        get_notes(user_id),
         key=lambda note: note["created_at"],
         reverse=True,
     )
@@ -77,12 +80,13 @@ def search_saved_notes(
 
 
 def search_saved_content(
+    user_id: int,
     query: str | None = None,
     limit: int = 5,
 ) -> dict:
-    """Search saved monthly reviews, saved scenarios, and saved notes together."""
+    """Search a user's saved monthly reviews, saved scenarios, and saved notes together."""
     return {
-        "monthly_reviews": search_monthly_reviews(query, limit),
-        "scenarios": search_saved_scenarios(query, limit),
-        "notes": search_saved_notes(query, limit),
+        "monthly_reviews": search_monthly_reviews(user_id, query, limit),
+        "scenarios": search_saved_scenarios(user_id, query, limit),
+        "notes": search_saved_notes(user_id, query, limit),
     }

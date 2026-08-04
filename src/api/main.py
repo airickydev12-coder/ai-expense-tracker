@@ -48,21 +48,37 @@ from src.core.exceptions import (
     ValidationError,
 )
 from src.core.logging import configure_logging, get_logger
-from src.financial.application.financial_state import load_financial_state
 from src.financial.notifications.service import check_and_send_notifications
 from src.financial.scenarios.factory import register_default_scenario_handlers
+from src.financial.users.repository import list_active_users
 
 configure_logging(console_level=logging.INFO)
 
 logger = get_logger(__name__)
 
 
+def _check_and_send_notifications_for_all_users() -> None:
+    """Run the notification check for every active user.
+
+    Each domain's data is now isolated per user and lazily loaded on first
+    access (see src/financial/application/financial_state.py) — there's no
+    more app-wide "load everything at startup" step, so this scheduled job
+    (unlike a request) must resolve the user list itself and iterate it.
+    A failure for one user (e.g. a bad email) is logged and skipped rather
+    than aborting the rest of the run.
+    """
+    for user in list_active_users():
+        try:
+            check_and_send_notifications(user.id, user.email)
+        except Exception:
+            logger.exception("Notification check failed for user %d", user.id)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialize the database, hydrate in-memory state, and start the
-    notification scheduler on startup; stop the scheduler on shutdown."""
+    """Initialize the database and start the notification scheduler on
+    startup; stop the scheduler on shutdown."""
     initialize_database()
-    load_financial_state()
     register_default_scenario_handlers()
 
     if JWT_SECRET_KEY == "dev-insecure-secret-change-me":
@@ -73,7 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        check_and_send_notifications,
+        _check_and_send_notifications_for_all_users,
         trigger=IntervalTrigger(minutes=NOTIFICATION_CHECK_INTERVAL_MINUTES),
         id="check_and_send_notifications",
     )

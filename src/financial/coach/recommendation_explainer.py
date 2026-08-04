@@ -428,9 +428,9 @@ def _request_explanation(prompt: str) -> dict:
     return json.loads(text)
 
 
-def _get_recommendation(recommendation_key: str) -> Recommendation:
+def _get_recommendation(user_id: int, recommendation_key: str) -> Recommendation:
     """Look up a recommendation by key, raising if none exists."""
-    recommendation = get_recommendation_by_key(recommendation_key)
+    recommendation = get_recommendation_by_key(user_id, recommendation_key)
     if recommendation is None:
         raise NotFoundError(
             f"No recommendation was found with key: {recommendation_key}"
@@ -439,7 +439,7 @@ def _get_recommendation(recommendation_key: str) -> Recommendation:
     return recommendation
 
 
-def get_recommendation_evidence(recommendation_key: str) -> dict:
+def get_recommendation_evidence(user_id: int, recommendation_key: str) -> dict:
     """
     Return a recommendation plus real, precomputed evidence -- no AI call.
 
@@ -449,8 +449,8 @@ def get_recommendation_evidence(recommendation_key: str) -> dict:
     its own grounded explanation instead of triggering a second, nested
     Claude call.
     """
-    recommendation = _get_recommendation(recommendation_key)
-    snapshot = build_current_financial_snapshot()
+    recommendation = _get_recommendation(user_id, recommendation_key)
+    snapshot = build_current_financial_snapshot(user_id)
     evidence = _gather_evidence(recommendation, snapshot)
 
     return {
@@ -459,16 +459,17 @@ def get_recommendation_evidence(recommendation_key: str) -> dict:
     }
 
 
-def explain_recommendation(recommendation_key: str) -> dict:
+def explain_recommendation(user_id: int, recommendation_key: str) -> dict:
     """Generate a structured, evidence-grounded explanation for a recommendation."""
-    recommendation = _get_recommendation(recommendation_key)
+    recommendation = _get_recommendation(user_id, recommendation_key)
 
     logger.info(
-        "Requesting explanation for recommendation key=%r",
+        "Requesting explanation for recommendation key=%r for user %d",
         recommendation_key,
+        user_id,
     )
 
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(user_id)
     evidence = _gather_evidence(recommendation, snapshot)
 
     prompt = _build_prompt(recommendation, evidence)

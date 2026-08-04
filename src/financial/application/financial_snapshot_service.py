@@ -13,21 +13,21 @@ from src.financial.goals import service as goal_service
 from src.financial.income import service as income_service
 
 
-def build_financial_snapshot() -> FinancialSnapshot:
+def build_financial_snapshot(user_id: int) -> FinancialSnapshot:
     """
-    Build and return the current canonical financial snapshot.
+    Build and return this user's current canonical financial snapshot.
 
     This service retrieves stored application data and delegates all
     financial calculations to the canonical snapshot builder.
     """
 
-    income_entries = income_service.get_income_entries()
-    expenses = expense_service.get_expenses()
-    budgets = budget_service.get_budgets()
-    accounts = account_service.get_accounts()
-    goals = goal_service.get_goals()
-    debts = debt_service.get_debts()
-    bills = bill_service.get_bills()
+    income_entries = income_service.get_income_entries(user_id)
+    expenses = expense_service.get_expenses(user_id)
+    budgets = budget_service.get_budgets(user_id)
+    accounts = account_service.get_accounts(user_id)
+    goals = goal_service.get_goals(user_id)
+    debts = debt_service.get_debts(user_id)
+    bills = bill_service.get_bills(user_id)
 
     return build_snapshot(
         income_entries=income_entries,

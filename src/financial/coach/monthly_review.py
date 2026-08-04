@@ -271,14 +271,15 @@ def _build_ok_review(
 
 
 def generate_monthly_review(
+    user_id: int,
     current_snapshot: dict,
     *,
     now: datetime | None = None,
 ) -> dict:
     """Generate a structured monthly financial review, grounded in real history."""
-    logger.info("Requesting monthly review generation")
+    logger.info("Requesting monthly review generation for user %d", user_id)
 
-    history = get_history()
+    history = get_history(user_id)
     if not history:
         return _build_no_history_review(current_snapshot)
 
@@ -288,6 +289,6 @@ def generate_monthly_review(
         return _build_insufficient_recent_history_review(len(windowed), latest)
 
     trend = analyze_financial_trends(windowed)
-    top_actions = build_recommendations(limit=3)
+    top_actions = build_recommendations(user_id, limit=3)
 
     return _build_ok_review(current_snapshot, trend, top_actions, windowed)

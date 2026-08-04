@@ -24,9 +24,9 @@ from src.financial.coach import monthly_review as coach_monthly_review
 from src.financial.coach import narrative as coach_narrative
 from src.financial.coach import recommendation_explainer
 from src.financial.coach.coaching import build_coaching_session
+from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.coach.monthly_review_export import export_monthly_review_to_csv
 from src.financial.coach.monthly_review_history_service import record_monthly_review
-from src.financial.coach.insights import generate_financial_coach_insights
 from src.financial.coach.notes_service import add_note, delete_note, get_notes
 from src.financial.scenarios.optimizer import optimize_financial_snapshot
 from src.financial.users.models import User
@@ -35,9 +35,11 @@ router = APIRouter(prefix="/coach", tags=["Coach"])
 
 
 @router.get("/narrative")
-def get_financial_narrative() -> CoachNarrativeResponse:
+def get_financial_narrative(
+    current_user: User = Depends(get_current_user),
+) -> CoachNarrativeResponse:
     """Return an AI-generated narrative explanation of the current snapshot."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     narrative = coach_narrative.generate_financial_narrative(snapshot)
     return CoachNarrativeResponse(narrative=narrative)
 
@@ -45,35 +47,42 @@ def get_financial_narrative() -> CoachNarrativeResponse:
 @router.get("/recommendations/{recommendation_key}/explanation")
 def get_recommendation_explanation(
     recommendation_key: str,
+    current_user: User = Depends(get_current_user),
 ) -> RecommendationExplanationResponse:
     """Return an AI-generated, evidence-grounded explanation for a recommendation."""
-    result = recommendation_explainer.explain_recommendation(recommendation_key)
+    result = recommendation_explainer.explain_recommendation(current_user.id, recommendation_key)
     return RecommendationExplanationResponse.model_validate(result)
 
 
 @router.get("/monthly-review")
-def get_monthly_review() -> MonthlyReviewResponse:
+def get_monthly_review(
+    current_user: User = Depends(get_current_user),
+) -> MonthlyReviewResponse:
     """Return an AI-generated monthly financial review."""
-    snapshot = build_current_financial_snapshot()
-    result = coach_monthly_review.generate_monthly_review(snapshot)
+    snapshot = build_current_financial_snapshot(current_user.id)
+    result = coach_monthly_review.generate_monthly_review(current_user.id, snapshot)
     return MonthlyReviewResponse.model_validate(result)
 
 
 @router.post("/monthly-review")
-def create_monthly_review() -> MonthlyReviewResponse:
+def create_monthly_review(
+    current_user: User = Depends(get_current_user),
+) -> MonthlyReviewResponse:
     """Generate a monthly review and save it if there's enough data to ground one."""
-    snapshot = build_current_financial_snapshot()
-    result = coach_monthly_review.generate_monthly_review(snapshot)
+    snapshot = build_current_financial_snapshot(current_user.id)
+    result = coach_monthly_review.generate_monthly_review(current_user.id, snapshot)
     if result["status"] == "ok":
-        result = record_monthly_review(result)
+        result = record_monthly_review(current_user.id, result)
     return MonthlyReviewResponse.model_validate(result)
 
 
 @router.get("/monthly-review/export")
-def export_monthly_review() -> StreamingResponse:
+def export_monthly_review(
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
     """Return the current monthly review as a downloadable CSV file."""
-    snapshot = build_current_financial_snapshot()
-    review = coach_monthly_review.generate_monthly_review(snapshot)
+    snapshot = build_current_financial_snapshot(current_user.id)
+    review = coach_monthly_review.generate_monthly_review(current_user.id, snapshot)
     csv_text = export_monthly_review_to_csv(review)
     return StreamingResponse(
         iter([csv_text]),
@@ -83,17 +92,21 @@ def export_monthly_review() -> StreamingResponse:
 
 
 @router.get("/insights")
-def get_insights() -> list[dict[str, Any]]:
+def get_insights(
+    current_user: User = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     """Return deterministic coaching insights for the current financial state."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     insights = generate_financial_coach_insights(snapshot)
     return [insight.to_dict() for insight in insights]
 
 
 @router.get("/session")
-def get_coaching_session() -> dict[str, Any]:
+def get_coaching_session(
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """Build a complete coaching session from the current financial state."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     optimization_result = optimize_financial_snapshot(
         snapshot,
         register_handlers=False,
@@ -103,12 +116,15 @@ def get_coaching_session() -> dict[str, Any]:
 
 
 @router.post("/chat")
-def send_chat_message(request: CoachChatRequest) -> CoachChatResponse:
+def send_chat_message(
+    request: CoachChatRequest,
+    current_user: User = Depends(get_current_user),
+) -> CoachChatResponse:
     """Send a message, with full history, to the AI financial coach chat."""
     if request.messages[-1].role != "user":
         raise ValidationError("The last message in the conversation must be from the user.")
     history = [{"role": message.role, "content": message.content} for message in request.messages]
-    reply = coach_chat.run_coach_chat(history)
+    reply = coach_chat.run_coach_chat(current_user.id, history)
     return CoachChatResponse(reply=reply)
 
 

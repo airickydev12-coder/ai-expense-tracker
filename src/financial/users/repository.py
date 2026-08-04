@@ -73,3 +73,20 @@ def get_user_by_id(user_id: int, db_path: Path = DB_PATH) -> User | None:
         raise PersistenceError(f"Failed to load user from {db_path}") from error
 
     return User.from_dict(dict(row)) if row is not None else None
+
+
+def list_active_users(db_path: Path = DB_PATH) -> list[User]:
+    """Return every active user, ordered by id.
+
+    Used by the notification scheduler (src/api/main.py) to iterate every
+    user's own check, since that job isn't tied to any one request.
+    """
+    try:
+        with get_connection(db_path) as connection:
+            rows = connection.execute(
+                f"SELECT {_COLUMNS} FROM users WHERE is_active = 1 ORDER BY id"
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load users from {db_path}") from error
+
+    return [User.from_dict(dict(row)) for row in rows]

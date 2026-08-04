@@ -25,11 +25,30 @@ from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 from src.financial.scenarios.factory import register_default_scenario_handlers
 from src.financial.scenarios.service import reset_scenario_handlers
-from src.financial.scenarios.workspace import scenario_workspace
+from src.financial.scenarios.workspace_service import (
+    get_scenario_workspace,
+)
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace as _real_save_result_to_workspace,
 )
 from src.financial.shared.categories import ExpenseCategory
+
+USER_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def _set_current_user_id():
+    """Set the chat module's per-turn user_id contextvar for every test.
+
+    Mirrors what run_coach_chat() itself does for a real chat turn -- most
+    tests here call individual _tool_* functions directly (bypassing
+    run_coach_chat), and those functions read _current_user_id.get()
+    internally since the tool-calling JSON schema Claude sees has no
+    user_id field for the model to fill in.
+    """
+    token = chat._current_user_id.set(USER_ID)
+    yield
+    chat._current_user_id.reset(token)
 
 
 @contextlib.contextmanager
@@ -74,7 +93,7 @@ def test_run_coach_chat_returns_text_with_no_tool_use(monkeypatch: pytest.Monkey
         chat, "_request_completion", lambda messages: _text_message("You're doing well.")
     )
 
-    reply = chat.run_coach_chat([{"role": "user", "content": "How am I doing?"}])
+    reply = chat.run_coach_chat(USER_ID, [{"role": "user", "content": "How am I doing?"}])
 
     assert reply == "You're doing well."
 
@@ -102,7 +121,7 @@ def test_run_coach_chat_executes_tool_and_returns_final_text(
 
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "get_financial_snapshot", fake_snapshot_tool)
 
-    reply = chat.run_coach_chat([{"role": "user", "content": "What's my net worth?"}])
+    reply = chat.run_coach_chat(USER_ID, [{"role": "user", "content": "What's my net worth?"}])
 
     assert reply == "You have $500 saved."
     assert stub_called is True
@@ -130,7 +149,7 @@ def test_run_coach_chat_wraps_tool_error_as_tool_result_is_error(
 
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "get_budget_status", failing_tool)
 
-    reply = chat.run_coach_chat([{"role": "user", "content": "Am I on budget?"}])
+    reply = chat.run_coach_chat(USER_ID, [{"role": "user", "content": "Am I on budget?"}])
 
     assert reply == "Something's off."
 
@@ -148,7 +167,7 @@ def test_run_coach_chat_raises_when_iteration_cap_exceeded(
     monkeypatch.setattr(chat, "_request_completion", fake_request_completion)
 
     with pytest.raises(ExternalServiceError):
-        chat.run_coach_chat([{"role": "user", "content": "Tell me everything."}])
+        chat.run_coach_chat(USER_ID, [{"role": "user", "content": "Tell me everything."}])
 
     assert call_count == chat.MAX_TOOL_USE_ITERATIONS
 
@@ -227,7 +246,7 @@ def test_run_coach_chat_executes_parameterized_tool(
         chat._TOOL_FUNCTIONS, "list_recommendations", fake_list_recommendations
     )
 
-    reply = chat.run_coach_chat([{"role": "user", "content": "What should I prioritize?"}])
+    reply = chat.run_coach_chat(USER_ID, [{"role": "user", "content": "What should I prioritize?"}])
 
     assert reply == "Here's what to prioritize."
     assert received == {"category": "Debt", "priority": None, "limit": 3}
@@ -249,7 +268,7 @@ def test_run_coach_chat_surfaces_missing_scenario_parameter_as_tool_error(
 
     monkeypatch.setattr(chat, "_request_completion", lambda messages: next(responses))
 
-    reply = chat.run_coach_chat([{"role": "user", "content": "What if I cut food spending?"}])
+    reply = chat.run_coach_chat(USER_ID, [{"role": "user", "content": "What if I cut food spending?"}])
 
     assert reply == "I need a reduction percentage to run that."
 
@@ -264,7 +283,7 @@ def test_tool_run_scenario_filters_parameters_by_scenario_type(
         captured["request"] = request
         return SimpleNamespace(to_dict=lambda: {"ok": True})
 
-    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: {"total_income": 0})
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda user_id: {"total_income": 0})
     monkeypatch.setattr(chat, "run_financial_scenario", fake_run_financial_scenario)
 
     chat._tool_run_scenario(
@@ -284,7 +303,7 @@ def test_tool_list_recommendations_defaults_limit_to_five(
 ) -> None:
     captured: dict = {}
 
-    def fake_build_recommendations(priority=None, category=None, limit=None) -> list:
+    def fake_build_recommendations(user_id=None, priority=None, category=None, limit=None) -> list:
         captured["limit"] = limit
         return []
 
@@ -301,7 +320,7 @@ def test_tool_recommendation_evidence_delegates_to_get_recommendation_evidence(
 ) -> None:
     captured: dict = {}
 
-    def fake_get_recommendation_evidence(recommendation_key: str) -> dict:
+    def fake_get_recommendation_evidence(user_id: int, recommendation_key: str) -> dict:
         captured["recommendation_key"] = recommendation_key
         return {"recommendation": {}, "evidence": {}}
 
@@ -334,7 +353,7 @@ def test_tool_run_scenario_executes_real_scenario_end_to_end(
         "health_status": "Excellent",
     }
 
-    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda user_id: snapshot)
 
     result = chat._tool_run_scenario(
         scenario_type="Additional Savings",
@@ -355,7 +374,7 @@ def test_tool_search_saved_content_delegates_to_search_saved_content(
 ) -> None:
     captured: dict = {}
 
-    def fake_search_saved_content(query, limit) -> dict:
+    def fake_search_saved_content(user_id, query, limit) -> dict:
         captured["query"] = query
         captured["limit"] = limit
         return {"monthly_reviews": [], "scenarios": []}
@@ -388,6 +407,7 @@ def test_run_coach_chat_executes_search_saved_content_tool(
     )
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "What did we decide about my emergency fund?"}]
     )
 
@@ -410,14 +430,14 @@ def _build_test_recommendation() -> Recommendation:
 def test_tool_dismiss_recommendation_refuses_when_not_confirmed() -> None:
     reset_recommendation_history()
     recommendation = _build_test_recommendation()
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
     try:
         result = chat._tool_dismiss_recommendation(
             recommendation_key=recommendation.key, confirmed=False
         )
 
         assert result["dismissed"] is False
-        record = get_recommendation_record(recommendation.key)
+        record = get_recommendation_record(USER_ID, recommendation.key)
         assert record is not None
         assert record.status.value != "Dismissed"
     finally:
@@ -427,7 +447,7 @@ def test_tool_dismiss_recommendation_refuses_when_not_confirmed() -> None:
 def test_tool_dismiss_recommendation_dismisses_real_recommendation_when_confirmed() -> None:
     reset_recommendation_history()
     recommendation = _build_test_recommendation()
-    register_recommendation(recommendation)
+    register_recommendation(USER_ID, recommendation)
     try:
         result = chat._tool_dismiss_recommendation(
             recommendation_key=recommendation.key,
@@ -440,7 +460,7 @@ def test_tool_dismiss_recommendation_dismisses_real_recommendation_when_confirme
             "recommendation_key": recommendation.key,
             "status": "Dismissed",
         }
-        record = get_recommendation_record(recommendation.key)
+        record = get_recommendation_record(USER_ID, recommendation.key)
         assert record is not None
         assert record.status.value == "Dismissed"
     finally:
@@ -492,6 +512,7 @@ def test_run_coach_chat_executes_dismiss_recommendation_tool(
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "dismiss_recommendation", fake_dismiss)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, dismiss that recommendation."}]
     )
 
@@ -502,8 +523,9 @@ def test_run_coach_chat_executes_dismiss_recommendation_tool(
 # --- save_scenario: confirmed flag gate -------------------------------------
 
 
-def test_tool_save_scenario_refuses_when_not_confirmed() -> None:
-    scenario_workspace.clear()
+def test_tool_save_scenario_refuses_when_not_confirmed(tmp_path) -> None:
+    file_path = tmp_path / "scenario_workspace.json"
+    get_scenario_workspace(USER_ID, file_path).clear()
     try:
         result = chat._tool_save_scenario(
             scenario_type="Additional Savings",
@@ -513,9 +535,9 @@ def test_tool_save_scenario_refuses_when_not_confirmed() -> None:
         )
 
         assert result["saved"] is False
-        assert scenario_workspace.is_empty()
+        assert get_scenario_workspace(USER_ID, file_path).is_empty()
     finally:
-        scenario_workspace.clear()
+        get_scenario_workspace(USER_ID, file_path).clear()
 
 
 def test_tool_save_scenario_saves_real_scenario_when_confirmed(
@@ -524,13 +546,13 @@ def test_tool_save_scenario_saves_real_scenario_when_confirmed(
     """Prove confirmed=True re-runs the scenario for real and persists it."""
     reset_scenario_handlers()
     register_default_scenario_handlers()
-    scenario_workspace.clear()
 
     file_path = tmp_path / "scenario_workspace.json"
+    get_scenario_workspace(USER_ID, file_path).clear()
     monkeypatch.setattr(
         chat,
         "save_result_to_workspace",
-        lambda result: _real_save_result_to_workspace(result, file_path),
+        lambda user_id, result: _real_save_result_to_workspace(user_id, result, file_path),
     )
 
     snapshot = {
@@ -544,7 +566,7 @@ def test_tool_save_scenario_saves_real_scenario_when_confirmed(
         "health_score": 85,
         "health_status": "Excellent",
     }
-    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda user_id: snapshot)
 
     try:
         result = chat._tool_save_scenario(
@@ -556,9 +578,9 @@ def test_tool_save_scenario_saves_real_scenario_when_confirmed(
 
         assert result["saved"] is True
         assert result["name"]
-        assert len(scenario_workspace.get_results()) == 1
+        assert len(get_scenario_workspace(USER_ID, file_path).get_results()) == 1
     finally:
-        scenario_workspace.clear()
+        get_scenario_workspace(USER_ID, file_path).clear()
 
 
 def test_run_coach_chat_executes_save_scenario_tool(
@@ -593,6 +615,7 @@ def test_run_coach_chat_executes_save_scenario_tool(
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "save_scenario", fake_save_scenario)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, save that scenario."}]
     )
 
@@ -611,7 +634,7 @@ def test_tool_add_goal_refuses_when_not_confirmed(tmp_path) -> None:
         )
 
         assert result["added"] is False
-        assert _goals == []
+        assert _goals.get(USER_ID, []) == []
 
 
 def test_tool_add_goal_creates_real_goal_when_confirmed(tmp_path) -> None:
@@ -627,8 +650,8 @@ def test_tool_add_goal_creates_real_goal_when_confirmed(tmp_path) -> None:
 
             assert result["added"] is True
             assert result["goal"]["name"] == "Vacation Fund"
-            assert len(_goals) == 1
-            assert _goals[0].name == "Vacation Fund"
+            assert len(_goals[USER_ID]) == 1
+            assert _goals[USER_ID][0].name == "Vacation Fund"
     finally:
         _goals.clear()
 
@@ -661,6 +684,7 @@ def test_run_coach_chat_executes_add_goal_tool(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "add_goal", fake_add_goal)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, add that goal."}]
     )
 
@@ -679,7 +703,7 @@ def test_tool_update_budget_refuses_when_not_confirmed(tmp_path) -> None:
         )
 
         assert result["updated"] is False
-        assert _budgets == []
+        assert _budgets.get(USER_ID, []) == []
 
 
 def test_tool_update_budget_updates_real_budget_when_confirmed(tmp_path) -> None:
@@ -693,8 +717,8 @@ def test_tool_update_budget_updates_real_budget_when_confirmed(tmp_path) -> None
             assert result["updated"] is True
             assert result["budget"]["category"] == "Food"
             assert result["budget"]["limit"] == "400.00"
-            assert len(_budgets) == 1
-            assert _budgets[0].category == ExpenseCategory.FOOD
+            assert len(_budgets[USER_ID]) == 1
+            assert _budgets[USER_ID][0].category == ExpenseCategory.FOOD
     finally:
         _budgets.clear()
 
@@ -723,6 +747,7 @@ def test_run_coach_chat_executes_update_budget_tool(monkeypatch: pytest.MonkeyPa
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "update_budget", fake_update_budget)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, set that budget."}]
     )
 
@@ -738,7 +763,7 @@ def test_tool_categorize_expense_refuses_when_not_confirmed(tmp_path) -> None:
     try:
         with _isolated_test_database(tmp_path):
             expense = add_expense(
-                name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
+                USER_ID, name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
             )
 
             result = chat._tool_categorize_expense(
@@ -746,7 +771,7 @@ def test_tool_categorize_expense_refuses_when_not_confirmed(tmp_path) -> None:
             )
 
             assert result["categorized"] is False
-            assert _expenses[0].category == ExpenseCategory.OTHER
+            assert _expenses[USER_ID][0].category == ExpenseCategory.OTHER
     finally:
         _expenses.clear()
 
@@ -758,7 +783,7 @@ def test_tool_categorize_expense_recategorizes_real_expense_when_confirmed(
     try:
         with _isolated_test_database(tmp_path):
             expense = add_expense(
-                name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
+                USER_ID, name="Coffee", category=ExpenseCategory.OTHER, amount=Decimal("5.00")
             )
 
             result = chat._tool_categorize_expense(
@@ -767,7 +792,7 @@ def test_tool_categorize_expense_recategorizes_real_expense_when_confirmed(
 
             assert result["categorized"] is True
             assert result["expense"]["category"] == "Food"
-            assert _expenses[0].category == ExpenseCategory.FOOD
+            assert _expenses[USER_ID][0].category == ExpenseCategory.FOOD
     finally:
         _expenses.clear()
 
@@ -814,6 +839,7 @@ def test_run_coach_chat_executes_categorize_expense_tool(
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "categorize_expense", fake_categorize_expense)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, recategorize it."}]
     )
 
@@ -846,7 +872,7 @@ def test_tool_build_combined_plan_executes_real_steps_end_to_end(
     register_default_scenario_handlers()
 
     snapshot = _combined_plan_snapshot(Decimal("2000.00"))
-    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda user_id: snapshot)
 
     result = chat._tool_build_combined_plan(
         name="Save More, Twice",
@@ -878,7 +904,7 @@ def test_tool_build_combined_plan_surfaces_real_conflicts(
     register_default_scenario_handlers()
 
     snapshot = _combined_plan_snapshot(Decimal("500.00"))
-    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda: snapshot)
+    monkeypatch.setattr(chat, "build_current_financial_snapshot", lambda user_id: snapshot)
 
     result = chat._tool_build_combined_plan(
         name="Overcommitted Plan",
@@ -937,6 +963,7 @@ def test_run_coach_chat_executes_build_combined_plan_tool(
     )
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "What if I paid extra on debt and saved more?"}]
     )
 
@@ -956,7 +983,7 @@ def test_tool_save_note_refuses_when_not_confirmed(tmp_path) -> None:
         )
 
         assert result["saved"] is False
-        assert get_notes() == []
+        assert get_notes(USER_ID) == []
 
 
 def test_tool_save_note_saves_real_note_when_confirmed(tmp_path) -> None:
@@ -971,8 +998,8 @@ def test_tool_save_note_saves_real_note_when_confirmed(tmp_path) -> None:
 
             assert result["saved"] is True
             assert result["note"]["title"] == "Rent"
-            assert len(get_notes()) == 1
-            assert get_notes()[0]["content"] == "Landlord raises rent every March."
+            assert len(get_notes(USER_ID)) == 1
+            assert get_notes(USER_ID)[0]["content"] == "Landlord raises rent every March."
     finally:
         clear_notes()
 
@@ -1005,6 +1032,7 @@ def test_run_coach_chat_executes_save_note_tool(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setitem(chat._TOOL_FUNCTIONS, "save_note", fake_save_note)
 
     reply = chat.run_coach_chat(
+        USER_ID,
         [{"role": "user", "content": "Yes, save that note."}]
     )
 

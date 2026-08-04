@@ -1,6 +1,7 @@
 """AI financial coach chat via a manual Claude tool-use loop."""
 
 import json
+from contextvars import ContextVar
 from datetime import date
 from typing import Any, Callable, cast
 
@@ -56,6 +57,15 @@ from src.financial.shared.categories import ExpenseCategory
 logger = get_logger(__name__)
 
 MAX_TOOL_USE_ITERATIONS = 5
+
+# The tool functions below are dispatched by Claude via a fixed JSON schema
+# (_TOOL_DEFINITIONS) that the model sees and fills in -- there's no way to
+# add a "user_id" parameter to that schema for the model to supply, since it
+# has no concept of which user is chatting. run_coach_chat() sets this
+# contextvar for the duration of one turn instead, and every tool function
+# reads it internally. This is a deliberate, narrowly-scoped exception to
+# the rest of the app's explicit-user_id-parameter convention.
+_current_user_id: ContextVar[int] = ContextVar("_current_user_id")
 
 _SYSTEM_PROMPT = (
     "You are a personal financial coach embedded in this app. You answer "
@@ -118,11 +128,11 @@ _SYSTEM_PROMPT = (
 
 
 def _tool_financial_snapshot() -> dict:
-    return build_current_financial_snapshot()
+    return build_current_financial_snapshot(_current_user_id.get())
 
 
 def _tool_expense_details() -> dict:
-    expenses = get_expenses()
+    expenses = get_expenses(_current_user_id.get())
     highest = get_highest_expense(expenses)
     lowest = get_lowest_expense(expenses)
     return {
@@ -136,8 +146,9 @@ def _tool_expense_details() -> dict:
 
 
 def _tool_budget_status() -> dict:
-    budgets = get_budgets()
-    expenses = get_expenses()
+    user_id = _current_user_id.get()
+    budgets = get_budgets(user_id)
+    expenses = get_expenses(user_id)
     return {
         "budgets": [
             {**budget.to_dict(), "summary": get_budget_summary(budget, expenses)}
@@ -147,7 +158,7 @@ def _tool_budget_status() -> dict:
 
 
 def _tool_debt_details() -> dict:
-    debts = get_debts()
+    debts = get_debts(_current_user_id.get())
     highest = get_highest_interest_debt(debts)
     return {
         "debts": [debt.to_dict() for debt in debts],
@@ -158,7 +169,7 @@ def _tool_debt_details() -> dict:
 
 
 def _tool_goal_details() -> dict:
-    goals = get_goals()
+    goals = get_goals(_current_user_id.get())
     return {
         "goals": [
             {**goal.to_dict(), "progress_percentage": get_goal_progress_percentage(goal)}
@@ -169,7 +180,7 @@ def _tool_goal_details() -> dict:
 
 
 def _tool_bill_details() -> dict:
-    bills = get_bills()
+    bills = get_bills(_current_user_id.get())
     current_day = date.today().day
     return {
         "bills": [bill.to_dict() for bill in bills],
@@ -180,7 +191,7 @@ def _tool_bill_details() -> dict:
 
 
 def _tool_income_details() -> dict:
-    income_entries = get_income_entries()
+    income_entries = get_income_entries(_current_user_id.get())
     return {
         "income_entries": [income.to_dict() for income in income_entries],
         "total_income": get_total_income(income_entries),
@@ -189,11 +200,11 @@ def _tool_income_details() -> dict:
 
 
 def _tool_account_details() -> dict:
-    return {"accounts": [account.to_dict() for account in get_accounts()]}
+    return {"accounts": [account.to_dict() for account in get_accounts(_current_user_id.get())]}
 
 
 def _tool_coach_analysis() -> dict:
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(_current_user_id.get())
     optimization_result = optimize_financial_snapshot(snapshot, register_handlers=False)
     session = build_coaching_session(snapshot, optimization_result)
     return session.to_dict()
@@ -273,7 +284,7 @@ def _build_and_run_scenario(
         horizon_months,
     )
 
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(_current_user_id.get())
 
     return run_financial_scenario(request, snapshot)
 
@@ -328,7 +339,7 @@ def _tool_build_combined_plan(
         for step in steps
     ]
 
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(_current_user_id.get())
 
     plan = run_combined_scenario_plan(
         name=name,
@@ -346,6 +357,7 @@ def _tool_list_recommendations(
     limit: int | None = None,
 ) -> dict:
     recommendations = build_recommendations(
+        _current_user_id.get(),
         priority=priority,
         category=category,
         limit=limit if limit is not None else 5,
@@ -354,14 +366,14 @@ def _tool_list_recommendations(
 
 
 def _tool_recommendation_evidence(recommendation_key: str) -> dict:
-    return get_recommendation_evidence(recommendation_key)
+    return get_recommendation_evidence(_current_user_id.get(), recommendation_key)
 
 
 def _tool_search_saved_content(
     query: str | None = None,
     limit: int | None = None,
 ) -> dict:
-    return search_saved_content(query, limit if limit is not None else 5)
+    return search_saved_content(_current_user_id.get(), query, limit if limit is not None else 5)
 
 
 # --- write tools: gated by an explicit confirmed flag ----------------------
@@ -381,7 +393,7 @@ def _tool_dismiss_recommendation(
                 "this specific recommendation in their most recent message."
             ),
         }
-    record = dismiss_recommendation(recommendation_key, note)
+    record = dismiss_recommendation(_current_user_id.get(), recommendation_key, note)
     if record is None:
         return {
             "dismissed": False,
@@ -431,7 +443,7 @@ def _tool_save_scenario(
         additional_monthly_savings,
         horizon_months,
     )
-    save_result_to_workspace(result)
+    save_result_to_workspace(_current_user_id.get(), result)
     return {"saved": True, "name": result.name, "description": result.description}
 
 
@@ -450,7 +462,12 @@ def _tool_add_goal(
                 "exact goal in their most recent message."
             ),
         }
-    goal = add_goal(name=name, target_amount=target_amount, current_amount=current_amount)
+    goal = add_goal(
+        _current_user_id.get(),
+        name=name,
+        target_amount=target_amount,
+        current_amount=current_amount,
+    )
     return {"added": True, "goal": goal.to_dict()}
 
 
@@ -468,7 +485,9 @@ def _tool_update_budget(
                 "budget change in their most recent message."
             ),
         }
-    budget = update_budget(category=ExpenseCategory(category), limit=to_money(limit))
+    budget = update_budget(
+        _current_user_id.get(), category=ExpenseCategory(category), limit=to_money(limit)
+    )
     return {"updated": True, "budget": budget.to_dict()}
 
 
@@ -486,7 +505,7 @@ def _tool_categorize_expense(
                 "recategorization in their most recent message."
             ),
         }
-    expense = update_expense(expense_id, category=ExpenseCategory(category))
+    expense = update_expense(_current_user_id.get(), expense_id, category=ExpenseCategory(category))
     if expense is None:
         return {
             "categorized": False,
@@ -512,7 +531,7 @@ def _tool_save_note(
                 "exact note in their most recent message."
             ),
         }
-    note = add_note(title=title, content=content)
+    note = add_note(_current_user_id.get(), title=title, content=content)
     return {"saved": True, "note": note}
 
 
@@ -1084,13 +1103,22 @@ def _request_completion(messages: list[dict]) -> anthropic.types.Message:
         raise ExternalServiceError(f"Coach chat is unavailable: {exc}") from exc
 
 
-def run_coach_chat(history: list[dict[str, str]]) -> str:
+def run_coach_chat(user_id: int, history: list[dict[str, str]]) -> str:
     """Run the tool-use loop for one turn and return the assistant's reply text.
 
     `history` is the full conversation so far, including the newest user
     message, as [{"role": "user"|"assistant", "content": str}, ...].
     """
-    logger.info("Running coach chat with %d prior message(s)", len(history))
+    logger.info("Running coach chat with %d prior message(s) for user %d", len(history), user_id)
+    token = _current_user_id.set(user_id)
+    try:
+        return _run_coach_chat_loop(history)
+    finally:
+        _current_user_id.reset(token)
+
+
+def _run_coach_chat_loop(history: list[dict[str, str]]) -> str:
+    """Run the tool-use loop itself, once _current_user_id is set."""
     messages: list[dict] = [{"role": m["role"], "content": m["content"]} for m in history]
 
     for _ in range(MAX_TOOL_USE_ITERATIONS):

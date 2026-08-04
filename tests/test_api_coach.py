@@ -15,6 +15,20 @@ from src.financial.scenarios.service import reset_scenario_handlers
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+
+
 def setup_function() -> None:
     """Ensure scenario handlers are registered and notes are cleared before each test."""
     reset_scenario_handlers()
@@ -38,7 +52,7 @@ def test_get_financial_narrative(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_recommendation_explanation_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_explain(recommendation_key: str) -> dict:
+    def fake_explain(user_id: int, recommendation_key: str) -> dict:
         assert recommendation_key == "debt:high_interest_debt"
         return {
             "recommendation_key": recommendation_key,
@@ -77,7 +91,7 @@ def test_get_recommendation_explanation_success(
 def test_get_recommendation_explanation_not_found(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_explain(recommendation_key: str) -> dict:
+    def fake_explain(user_id: int, recommendation_key: str) -> dict:
         raise NotFoundError("No recommendation was found.")
 
     monkeypatch.setattr(
@@ -94,7 +108,7 @@ def test_get_recommendation_explanation_not_found(
 def test_get_recommendation_explanation_non_debt_category_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_explain(recommendation_key: str) -> dict:
+    def fake_explain(user_id: int, recommendation_key: str) -> dict:
         assert recommendation_key == "cash_flow:negative"
         return {
             "recommendation_key": recommendation_key,
@@ -128,7 +142,7 @@ def test_get_monthly_review_no_history(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         coach_router.coach_monthly_review,
         "generate_monthly_review",
-        lambda snapshot: {
+        lambda user_id, snapshot: {
             "status": "no_history",
             "message": "No financial snapshot has been recorded yet.",
         },
@@ -143,7 +157,7 @@ def test_get_monthly_review_no_history(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_monthly_review_ok(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_review(snapshot: dict) -> dict:
+    def fake_review(user_id: int, snapshot: dict) -> dict:
         return {
             "status": "ok",
             "period_start": "2026-07-01T00:00:00+00:00",
@@ -223,12 +237,12 @@ def test_post_monthly_review_saves_when_status_ok(
     monkeypatch.setattr(
         coach_router.coach_monthly_review,
         "generate_monthly_review",
-        lambda snapshot: ok_review,
+        lambda user_id, snapshot: ok_review,
     )
 
     recorded: dict = {}
 
-    def fake_record_monthly_review(review: dict) -> dict:
+    def fake_record_monthly_review(user_id: int, review: dict) -> dict:
         recorded["review"] = review
         return {**review, "generated_at": "2026-08-02T12:00:00+00:00"}
 
@@ -255,10 +269,10 @@ def test_post_monthly_review_does_not_save_when_status_not_ok(
     monkeypatch.setattr(
         coach_router.coach_monthly_review,
         "generate_monthly_review",
-        lambda snapshot: degraded_review,
+        lambda user_id, snapshot: degraded_review,
     )
 
-    def fail_if_called(review: dict) -> dict:
+    def fail_if_called(user_id: int, review: dict) -> dict:
         raise AssertionError("record_monthly_review must not be called for degraded status.")
 
     monkeypatch.setattr(coach_router, "record_monthly_review", fail_if_called)
@@ -290,7 +304,9 @@ def test_get_coaching_session() -> None:
 
 def test_post_chat_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        coach_router.coach_chat, "run_coach_chat", lambda history: "You're doing well."
+        coach_router.coach_chat,
+        "run_coach_chat",
+        lambda user_id, history: "You're doing well.",
     )
 
     response = client.post(
@@ -325,7 +341,7 @@ def test_post_chat_endpoint_rejects_empty_messages() -> None:
 def test_post_chat_endpoint_propagates_external_service_error_as_502(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_run_coach_chat(history: list[dict]) -> str:
+    def fake_run_coach_chat(user_id: int, history: list[dict]) -> str:
         raise ExternalServiceError("Coach chat is unavailable.")
 
     monkeypatch.setattr(coach_router.coach_chat, "run_coach_chat", fake_run_coach_chat)
@@ -338,39 +354,17 @@ def test_post_chat_endpoint_propagates_external_service_error_as_502(
     assert response.status_code == 502
 
 
-def _note_auth_headers(username: str = "note_tester") -> dict[str, str]:
-    """Register and log in a throwaway user, returning bearer auth headers for notes tests."""
-    client.post(
-        "/auth/register",
-        json={
-            "username": username,
-            "email": f"{username}@example.com",
-            "password": "correct-password",
-        },
-    )
-    token = client.post(
-        "/auth/login",
-        json={"username": username, "password": "correct-password"},
-    ).json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
 def test_list_notes_returns_empty_when_none_saved() -> None:
-    headers = _note_auth_headers()
-
-    response = client.get("/coach/notes", headers=headers)
+    response = client.get("/coach/notes")
 
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_create_and_list_notes() -> None:
-    headers = _note_auth_headers()
-
     create_response = client.post(
         "/coach/notes",
         json={"title": "Rent", "content": "Landlord raises rent every March."},
-        headers=headers,
     )
 
     assert create_response.status_code == 201
@@ -379,32 +373,27 @@ def test_create_and_list_notes() -> None:
     assert created["content"] == "Landlord raises rent every March."
     assert "created_at" in created
 
-    list_response = client.get("/coach/notes", headers=headers)
+    list_response = client.get("/coach/notes")
 
     assert list_response.status_code == 200
     assert len(list_response.json()) == 1
 
 
 def test_delete_note_removes_it() -> None:
-    headers = _note_auth_headers()
-
     created = client.post(
         "/coach/notes",
         json={"title": "Rent", "content": "Landlord raises rent every March."},
-        headers=headers,
     ).json()
 
-    delete_response = client.delete(f"/coach/notes/{created['id']}", headers=headers)
+    delete_response = client.delete(f"/coach/notes/{created['id']}")
 
     assert delete_response.status_code == 200
     assert delete_response.json()["title"] == "Rent"
-    assert client.get("/coach/notes", headers=headers).json() == []
+    assert client.get("/coach/notes").json() == []
 
 
 def test_delete_note_returns_404_for_unknown_id() -> None:
-    headers = _note_auth_headers()
-
-    response = client.delete("/coach/notes/999999", headers=headers)
+    response = client.delete("/coach/notes/999999")
 
     assert response.status_code == 404
 
@@ -446,7 +435,7 @@ def test_export_monthly_review_returns_csv(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(
         coach_router.coach_monthly_review,
         "generate_monthly_review",
-        lambda snapshot: ok_review,
+        lambda user_id, snapshot: ok_review,
     )
 
     response = client.get("/coach/monthly-review/export")
@@ -466,7 +455,7 @@ def test_export_monthly_review_returns_422_when_not_enough_history(
     monkeypatch.setattr(
         coach_router.coach_monthly_review,
         "generate_monthly_review",
-        lambda snapshot: {
+        lambda user_id, snapshot: {
             "status": "no_history",
             "message": "No financial snapshot has been recorded yet.",
         },

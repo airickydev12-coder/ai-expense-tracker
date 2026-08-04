@@ -36,9 +36,9 @@ class Dashboard:
     health_status: str
 
 
-def build_dashboard() -> Dashboard:
+def build_dashboard(user_id: int) -> Dashboard:
     """
-    Build the financial dashboard.
+    Build this user's financial dashboard.
 
     This service delegates all financial-fact computation to the canonical
     financial snapshot and recommendation-generation services, so the
@@ -46,7 +46,7 @@ def build_dashboard() -> Dashboard:
     recomputing a parallel, easily-drifting copy of it.
     """
 
-    snapshot = build_financial_snapshot()
+    snapshot = build_financial_snapshot(user_id)
 
     # -------------------------
     # Budget Summary
@@ -71,7 +71,7 @@ def build_dashboard() -> Dashboard:
     # Recommendation Summary
     # -------------------------
 
-    recommendation_count = len(build_recommendations())
+    recommendation_count = len(build_recommendations(user_id))
 
     return Dashboard(
         total_expenses=snapshot.total_expenses,

@@ -13,6 +13,21 @@ from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
 
 client = TestClient(app)
+USER_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def test_get_dashboard_with_financial_data(
@@ -49,13 +64,13 @@ def test_get_dashboard_with_financial_data(
     monkeypatch.setattr(
         expense_service,
         "expenses",
-        test_expenses,
+        {USER_ID: test_expenses},
     )
 
     monkeypatch.setattr(
         budget_service,
         "budgets",
-        test_budgets,
+        {USER_ID: test_budgets},
     )
 
     response = client.get("/dashboard")
@@ -99,13 +114,13 @@ def test_get_dashboard_without_financial_data(
     monkeypatch.setattr(
         expense_service,
         "expenses",
-        [],
+        {USER_ID: []},
     )
 
     monkeypatch.setattr(
         budget_service,
         "budgets",
-        [],
+        {USER_ID: []},
     )
 
     response = client.get("/dashboard")

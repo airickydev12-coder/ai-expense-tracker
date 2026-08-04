@@ -19,10 +19,9 @@ from src.financial.goals.service import goals
 from src.financial.history.service import clear_history
 from src.financial.income.models import Income
 from src.financial.income.service import income_entries
-from src.financial.scenarios.workspace import (
-    scenario_workspace,
-)
 from src.financial.shared.categories import ExpenseCategory
+
+USER_ID = 1
 
 
 def setup_function():
@@ -35,122 +34,52 @@ def setup_function():
     debts.clear()
     bills.clear()
     clear_history()
-    scenario_workspace.clear()
-
-
-def test_load_financial_state_loads_scenario_workspace(
-    monkeypatch,
-):
-    from src.financial.application import financial_state
-
-    captured = {
-        "loaded": False,
-    }
-
-    monkeypatch.setattr(
-        financial_state,
-        "load_expenses",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_budgets",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_income",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_accounts",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_goals",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_debts",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_bills",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_recommendation_history",
-        lambda: None,
-    )
-    monkeypatch.setattr(
-        financial_state,
-        "load_history",
-        lambda: None,
-    )
-
-    def fake_load_workspace():
-        captured["loaded"] = True
-
-    monkeypatch.setattr(
-        financial_state,
-        "load_scenario_workspace",
-        fake_load_workspace,
-    )
-
-    financial_state.load_financial_state()
-
-    assert captured["loaded"] is True
 
 
 def test_get_financial_state_returns_all_domains():
-    income_entries.append(
+    income_entries[USER_ID] = [
         Income(
             id=1,
             source="Salary",
             amount=Decimal("5000.00"),
         )
-    )
+    ]
 
-    expenses.append(
+    expenses[USER_ID] = [
         Expense(
             id=1,
             name="Rent",
             category=ExpenseCategory.HOUSING,
             amount=Decimal("1200.00"),
         )
-    )
+    ]
 
-    budgets.append(
+    budgets[USER_ID] = [
         Budget(
             category=ExpenseCategory.HOUSING,
             limit=Decimal("1500.00"),
         )
-    )
+    ]
 
-    accounts.append(
+    accounts[USER_ID] = [
         Account(
             id=1,
             name="Checking",
             account_type="Bank",
             balance=Decimal("1000.00"),
         )
-    )
+    ]
 
-    goals.append(
+    goals[USER_ID] = [
         Goal(
             id=1,
             name="Emergency Fund",
             target_amount=Decimal("10000.00"),
             current_amount=Decimal("2500.00"),
         )
-    )
+    ]
 
-    debts.append(
+    debts[USER_ID] = [
         Debt(
             id=1,
             name="Credit Card",
@@ -158,9 +87,9 @@ def test_get_financial_state_returns_all_domains():
             interest_rate=19.99,
             minimum_payment=Decimal("50.00"),
         )
-    )
+    ]
 
-    bills.append(
+    bills[USER_ID] = [
         Bill(
             id=1,
             name="Electric",
@@ -168,9 +97,9 @@ def test_get_financial_state_returns_all_domains():
             due_day=15,
             is_paid=False,
         )
-    )
+    ]
 
-    state = get_financial_state()
+    state = get_financial_state(USER_ID)
 
     assert len(state["income_entries"]) == 1
     assert len(state["expenses"]) == 1
@@ -182,49 +111,49 @@ def test_get_financial_state_returns_all_domains():
 
 
 def test_build_current_financial_snapshot():
-    income_entries.append(
+    income_entries[USER_ID] = [
         Income(
             id=1,
             source="Salary",
             amount=Decimal("5000.00"),
         )
-    )
+    ]
 
-    expenses.append(
+    expenses[USER_ID] = [
         Expense(
             id=1,
             name="Rent",
             category=ExpenseCategory.HOUSING,
             amount=Decimal("1200.00"),
         )
-    )
+    ]
 
-    budgets.append(
+    budgets[USER_ID] = [
         Budget(
             category=ExpenseCategory.HOUSING,
             limit=Decimal("1500.00"),
         )
-    )
+    ]
 
-    accounts.append(
+    accounts[USER_ID] = [
         Account(
             id=1,
             name="Checking",
             account_type="Bank",
             balance=Decimal("2000.00"),
         )
-    )
+    ]
 
-    goals.append(
+    goals[USER_ID] = [
         Goal(
             id=1,
             name="Emergency Fund",
             target_amount=Decimal("10000.00"),
             current_amount=Decimal("2500.00"),
         )
-    )
+    ]
 
-    debts.append(
+    debts[USER_ID] = [
         Debt(
             id=1,
             name="Credit Card",
@@ -232,9 +161,9 @@ def test_build_current_financial_snapshot():
             interest_rate=19.99,
             minimum_payment=Decimal("50.00"),
         )
-    )
+    ]
 
-    bills.append(
+    bills[USER_ID] = [
         Bill(
             id=1,
             name="Electric",
@@ -242,93 +171,16 @@ def test_build_current_financial_snapshot():
             due_day=15,
             is_paid=False,
         )
-    )
+    ]
 
     snapshot = build_current_financial_snapshot(
+        USER_ID,
         current_day=10,
     )
 
     assert snapshot["total_income"] == Decimal("5000.00")
     assert snapshot["total_expenses"] == Decimal("1200.00")
     assert snapshot["net_cash_flow"] == Decimal("3800.00")
-    assert snapshot["total_account_balance"] == Decimal("2000.00")
-    assert snapshot["total_goal_progress"] == Decimal("2500.00")
-    assert snapshot["total_debt"] == Decimal("1000.00")
-    assert len(snapshot["bills"]) == 1
-    assert snapshot["current_day"] == 10
-    assert "recommendations" in snapshot
-
-
-def test_record_current_financial_snapshot(
-    monkeypatch,
-):
-    from src.financial.application import financial_state
-
-    captured_snapshot: dict = {}
-
-    fake_snapshot = {
-        "total_income": Decimal("5000.00"),
-        "total_expenses": Decimal("1500.00"),
-        "net_cash_flow": Decimal("3500.00"),
-        "total_account_balance": Decimal("2000.00"),
-        "total_goal_progress": Decimal("2500.00"),
-        "total_debt": Decimal("1000.00"),
-        "net_worth": Decimal("3500.00"),
-        "health_score": 85,
-        "health_status": "Excellent",
-        "accounts": [
-            {
-                "id": 1,
-                "name": "Checking",
-            }
-        ],
-        "goals": [
-            {
-                "id": 1,
-                "name": "Emergency Fund",
-            }
-        ],
-        "debts": [
-            {
-                "id": 1,
-                "name": "Credit Card",
-            }
-        ],
-        "bills": [
-            {
-                "id": 1,
-                "name": "Electric",
-            }
-        ],
-        "current_day": 10,
-        "recommendations": [],
-    }
-
-    monkeypatch.setattr(
-        financial_state,
-        "build_current_financial_snapshot",
-        lambda current_day=None: fake_snapshot,
-    )
-
-    def fake_record(snapshot):
-        captured_snapshot.update(snapshot)
-        return "recorded"
-
-    monkeypatch.setattr(
-        financial_state,
-        "record_snapshot",
-        fake_record,
-    )
-
-    snapshot, record = financial_state.record_current_financial_snapshot()
-
-    assert snapshot == fake_snapshot
-    assert record == "recorded"
-    assert captured_snapshot["net_worth"] == Decimal("3500.00")
-
-    assert snapshot["total_income"] == Decimal("5000.00")
-    assert snapshot["total_expenses"] == Decimal("1500.00")
-    assert snapshot["net_cash_flow"] == Decimal("3500.00")
     assert snapshot["total_account_balance"] == Decimal("2000.00")
     assert snapshot["total_goal_progress"] == Decimal("2500.00")
     assert snapshot["total_debt"] == Decimal("1000.00")

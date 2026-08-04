@@ -1,93 +1,43 @@
-from src.financial.accounts.service import (
-    get_accounts,
-    load_accounts,
-)
-from src.financial.bills.service import (
-    get_bills,
-    load_bills,
-)
-from src.financial.budgets.service import (
-    get_budgets,
-    load_budgets,
-)
-from src.financial.coach.monthly_review_history_service import (
-    load_monthly_review_history,
-)
-from src.financial.coach.notes_service import load_notes
-from src.financial.debt.service import (
-    get_debts,
-    load_debts,
-)
-from src.financial.engine.financial_engine import (
-    build_financial_snapshot,
-)
-from src.financial.expenses.service import (
-    get_expenses,
-    load_expenses,
-)
-from src.financial.goals.service import (
-    get_goals,
-    load_goals,
-)
+from src.financial.accounts.service import get_accounts
+from src.financial.bills.service import get_bills
+from src.financial.budgets.service import get_budgets
+from src.financial.debt.service import get_debts
+from src.financial.engine.financial_engine import build_financial_snapshot
+from src.financial.expenses.service import get_expenses
+from src.financial.goals.service import get_goals
 from src.financial.history.models import FinancialSnapshotRecord
-from src.financial.history.service import (
-    load_history,
-    record_snapshot,
-)
-from src.financial.income.service import (
-    get_income_entries,
-    load_income,
-)
-from src.financial.notifications.service import load_notification_log
-from src.financial.recommendations.history_service import (
-    load_recommendation_history,
-)
-from src.financial.recurring_expenses.service import (
-    load_recurring_expense_templates,
-)
-from src.financial.scenarios.workspace_service import (
-    load_scenario_workspace,
-)
+from src.financial.history.service import record_snapshot
+from src.financial.income.service import get_income_entries
 
 
-def load_financial_state() -> None:
-    """Load all persisted financial application state."""
-    load_expenses()
-    load_budgets()
-    load_income()
-    load_accounts()
-    load_goals()
-    load_debts()
-    load_bills()
-    load_recommendation_history()
-    load_history()
-    load_scenario_workspace()
-    load_monthly_review_history()
-    load_notes()
-    load_recurring_expense_templates()
-    load_notification_log()
+def get_financial_state(user_id: int) -> dict:
+    """Return this user's current in-memory financial state.
 
-
-def get_financial_state() -> dict:
-    """Return the current in-memory financial state."""
+    Each getter lazily loads that user's own data on first access -- there
+    is no separate eager "load everything at startup" step (see
+    src/api/main.py's lifespan): a request that only touches one domain
+    never pays the cost of loading every other domain too.
+    """
     return {
-        "income_entries": get_income_entries(),
-        "expenses": get_expenses(),
-        "budgets": get_budgets(),
-        "accounts": get_accounts(),
-        "goals": get_goals(),
-        "debts": get_debts(),
-        "bills": get_bills(),
+        "income_entries": get_income_entries(user_id),
+        "expenses": get_expenses(user_id),
+        "budgets": get_budgets(user_id),
+        "accounts": get_accounts(user_id),
+        "goals": get_goals(user_id),
+        "debts": get_debts(user_id),
+        "bills": get_bills(user_id),
     }
 
 
 def build_current_financial_snapshot(
+    user_id: int,
     current_day: int | None = None,
 ) -> dict:
-    """Build a snapshot from current in-memory financial data."""
-    state = get_financial_state()
+    """Build a snapshot from a user's current in-memory financial data."""
+    state = get_financial_state(user_id)
 
     return build_financial_snapshot(
+        user_id,
         income_entries=state["income_entries"],
         expenses=state["expenses"],
         budgets=state["budgets"],
@@ -100,11 +50,12 @@ def build_current_financial_snapshot(
 
 
 def record_current_financial_snapshot(
+    user_id: int,
     current_day: int | None = None,
 ) -> tuple[dict, FinancialSnapshotRecord]:
-    """Build, record, and return the current financial snapshot."""
-    snapshot = build_current_financial_snapshot(current_day=current_day)
+    """Build, record, and return a user's current financial snapshot."""
+    snapshot = build_current_financial_snapshot(user_id, current_day=current_day)
 
-    record = record_snapshot(snapshot)
+    record = record_snapshot(user_id, snapshot)
 
     return snapshot, record

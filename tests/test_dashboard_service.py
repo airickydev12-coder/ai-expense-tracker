@@ -20,6 +20,9 @@ from src.financial.income import service as income_service
 from src.financial.shared.categories import ExpenseCategory
 
 
+USER_ID = 1
+
+
 def test_build_dashboard(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -54,26 +57,26 @@ def test_build_dashboard(
     monkeypatch.setattr(
         expense_service,
         "expenses",
-        test_expenses,
+        {USER_ID: test_expenses},
     )
 
     monkeypatch.setattr(
         budget_service,
         "budgets",
-        test_budgets,
+        {USER_ID: test_budgets},
     )
 
     # The dashboard now delegates to the canonical financial snapshot, which
     # also reads accounts/goals/debts/bills/income — isolate all of them so
     # the health score and recommendation count are deterministic regardless
-    # of what other tests leave in these module-level in-memory lists.
-    monkeypatch.setattr(account_service, "accounts", [])
-    monkeypatch.setattr(goal_service, "goals", [])
-    monkeypatch.setattr(debt_service, "debts", [])
-    monkeypatch.setattr(bill_service, "bills", [])
-    monkeypatch.setattr(income_service, "income_entries", [])
+    # of what other tests leave in these module-level in-memory caches.
+    monkeypatch.setattr(account_service, "accounts", {USER_ID: []})
+    monkeypatch.setattr(goal_service, "goals", {USER_ID: []})
+    monkeypatch.setattr(debt_service, "debts", {USER_ID: []})
+    monkeypatch.setattr(bill_service, "bills", {USER_ID: []})
+    monkeypatch.setattr(income_service, "income_entries", {USER_ID: []})
 
-    dashboard = build_dashboard()
+    dashboard = build_dashboard(USER_ID)
 
     assert isinstance(dashboard, Dashboard)
 

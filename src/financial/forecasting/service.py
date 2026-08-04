@@ -60,10 +60,11 @@ def build_financial_forecast(
 
 
 def build_current_financial_forecast(
+    user_id: int,
     horizon_days: int,
 ) -> FinancialForecast:
-    """Build a forecast from the currently loaded history."""
-    history = get_history()
+    """Build a forecast from a user's currently loaded history."""
+    history = get_history(user_id)
 
     return build_financial_forecast(
         history=history,
@@ -72,10 +73,11 @@ def build_current_financial_forecast(
 
 
 def build_standard_forecasts(
+    user_id: int,
     history: list[FinancialSnapshotRecord] | None = None,
 ) -> dict[int, FinancialForecast]:
     """Build standard 30-, 90-, and 365-day forecasts."""
-    forecast_history = history if history is not None else get_history()
+    forecast_history = history if history is not None else get_history(user_id)
 
     return {
         horizon: build_financial_forecast(

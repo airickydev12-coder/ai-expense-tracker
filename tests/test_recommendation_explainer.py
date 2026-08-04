@@ -107,11 +107,11 @@ def test_explain_recommendation_raises_not_found_for_unknown_key(
     monkeypatch.setattr(
         recommendation_explainer,
         "get_recommendation_by_key",
-        lambda key: None,
+        lambda user_id, key: None,
     )
 
     with pytest.raises(NotFoundError):
-        recommendation_explainer.explain_recommendation("debt:unknown")
+        recommendation_explainer.explain_recommendation(1, "debt:unknown")
 
 
 def test_explain_recommendation_returns_structured_result(
@@ -124,12 +124,12 @@ def test_explain_recommendation_returns_structured_result(
     monkeypatch.setattr(
         recommendation_explainer,
         "get_recommendation_by_key",
-        lambda key: recommendation,
+        lambda user_id, key: recommendation,
     )
     monkeypatch.setattr(
         recommendation_explainer,
         "build_current_financial_snapshot",
-        lambda: snapshot,
+        lambda user_id: snapshot,
     )
     monkeypatch.setattr(
         recommendation_explainer,
@@ -142,7 +142,7 @@ def test_explain_recommendation_returns_structured_result(
         },
     )
 
-    result = recommendation_explainer.explain_recommendation(recommendation.key)
+    result = recommendation_explainer.explain_recommendation(1, recommendation.key)
 
     assert result["recommendation_key"] == recommendation.key
     assert result["reason"] == "Card A has the highest APR."
@@ -163,12 +163,12 @@ def test_get_recommendation_evidence_returns_no_ai_call_result(
     monkeypatch.setattr(
         recommendation_explainer,
         "get_recommendation_by_key",
-        lambda key: recommendation,
+        lambda user_id, key: recommendation,
     )
     monkeypatch.setattr(
         recommendation_explainer,
         "build_current_financial_snapshot",
-        lambda: snapshot,
+        lambda user_id: snapshot,
     )
 
     def fail_if_called(prompt: str) -> dict:
@@ -180,7 +180,7 @@ def test_get_recommendation_evidence_returns_no_ai_call_result(
         fail_if_called,
     )
 
-    result = recommendation_explainer.get_recommendation_evidence(recommendation.key)
+    result = recommendation_explainer.get_recommendation_evidence(1, recommendation.key)
 
     assert result["recommendation"]["key"] == recommendation.key
     assert result["evidence"]["type"] == "debt"
@@ -194,11 +194,11 @@ def test_get_recommendation_evidence_raises_not_found_for_unknown_key(
     monkeypatch.setattr(
         recommendation_explainer,
         "get_recommendation_by_key",
-        lambda key: None,
+        lambda user_id, key: None,
     )
 
     with pytest.raises(NotFoundError):
-        recommendation_explainer.get_recommendation_evidence("debt:unknown")
+        recommendation_explainer.get_recommendation_evidence(1, "debt:unknown")
 
 
 def test_choose_extra_payment_respects_cash_flow() -> None:
