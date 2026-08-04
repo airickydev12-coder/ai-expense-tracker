@@ -1,0 +1,14 @@
+import { apiGet, apiPost } from './client'
+import type { LoginRequest, RegisterRequest, TokenResponse, UserResponse } from '../types/auth'
+
+export function register(request: RegisterRequest): Promise<UserResponse> {
+  return apiPost<UserResponse>('/auth/register', request)
+}
+
+export function login(request: LoginRequest): Promise<TokenResponse> {
+  return apiPost<TokenResponse>('/auth/login', request)
+}
+
+export function me(): Promise<UserResponse> {
+  return apiGet<UserResponse>('/auth/me')
+}

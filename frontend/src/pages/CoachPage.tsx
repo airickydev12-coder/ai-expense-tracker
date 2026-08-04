@@ -11,7 +11,8 @@ import {
   saveNote,
 } from '../api/coach'
 import { listRecommendations } from '../api/recommendations'
-import { BASE_URL } from '../api/client'
+import { apiGetBlob } from '../api/client'
+import { downloadBlob } from '../utils/download'
 import { CoachChat } from '../components/coach/CoachChat'
 import { SeverityBadge } from '../components/coach/SeverityBadge'
 import type {
@@ -282,6 +283,15 @@ export function CoachPage() {
       .finally(() => setSavingReview(false))
   }
 
+  function handleExportReview() {
+    setSaveReviewError(null)
+    apiGetBlob('/coach/monthly-review/export')
+      .then((blob) => downloadBlob(blob, 'monthly-review.csv'))
+      .catch((err: unknown) => {
+        setSaveReviewError(err instanceof Error ? err.message : 'Failed to export monthly review')
+      })
+  }
+
   function handleSaveNote() {
     setSavingNote(true)
     setSaveNoteError(null)
@@ -481,13 +491,13 @@ export function CoachPage() {
             ) : (
               <>
                 {saveReviewError && <p className="text-red-600">{saveReviewError}</p>}
-                <a
-                  href={`${BASE_URL}/coach/monthly-review/export`}
-                  download
-                  className="inline-block text-sm text-blue-600 hover:underline"
+                <button
+                  type="button"
+                  onClick={handleExportReview}
+                  className="text-sm text-blue-600 hover:underline"
                 >
                   Download CSV
-                </a>
+                </button>
                 {monthlyReviewState.review.generated_at ? (
                   <p className="text-xs text-gray-500">
                     Saved {new Date(monthlyReviewState.review.generated_at).toLocaleString()}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createExpense, deleteExpense, listExpenses, updateExpense } from '../api/expenses'
-import { BASE_URL } from '../api/client'
+import { apiGetBlob } from '../api/client'
+import { downloadBlob } from '../utils/download'
 import { ExpenseForm } from '../components/expenses/ExpenseForm'
 import type { ExpenseFormValues } from '../components/expenses/ExpenseForm'
 import type { ExpenseResponse } from '../types/expenses'
@@ -79,6 +80,15 @@ export function ExpensesPage() {
       })
   }
 
+  function handleExportCsv() {
+    setMutationError(null)
+    apiGetBlob('/expenses/export')
+      .then((blob) => downloadBlob(blob, 'expenses.csv'))
+      .catch((err: unknown) => {
+        setMutationError(err instanceof Error ? err.message : 'Failed to export expenses')
+      })
+  }
+
   if (state.status === 'loading') {
     return <p className="p-4 text-gray-600">Loading expenses...</p>
   }
@@ -93,13 +103,13 @@ export function ExpensesPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-4">
       <h1 className="text-2xl font-semibold text-gray-900">Expenses</h1>
 
-      <a
-        href={`${BASE_URL}/expenses/export`}
-        download
-        className="inline-block text-sm text-blue-600 hover:underline"
+      <button
+        type="button"
+        onClick={handleExportCsv}
+        className="text-sm text-blue-600 hover:underline"
       >
         Download CSV
-      </a>
+      </button>
 
       {mutationError && <p className="text-sm text-red-600">{mutationError}</p>}
 

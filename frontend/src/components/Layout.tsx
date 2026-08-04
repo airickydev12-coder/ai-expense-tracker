@@ -1,6 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export function Layout() {
+  const { user, logout } = useAuth()
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white px-4 py-3">
@@ -92,6 +95,16 @@ export function Layout() {
               Notifications
             </NavLink>
           </nav>
+          <div className="ml-auto flex items-center gap-3 text-sm">
+            {user && <span className="text-gray-600">{user.username}</span>}
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded border border-gray-300 px-2 py-1 text-gray-700"
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       </header>
       <Outlet />
