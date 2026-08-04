@@ -90,10 +90,11 @@ describe('AuthProvider', () => {
     expect(localStorage.getItem('refresh_token')).toBe('refresh-token')
   })
 
-  it('logout clears both stored tokens', async () => {
+  it('logout clears both stored tokens and revokes the refresh token server-side', async () => {
     localStorage.setItem('auth_token', 'valid-access-token')
     localStorage.setItem('refresh_token', 'valid-refresh-token')
     vi.mocked(authApi.me).mockResolvedValue(alice)
+    vi.mocked(authApi.logout).mockResolvedValue(undefined)
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     await waitFor(() => expect(result.current.status).toBe('authenticated'))
@@ -103,5 +104,21 @@ describe('AuthProvider', () => {
     expect(result.current.status).toBe('unauthenticated')
     expect(localStorage.getItem('auth_token')).toBeNull()
     expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(authApi.logout).toHaveBeenCalledWith({ refresh_token: 'valid-refresh-token' })
+  })
+
+  it('logout still clears local state even if the revocation request fails', async () => {
+    localStorage.setItem('auth_token', 'valid-access-token')
+    localStorage.setItem('refresh_token', 'valid-refresh-token')
+    vi.mocked(authApi.me).mockResolvedValue(alice)
+    vi.mocked(authApi.logout).mockRejectedValue(new Error('network error'))
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+    await waitFor(() => expect(result.current.status).toBe('authenticated'))
+
+    act(() => result.current.logout())
+
+    expect(result.current.status).toBe('unauthenticated')
+    expect(localStorage.getItem('auth_token')).toBeNull()
   })
 })

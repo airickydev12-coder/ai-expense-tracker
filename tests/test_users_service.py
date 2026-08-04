@@ -9,6 +9,7 @@ from src.financial.users.service import (
     change_password,
     get_user,
     issue_session,
+    logout,
     refresh_session,
     register_user,
     request_password_reset,
@@ -251,6 +252,28 @@ def test_refresh_session_rotates_out_the_old_token(db_path) -> None:
 def test_refresh_session_rejects_unknown_token(db_path) -> None:
     with pytest.raises(AuthenticationError):
         refresh_session("not-a-real-refresh-token", db_path=db_path)
+
+
+def test_logout_revokes_the_refresh_token(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    logout(refresh_token, db_path=db_path)
+
+    with pytest.raises(AuthenticationError):
+        refresh_session(refresh_token, db_path=db_path)
+
+
+def test_logout_does_not_affect_other_sessions(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token_1 = issue_session(registered.id, registered.username, db_path=db_path)
+    _, refresh_token_2 = issue_session(registered.id, registered.username, db_path=db_path)
+
+    logout(refresh_token_1, db_path=db_path)
+
+    # The other session's refresh token still works.
+    new_access_token, _ = refresh_session(refresh_token_2, db_path=db_path)
+    assert new_access_token
 
 
 def test_authenticate_user_locks_out_after_max_failed_attempts(db_path) -> None:

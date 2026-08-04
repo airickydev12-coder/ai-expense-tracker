@@ -61,6 +61,12 @@ class RefreshRequest(BaseModel):
     refresh_token: str = Field(min_length=1)
 
 
+class LogoutRequest(BaseModel):
+    """Request body for logging out (revoking a refresh token)."""
+
+    refresh_token: str = Field(min_length=1)
+
+
 class UserResponse(BaseModel):
     """Serialized representation of a user, excluding the password hash."""
 

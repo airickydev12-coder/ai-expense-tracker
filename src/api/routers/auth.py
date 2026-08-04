@@ -7,6 +7,7 @@ from src.api.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -47,6 +48,19 @@ def refresh(request: RefreshRequest) -> TokenResponse:
     """Exchange a refresh token for a new access token + refresh token (rotated)."""
     access_token, refresh_token = user_service.refresh_session(request.refresh_token)
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/logout", status_code=204)
+def logout(
+    request: LogoutRequest,
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Log out by revoking the given refresh token (current session only).
+
+    Requires a valid bearer access token so this can't be used to blindly
+    revoke an arbitrary refresh token string belonging to someone else.
+    """
+    user_service.logout(request.refresh_token)
 
 
 @router.get("/me", response_model=UserResponse)

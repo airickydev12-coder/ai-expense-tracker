@@ -161,6 +161,16 @@ def refresh_session(refresh_token: str, db_path: Path = DB_PATH) -> tuple[str, s
     return issue_session(user.id, user.username, db_path)
 
 
+def logout(refresh_token: str, db_path: Path = DB_PATH) -> None:
+    """Revoke a refresh token, ending that session server-side.
+
+    Only the given refresh token's session ends -- other sessions (e.g. a
+    different browser/device) are unaffected, matching this app's
+    current-session-only logout scope.
+    """
+    revoke_refresh_token(_hash_token(refresh_token), db_path)
+
+
 def update_profile(
     user_id: int,
     username: str | None = None,

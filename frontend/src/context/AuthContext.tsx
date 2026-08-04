@@ -129,6 +129,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // Best-effort: fire the revocation request using the refresh token
+    // before it's discarded, but don't wait on it -- the local session
+    // ends immediately either way, so a network failure here doesn't
+    // block the user from logging out.
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+    if (storedRefreshToken) {
+      authApi.logout({ refresh_token: storedRefreshToken }).catch(() => {
+        // Ignored -- see comment above.
+      })
+    }
     clearSession()
   }
 

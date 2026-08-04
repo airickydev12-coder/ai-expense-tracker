@@ -315,6 +315,32 @@ def test_refresh_rejects_unknown_token() -> None:
     assert response.status_code == 401
 
 
+def test_logout_revokes_the_refresh_token() -> None:
+    _register()
+    login_response = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()
+
+    logout_response = client.post(
+        "/auth/logout",
+        json={"refresh_token": login_response["refresh_token"]},
+        headers={"Authorization": f"Bearer {login_response['access_token']}"},
+    )
+
+    assert logout_response.status_code == 204
+
+    refresh_response = client.post(
+        "/auth/refresh", json={"refresh_token": login_response["refresh_token"]}
+    )
+    assert refresh_response.status_code == 401
+
+
+def test_logout_without_authorization_header_returns_401() -> None:
+    response = client.post("/auth/logout", json={"refresh_token": "some-token"})
+
+    assert response.status_code == 401
+
+
 def test_login_locks_out_after_max_failed_attempts() -> None:
     from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
 

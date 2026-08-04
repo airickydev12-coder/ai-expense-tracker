@@ -19,6 +19,10 @@ export interface RefreshRequest {
   refresh_token: string
 }
 
+export interface LogoutRequest {
+  refresh_token: string
+}
+
 export interface UserResponse {
   id: number
   username: string
