@@ -1,4 +1,9 @@
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
+// "localhost", not "127.0.0.1": the refresh-token cookie's SameSite
+// enforcement is scoped by "site" (registrable domain), and 127.0.0.1 vs
+// localhost count as different sites even on the same machine -- using the
+// same hostname as the frontend's own origin here is what lets the cookie
+// flow on cross-origin (different-port) requests in local dev at all.
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
   status: number
@@ -41,7 +46,15 @@ async function fetchOrThrow(
   init?: RequestInit,
   options?: RequestOptions,
 ): Promise<Response> {
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers: authHeaders(init) })
+  // credentials: 'include' so the browser attaches/accepts the HttpOnly
+  // refresh-token cookie even though the API is a different origin (port)
+  // from the frontend in local dev -- without this, fetch() never sends or
+  // stores cross-origin cookies at all, credentialed or not.
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: authHeaders(init),
+    credentials: 'include',
+  })
   if (!res.ok) {
     let message = `Request to ${path} failed with status ${res.status}`
     try {

@@ -1,6 +1,368 @@
-Current Sprint
-Next Sprint
-Backlog
-Technical Debt
-Future Ideas
-Completed Milestones
+# Roadmap
+
+This replaces the previous placeholder (a bare list of section headers with no content). It
+reflects the actual state of the codebase as of **2026-08-04**, not the original phase plan —
+the project has crossed from "build a single-user financial app" into "build a governed
+multi-user product with a child-safety and content domain," which is a different scope of work
+than the original SQLite → FastAPI → React → AI sequence. That original sequence is
+substantially complete; this document picks up from there.
+
+Every item below is labeled:
+
+- **Implemented** — shipped, tested, in the codebase today.
+- **Implemented but incomplete** — real, working, but a known partial slice.
+- **Planned** — agreed direction, not started.
+- **Deferred** — considered, deliberately not now; revisit when the stated trigger occurs.
+- **Out of scope** — considered and rejected for this product, not merely postponed.
+
+For dated history of what shipped, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md). For what the
+product is and how it's built, see [`docs/PROJECT.md`](docs/PROJECT.md).
+
+## Current product state
+
+A self-hosted, multi-user personal finance platform (CLI + FastAPI + React) with per-user data
+isolation, JWT authentication, and a platform-admin authorization foundation. Three AI features
+(categorization, NL scenario parsing, agentic coach chat) call the Claude API directly. Running
+today on the operator's LAN, not exposed to the public internet.
+
+| Original phase | Status |
+|---|---|
+| Foundations (Python, Git, CRUD, tests) | Implemented |
+| Professional engineering (logging, exceptions, config, lint/format) | Implemented |
+| SQLite + repositories | Implemented |
+| FastAPI (all 12 domains) | Implemented |
+| React frontend (all 12 domains) | Implemented |
+| AI integration (categorization, NL parsing, agentic coach) | Implemented, evolving |
+| Authentication (JWT, Argon2, rotating refresh tokens, rate limiting) | Implemented |
+| Per-user data isolation | Implemented |
+| Admin authorization foundation + user-ops backend | Implemented |
+| Admin console frontend | Implemented but incomplete (Overview + Users done, Security/Audit/System-health not started) |
+| Adult/child learning model | Designed (ADR-007), not implemented |
+| Production operations (backups, observability, staging) | Partial |
+| Commercial SaaS readiness | Not implemented |
+
+## Current sprint
+
+Not yet chosen. What's left of Sprint 3 is now just MFA design, security-event notifications,
+recent-auth ("step-up") requirements, and breached-password screening — see Security work
+below — or begin Sprint 5 (Family/child foundation, the first *implementation* sprint against
+ADR-007), depending on priority when picked up.
+
+## Next sprint
+
+See "Current sprint" above — both remaining candidates are already fully scoped, just not yet
+sequenced against each other.
+
+## Completed sprints
+
+- **Sprint 1 — Roadmap and documentation reset.** This file, `docs/PROJECT.md`,
+  `docs/CHANGELOG.md`.
+- **Sprint 2 — Admin Console MVP.** `/admin` (Overview) and `/admin/users` (search,
+  activate/deactivate, role assignment, revoke sessions), route-guarded and hidden from
+  non-admins, wired to the Stage 2 backend endpoints. Live-verified in a real browser.
+  Security/Audit-log/System-health pages were deliberately left for later — they weren't part
+  of this sprint's scope.
+- **Sprint 3 (partial) — Security hardening.** Refresh token moved from `localStorage` to an
+  HttpOnly/SameSite=Lax cookie (access token now in memory only, never persisted); production
+  fail-fast on an insecure `JWT_SECRET_KEY` when `ENVIRONMENT=production`; `get_current_user`
+  now re-checks `is_active` per request (the item explicitly deferred when Stage 2 of the
+  admin console shipped). Live-verified in a real browser, including the cross-origin cookie
+  flow and a hard-reload session-persistence check.
+- **Sprint 4 — Family/child domain design.** Design-only, as scoped — see
+  [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt): `account_type` as a `users`
+  column, `HouseholdRole` per-membership, 5 new tables (`households`, `household_memberships`,
+  `guardian_child_relationships`, `consent_records`, `learning_profiles`), a permission matrix,
+  and a fully answered (not just listed) age-transition policy. Explicitly **not**
+  legally reviewed and **not** implemented — Sprint 5 is where code first appears. Educational-
+  content tables (`learning_progress`, etc.) were deliberately left for Sprint 6's own design
+  pass rather than guessed at here.
+- **Sprint 3, continued — Email verification & session management.** Soft email verification
+  (registration/resend sends a link, `POST /auth/verify-email` consumes it, never blocks login
+  or feature access); self-service active-sessions list with per-session revoke and "log out
+  of all devices" (`GET/DELETE /auth/sessions`, `POST /auth/sessions/revoke-all`); refresh-
+  token reuse detection (presenting an already-rotated token now revokes every session for
+  that user, not just rejects the one request); `user_agent`/`ip_address` captured per session.
+  Live-verified in a real browser across two simulated devices. Deliberately **not** done this
+  pass: MFA design, security-event notifications, recent-auth ("step-up") requirements,
+  breached-password screening — see Security work below.
+
+## Completed capabilities
+
+- Full CRUD across 12 financial domains (expenses, budgets, accounts, bills, debt, income,
+  goals, history, forecasting, scenarios, recommendations, coach), backend + frontend.
+- Business-rule/recommendation engine (18 rules) with a centralized pipeline — see
+  [ADR-002](docs/Architecture/ADR-002-recommendation-engine.md.txt).
+- Three AI features on the Claude API: expense categorization, NL scenario parsing, agentic
+  coach chat (tool-use loop over 9 read-only domain tools), plus an AI explanation layer
+  (narrative snapshots, recommendation explanations, monthly reviews) and a pragmatic
+  keyword/recency personal-RAG layer.
+- Authentication: registration, login, Argon2 password hashing, in-memory JWT access tokens,
+  rotating HttpOnly-cookie refresh tokens (with reuse detection), forgot/reset password,
+  soft email verification, login-attempt throttling, server-side logout, self-service active-
+  sessions list + per-session revoke + log-out-all-devices, production fail-fast on an insecure
+  JWT secret, per-request `is_active` enforcement.
+- Per-user data isolation: every domain table keyed by `(user_id, ...)`.
+- Platform-role authorization: `USER`/`ADMIN`/`SUPER_ADMIN`, enforced via FastAPI
+  dependencies, backed by an append-only audit log (`admin_audit_events`).
+- Admin user-operations backend: list/get/activate/deactivate/assign-role/revoke-sessions,
+  every mutation audited.
+- Admin Console MVP frontend: route-guarded `/admin` Overview (client-computed stats) and
+  `/admin/users` (search, activate/deactivate, role assignment, revoke sessions), hidden from
+  non-admin navigation.
+- Docker packaging for the full stack (backend + frontend + SQLite volume).
+- Recurring expense templates, CSV export, email notifications (bills due, budget overruns,
+  urgent recommendations), dashboard/history/forecasting/scenario charts.
+- Production hardening for the current (self-hosted LAN) deployment shape: secrets, SMTP,
+  rate limits.
+
+## Known limitations
+
+Real gaps in what's shipped, not aspirational — flag these if they become relevant to a task:
+
+- **`COOKIE_SECURE` defaults to `false`.** The refresh-token cookie is sent over plain HTTP on
+  the current LAN deployment — a real, deliberate tradeoff (see Security work item 1) until
+  that deployment has TLS in front of it, not an oversight. Flip the one env var once it does.
+- **`JWT_SECRET_KEY` still only warns, never fails, in development.** Production
+  (`ENVIRONMENT=production`) now fails fast on the insecure default; development intentionally
+  still just logs a warning, so local dev never breaks over this.
+- **No formal migration framework.** Schema changes are idempotent `ALTER TABLE`/`CREATE TABLE
+  IF NOT EXISTS` statements run on every connection (`src/core/db.py`) — this has worked
+  cleanly so far (role column, composite PKs, admin audit table) but doesn't scale indefinitely
+  as more tables accumulate.
+- **The `/admin/overview` API endpoint is still a stub** (message + admin identity only, no
+  real server-aggregated metrics) — the Overview page works around this by computing its stats
+  client-side from `GET /admin/users` instead of waiting on a real backend endpoint.
+- **No admin Security, Audit Log, or System Health pages yet** — only Overview and Users exist.
+  `admin_audit_events` already has the data an Audit Log page needs; it just has no viewer.
+- **Notification configuration is global**, not per-user (no per-user channel/quiet-hours/
+  digest preferences yet).
+- **No MFA, security-event notifications, or recent-auth ("step-up") requirement** for
+  sensitive actions — see Security work below, items 4–6. (Email verification and the
+  session/device list both shipped and are no longer gaps.)
+- **Email verification is soft only** — it never blocks login, registration, or any feature.
+  There's no path today to require it before, say, using the AI coach or exporting data; that
+  would be a deliberate future product decision, not an oversight to silently fix.
+- **No i18n/accessibility work done yet** — hardcoded `$`/US date formats, no accessibility
+  audit.
+- **SQLite with no automated backup/restore process** — fine for a single self-hosted
+  instance, not for anything with real users depending on uptime.
+- **Legacy `data/*.json` files remain in the repo** as dormant migration-era backups (see
+  `scripts/migrate_json_to_sqlite.py`) — confirmed nothing in `src/` reads or writes them, but
+  they haven't been formally retired (moved to an archive path, documented as historical-only,
+  or deleted).
+
+## Technical debt
+
+- `RecommendationCategory` and `CoachingCategory` still partially overlap (share
+  `CASH_FLOW`/`DEBT`/`SAVINGS`/`INCOME`, diverge on the rest) — deliberately not merged; a
+  full merge was scoped once and declined because `CoachingAdvice` generation still doesn't
+  consume engine-produced `Recommendation` objects the way ADR-002 says it should, and
+  unifying the taxonomy first would paper over that instead of fixing it.
+- `Recommendation.key` is derived from `RecommendationCategory`'s member *name* and persisted
+  in `recommendation_history` — renaming/merging members needs a deliberate migration script,
+  not a casual refactor. (Documented in `CLAUDE.md`; repeating here because it's the kind of
+  thing a roadmap item can accidentally trigger.)
+- `requirements.txt` is UTF-16-encoded (a quirk of how it was originally generated) — every
+  future dependency change needs to preserve that encoding, not corrupt it.
+
+## Security work
+
+Ordered roughly by risk, not necessarily by implementation order:
+
+1. **Cookie-based refresh tokens** (HttpOnly, SameSite=Lax) replacing `localStorage`; the
+   access token now lives in memory only (never persisted — a fresh page load silently
+   re-establishes the session via the cookie instead of reading a stored access token).
+   **Implemented** (Sprint 3). CSRF protection is the cookie's `SameSite=Lax` attribute alone,
+   deliberately without a separate double-submit token — sufficient here because the *access*
+   token (used for every state-changing request) is never a cookie, only ever an explicit
+   `Authorization` header the browser won't attach automatically cross-site; the refresh
+   cookie's only reachable targets (`/auth/refresh`, `/auth/logout`) don't expose anything
+   useful to an attacker who can't read the (CORS-blocked) response anyway. `Secure` is
+   configurable (`COOKIE_SECURE`, default `false`) — see Known limitations.
+2. **Fail-fast on an insecure `JWT_SECRET_KEY` in production** instead of only logging a
+   warning. **Implemented** (Sprint 3) — gated on a new `ENVIRONMENT` var (default
+   `development`, where it still just warns); the current LAN deployment's `.env` needs
+   `ENVIRONMENT=production` added explicitly to opt in (not set automatically by this change).
+3. **Re-check `is_active` in `get_current_user`.** **Implemented** (Sprint 3) — closes the
+   window Stage 2 of the admin console deliberately left open ("we will fix the deactivated
+   user's access token later").
+4. Email verification (soft — never blocks login/features), self-service session/device list
+   with per-session revoke and "log out all devices," refresh-token reuse detection (presenting
+   an already-rotated token revokes every session for that user, not just that one request),
+   `user_agent`/`ip_address` captured per session. **Implemented** (Sprint 3, continued).
+   Security-event notifications and a recent-auth ("step-up") requirement for sensitive actions
+   were scoped as part of this item but **not** built — see item 4b below.
+4b. Security-event notifications (e.g. "new device signed in") and a recent-auth/step-up
+    requirement before sensitive actions (role changes, revoking all sessions, etc.).
+    **Planned**, no design started — natural follow-ups now that the session list exists to
+    build on, but deliberately not bundled into the same pass.
+5. Optional MFA — strongly encouraged/required for admins and (once it exists) guardians.
+   **Planned**, no design started.
+6. Breached-password screening. **Planned**, low priority.
+
+## Admin console
+
+Backend (Stages 1–2) and the Sprint 2 MVP frontend (Overview + Users) are done — see Completed
+capabilities. Remaining:
+
+- Admin shell: extend to `/admin/security`, `/admin/system`, `/admin/audit` (Overview/Users
+  already exist, route-guarded and hidden from non-admins).
+- Overview: today's stats are computed client-side from `GET /admin/users` (total/active/
+  inactive/admin counts, new-in-7d/30d) plus the existing stub's identity fields. Still
+  missing: failed-login counts, active-session counts, notification/AI/DB status, app version,
+  security warnings — these need either new backend endpoints or a real `/admin/overview`
+  aggregation.
+- Users: search (client-side, done), activate/deactivate (done), revoke sessions (done), assign
+  role (done). Still missing: filter, pagination (no backend support to build against yet — see
+  Known limitations), a per-user detail view, last-login, security-event history.
+- Security: failed logins, password-reset activity, active/revoked sessions, rate-limited
+  accounts, JWT configuration warnings. **Not started.**
+- Audit Log: actor/action/target/timestamp/reason/metadata, filterable, paginated — the data
+  already exists in `admin_audit_events`, this is purely a viewer. **Not started.**
+- System Health: DB connectivity, schema/migration state, AI/SMTP config status, scheduler
+  state, app version/environment, background-job status. **Not started.**
+
+**Definition of done** for the MVP: backend authorization enforced (true) + admin frontend
+genuinely hidden and route-guarded for non-admins (true) + every backend admin endpoint
+independently protected (true) + destructive actions require confirmation (true — deactivate
+and revoke-sessions both prompt) + role changes require `SUPER_ADMIN` (true, enforced both
+backend and by hiding the control client-side for non-super-admins) + every state-changing
+action creates an audit record (true) + no private financial data shown by default (true —
+Users/Overview show account metadata only, never financial data).
+
+## Adult/child learning model
+
+**Status: designed, not implemented.** The design pass (Sprint 4) is done — see
+[ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt) for the full data model,
+permission matrix, and age-transition policy. Do not begin coding against assumptions from
+this section — read the ADR itself, this is now a summary of it, not the source of truth.
+
+**Confirmed and now designed:**
+- `PlatformRole` (`USER`/`ADMIN`/`SUPER_ADMIN`) stays exactly what it is — *platform operator
+  authority*. `CHILD`/`GUARDIAN` were not added to it, per plan.
+- `AccountType` (`ADULT`/`MINOR`) is a `users` column; `HouseholdRole`
+  (`OWNER`/`GUARDIAN`/`ADULT_MEMBER`/`CHILD_LEARNER`) is per-membership on
+  `household_memberships`, not per-user — supports a child having multiple guardians and an
+  adult belonging to more than one household, as required. 5 new tables total: `households`,
+  `household_memberships`, `guardian_child_relationships` (deliberately separate from
+  membership — see ADR-007), `consent_records`, `learning_profiles`.
+- Consent is an append-only auditable record (`consent_records`, mirroring the existing
+  `admin_audit_events` pattern), not a boolean checkbox — generalized beyond
+  guardian-consents-for-minor to also cover adult self-consent (needed for age transition).
+- Age transition now has a fully designed, non-automatic policy (see ADR-007's Age Transition
+  section) — explicitly non-automatic because the account only ever stores an age band, never
+  an exact birthdate, so there's no reliable signal to auto-trigger it.
+- **Still requires legal review before any public launch** that includes real child
+  accounts — the design accounts for COPPA-shaped requirements (data minimization, evidence-
+  backed consent) but does not itself constitute legal clearance.
+
+**Planned child-specific product surface** (Sprint 5+, once the data model is implemented):
+age-appropriate dashboard, simulated budgets/allowance tracking, needs-vs-wants exercises,
+savings goals, challenges/achievements, financial-literacy lessons, guardian approvals, a
+restricted-policy AI coach (`learning_profiles.ai_coach_enabled` is the guardian toggle;
+the actual policy design is the separate AI governance item below), no access to adult
+financial data or unrestricted account-linking.
+
+**Planned guardian surface**: linked-child overview, learning progress, goal approvals,
+allowance controls, challenge assignments, consent management, AI safety settings.
+
+## Educational content system
+
+**Status: planned**, and blocked on the household/child model above (content needs an
+audience — age band, learner profile — before it means anything). Domain: `courses`,
+`lessons`, `lesson_versions`, `quizzes`, `quiz_attempts`, `learning_paths`, `assignments`,
+`challenges`, `achievements`, `progress_records`. Content should be age-banded (6–9, 10–13,
+14–17, adult) and stored as versioned content records, not hardcoded into React components.
+
+## AI governance (adult vs. child policy)
+
+**Status: planned**, blocked on the child model existing. Today's AI features have one policy
+profile (the adult one). Once child accounts exist, they need a distinct, more restricted
+profile: age-appropriate explanations, no personalized credit advice, no encouragement to hide
+activity from guardians, no third-party contact, no consequential writes, no disclosure of
+adult household data, guardian-controlled conversation retention, and a clear escalation path
+if a child's messages describe harm or exploitation. Broader AI-architecture additions that
+benefit both profiles either way: policy-profile-by-account-type, a tool allowlist by role,
+prompt versioning, response provenance, token/cost telemetry, content-safety checks, and an
+evaluation dataset per policy profile.
+
+## Role-based product experiences
+
+**Status: planned**, depends on the child/household model. Once more than one account type
+exists, authorization should shape the *experience*, not just hide endpoints — a role-aware
+navigation/routing system (grouped by capability, not one flat link list) rather than the
+current single static nav. The current `Layout.tsx` nav (14 flat links) has room for the
+already-planned Admin section but would not scale to also adding household/children/
+lessons/guardian workflows without a shell redesign — flagged here as a prerequisite, not
+undertaken speculatively ahead of the features that would need it.
+
+## Data lifecycle, backups, and operations
+
+**Status: planned**, no work started:
+
+- Export personal data, delete account (+ guardian-initiated deletion once children exist),
+  retention periods, soft vs. permanent deletion.
+- Automated, *tested* backups (a backup that's never been restored in a test isn't a verified
+  backup), corruption detection, documented recovery procedure.
+- Observability: structured logs with correlation IDs, error reporting, AI request
+  latency/cost tracking, notification delivery metrics, health checks — while continuing to
+  never log financial payloads, passwords, or raw tokens.
+- Environment separation (dev/test/staging/production) with separate databases, secrets, AI
+  credentials, and explicit CORS origins per environment; no dev-default secrets ever reaching
+  production.
+
+## Deployment roadmap
+
+Current: `.venv`/`npm run dev` for local work, Docker Compose for a self-hosted LAN
+deployment. **Planned**: a staging environment, deployment automation, a documented rollback
+process, and the production-secret fail-fast behavior noted under Security work — all
+prerequisites for treating this as more than a personal/LAN deployment.
+
+## Commercialization readiness
+
+**Status: not started, and explicitly not implied by anything above.** Multi-tenancy, SaaS
+billing, support-access governance (temporary, audited, user-granted access for staff — not
+default admin visibility into anyone's data or AI conversations), a `SUPPORT`/`CONTENT_ADMIN`
+role split (deferred until a real person needs that responsibility — mirrors why `SUPPORT`
+isn't in `PlatformRole` yet), and privacy/legal documentation all sit here. Nothing in the
+current roadmap assumes this is happening soon; listed for completeness so it isn't
+rediscovered later as a surprise.
+
+## Explicitly out of scope (for now)
+
+- Adding `CHILD`/`GUARDIAN`/`SUPPORT` members to `PlatformRole` — platform authority and
+  product-domain relationships are deliberately different axes (see Adult/child learning
+  model above).
+- Any household/child feature work ahead of the dedicated design pass for that domain.
+- Public/commercial launch on the current security posture (no MFA, no TLS on the LAN
+  deployment yet) — see Security work for what has to land first.
+
+## Execution order
+
+1. **Sprint 1 — Roadmap & docs reset** — done.
+2. **Sprint 2 — Admin Console MVP** — done (Overview + Users; Security/Audit/System-health
+   pages still open).
+3. **Sprint 3 — Security hardening** — mostly done: cookie-based refresh tokens, prod secret
+   fail-fast validation, the `is_active` re-check, email verification, and session/device
+   management all shipped. Still open: MFA design, security-event notifications, recent-auth
+   requirements, breached-password screening.
+4. **Sprint 4 — Family/child domain design** — done. See
+   [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt).
+5. **Sprint 5 — Family/child foundation** *(next candidate, alongside Sprint 3's remaining
+   items)*:
+   implement ADR-007's migrations, guardian/child accounts, household selection, guardian +
+   child dashboard shells, approval queue.
+6. **Sprint 6 — Financial-literacy learning system**: lessons, quizzes, challenges,
+   achievements, age-banded content.
+7. **Sprint 7 — Child-safe AI**: restricted policy profile, guardian controls, safety
+   evaluation suite.
+8. **Sprint 8 — Persistence & operations**: formal migration framework, JSON retirement,
+   backup/restore, notification preferences, observability.
+9. **Sprint 9 — Product design & accessibility**: app-shell redesign, design system,
+   accessibility audit, localization foundation.
+10. **Sprint 10 — Production readiness**: staging, deployment automation, security review,
+    privacy documentation, load/concurrency testing.
+
+Sprints 4+ are sequenced, not scheduled — each starts only once the prior one is actually done
+and re-confirmed with the user, the same way Sprint 1's scope was confirmed before writing this
+document.

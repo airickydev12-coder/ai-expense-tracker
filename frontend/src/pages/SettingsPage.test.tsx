@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage'
 import * as authApi from '../api/auth'
 import * as authContext from '../context/AuthContext'
@@ -12,9 +12,19 @@ const alice = {
   username: 'alice',
   email: 'alice@example.com',
   is_active: true,
+  role: 'user' as const,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  email_verified: true,
 }
+
+beforeEach(() => {
+  // SettingsPage now also renders ActiveSessionsSection, which fetches the
+  // session list on mount -- every test needs a default so that fetch
+  // doesn't reject with "undefined is not a function" (auto-mocked
+  // functions have no implementation until one is set).
+  vi.mocked(authApi.listSessions).mockResolvedValue([])
+})
 
 afterEach(() => {
   vi.restoreAllMocks()

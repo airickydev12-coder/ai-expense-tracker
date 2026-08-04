@@ -4,9 +4,6 @@ import * as authApi from '../api/auth'
 import { setAuthToken, setUnauthorizedHandler } from '../api/client'
 import type { UserResponse } from '../types/auth'
 
-const TOKEN_STORAGE_KEY = 'auth_token'
-const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token'
-
 type AuthState =
   | { status: 'bootstrapping' }
   | { status: 'unauthenticated' }
@@ -17,55 +14,40 @@ interface AuthContextValue {
   user: UserResponse | null
   login: (username: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function storeTokens(accessToken: string, refreshToken: string): void {
-  localStorage.setItem(TOKEN_STORAGE_KEY, accessToken)
-  localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken)
-  setAuthToken(accessToken)
-}
-
-function clearStoredTokens(): void {
-  localStorage.removeItem(TOKEN_STORAGE_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
-  setAuthToken(null)
-}
-
 async function establishSession(username: string, password: string): Promise<UserResponse> {
   const token = await authApi.login({ username, password })
-  storeTokens(token.access_token, token.refresh_token)
+  setAuthToken(token.access_token)
   return authApi.me()
 }
 
 let refreshPromise: Promise<boolean> | null = null
 
 /**
- * Attempt one token refresh using the stored refresh token, deduplicating
- * concurrent callers onto a single in-flight attempt -- refresh tokens
- * rotate on use, so two parallel refresh calls would have the second one
- * fail against an already-rotated token even though the session is fine.
+ * Attempt one token refresh using the HttpOnly refresh-token cookie (sent
+ * automatically by the browser), deduplicating concurrent callers onto a
+ * single in-flight attempt -- the refresh token rotates on use, so two
+ * parallel refresh calls would have the second one fail against an
+ * already-rotated cookie even though the session is fine.
  */
 function attemptRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise
 
-  refreshPromise = (async () => {
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
-    if (!storedRefreshToken) return false
-
-    try {
-      const token = await authApi.refresh({ refresh_token: storedRefreshToken })
-      storeTokens(token.access_token, token.refresh_token)
+  refreshPromise = authApi
+    .refresh()
+    .then((token) => {
+      setAuthToken(token.access_token)
       return true
-    } catch {
-      return false
-    }
-  })().finally(() => {
-    refreshPromise = null
-  })
+    })
+    .catch(() => false)
+    .finally(() => {
+      refreshPromise = null
+    })
 
   return refreshPromise
 }
@@ -74,16 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'bootstrapping' })
 
   function clearSession() {
-    clearStoredTokens()
+    setAuthToken(null)
     setState({ status: 'unauthenticated' })
   }
 
   useEffect(() => {
-    // Background 401s (a page's API call hitting an expired access token
-    // mid-session) get one silent refresh attempt; only clear the session
-    // if that also fails. This doesn't retry the original failed request --
-    // the caller's own error handling still surfaces it -- but the session
-    // itself survives so the next action succeeds.
+    // Background 401s (a page's API call hitting an expired in-memory
+    // access token mid-session) get one silent refresh attempt; only clear
+    // the session if that also fails. This doesn't retry the original
+    // failed request -- the caller's own error handling still surfaces it
+    // -- but the session itself survives so the next action succeeds.
     setUnauthorizedHandler(() => {
       attemptRefresh().then((refreshed) => {
         if (!refreshed) clearSession()
@@ -93,28 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (!storedToken) {
-      setState({ status: 'unauthenticated' })
-      return
-    }
-
-    setAuthToken(storedToken)
-    authApi
-      .me()
-      .then((user) => setState({ status: 'authenticated', user }))
-      .catch(() =>
-        attemptRefresh().then((refreshed) => {
-          if (!refreshed) {
-            clearSession()
-            return
-          }
-          authApi
-            .me()
-            .then((user) => setState({ status: 'authenticated', user }))
-            .catch(() => clearSession())
-        }),
-      )
+    // The access token lives in memory only now (never persisted to
+    // localStorage), so every fresh page load starts from nothing and must
+    // re-establish the session via the HttpOnly refresh-token cookie, if
+    // one exists -- there's no stored access token to try first anymore.
+    attemptRefresh().then((refreshed) => {
+      if (!refreshed) {
+        setState({ status: 'unauthenticated' })
+        return
+      }
+      authApi
+        .me()
+        .then((user) => setState({ status: 'authenticated', user }))
+        .catch(() => clearSession())
+    })
   }, [])
 
   async function login(username: string, password: string) {
@@ -128,18 +102,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'authenticated', user })
   }
 
-  function logout() {
-    // Best-effort: fire the revocation request using the refresh token
-    // before it's discarded, but don't wait on it -- the local session
-    // ends immediately either way, so a network failure here doesn't
-    // block the user from logging out.
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
-    if (storedRefreshToken) {
-      authApi.logout({ refresh_token: storedRefreshToken }).catch(() => {
-        // Ignored -- see comment above.
-      })
+  async function logout() {
+    // Unlike the old localStorage-based logout, this *must* wait for the
+    // response: an HttpOnly cookie can only be cleared by the server's
+    // Set-Cookie header, so clearing local state before that response
+    // lands would show "logged out" while the browser is still silently
+    // holding a valid refresh-token cookie. The catch still clears local
+    // state even if the request itself fails outright (offline, etc.), so
+    // a network failure doesn't strand the user "logged in" with no way
+    // to retry -- it just means the cookie may persist until it expires
+    // naturally in that edge case.
+    try {
+      await authApi.logout()
+    } catch {
+      // Ignored -- see comment above.
+    } finally {
+      clearSession()
     }
-    clearSession()
   }
 
   async function refreshUser() {

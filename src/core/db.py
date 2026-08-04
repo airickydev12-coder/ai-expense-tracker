@@ -22,7 +22,22 @@ CREATE TABLE IF NOT EXISTS users (
     is_active INTEGER NOT NULL DEFAULT 1,
     role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    email_verified_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS email_verification_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    requested_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS admin_audit_events (
@@ -65,7 +80,9 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     token_hash TEXT NOT NULL,
     issued_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
-    revoked_at TEXT
+    revoked_at TEXT,
+    user_agent TEXT,
+    ip_address TEXT
 );
 
 CREATE TABLE IF NOT EXISTS financial_history (
@@ -301,6 +318,30 @@ def _ensure_role_column(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
 
 
+def _ensure_email_verified_at_column(connection: sqlite3.Connection) -> None:
+    """Add an email_verified_at column (default NULL, i.e. unverified) to
+    `users` if missing. Same idempotent-ALTER-TABLE pattern as
+    _ensure_role_column, for the same reason.
+    """
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+    if "email_verified_at" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN email_verified_at TEXT")
+
+
+def _ensure_refresh_token_metadata_columns(connection: sqlite3.Connection) -> None:
+    """Add user_agent/ip_address columns to `refresh_tokens` if missing --
+    same idempotent-ALTER-TABLE pattern as _ensure_role_column. Powers the
+    self-service active-sessions list (which device/location a session
+    belongs to) — existing rows just get NULL for both, same as any
+    session issued before this shipped.
+    """
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(refresh_tokens)")}
+    if "user_agent" not in columns:
+        connection.execute("ALTER TABLE refresh_tokens ADD COLUMN user_agent TEXT")
+    if "ip_address" not in columns:
+        connection.execute("ALTER TABLE refresh_tokens ADD COLUMN ip_address TEXT")
+
+
 def _table_has_composite_user_pk(connection: sqlite3.Connection, table: str) -> bool:
     """Return whether `table`'s user_id column is already part of its primary key."""
     for row in connection.execute(f"PRAGMA table_info({table})"):
@@ -392,6 +433,8 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
     _ensure_role_column(connection)
+    _ensure_email_verified_at_column(connection)
+    _ensure_refresh_token_metadata_columns(connection)
     _ensure_user_id_columns(connection)
     _ensure_composite_primary_keys(connection)
 

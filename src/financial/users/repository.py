@@ -12,7 +12,10 @@ from src.financial.users.role import PlatformRole
 
 logger = get_logger(__name__)
 
-_COLUMNS = "id, username, email, password_hash, is_active, role, created_at, updated_at"
+_COLUMNS = (
+    "id, username, email, password_hash, is_active, role, created_at, updated_at, "
+    "email_verified_at"
+)
 
 
 def create_user(
@@ -130,6 +133,35 @@ def update_user_role(user_id: int, role: PlatformRole, db_path: Path = DB_PATH) 
         raise PersistenceError(f"Failed to update role for user {user_id} in {db_path}") from error
 
     logger.debug("Updated role for user %d to %s in %s", user_id, role.value, db_path)
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
+def update_user_active_status(user_id: int, is_active: bool, db_path: Path = DB_PATH) -> User:
+    """Overwrite a user's is_active flag.
+
+    Deliberately separate from update_user(), mirroring update_user_role()
+    above -- activation/deactivation is a privileged admin action, not a
+    self-service profile edit, and shouldn't share a code path (or
+    authorization assumptions) with one.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?",
+                (int(is_active), now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to update active status for user {user_id} in {db_path}"
+        ) from error
+
+    logger.debug("Updated active status for user %d to %s in %s", user_id, is_active, db_path)
 
     updated_user = get_user_by_id(user_id, db_path)
     if updated_user is None:
@@ -305,39 +337,155 @@ def mark_password_reset_token_used(token_id: int, db_path: Path = DB_PATH) -> No
         ) from error
 
 
-def create_refresh_token(
-    user_id: int, token_hash: str, issued_at: str, expires_at: str, db_path: Path = DB_PATH
+def create_email_verification_token(
+    user_id: int, token_hash: str, expires_at: str, db_path: Path = DB_PATH
 ) -> None:
-    """Insert a new refresh token row for a user."""
+    """Insert a new email verification token row for a user."""
     try:
         with get_connection(db_path) as connection:
             connection.execute(
                 """
-                INSERT INTO refresh_tokens (user_id, token_hash, issued_at, expires_at, revoked_at)
-                VALUES (?, ?, ?, ?, NULL)
+                INSERT INTO email_verification_tokens (user_id, token_hash, expires_at, used_at)
+                VALUES (?, ?, ?, NULL)
                 """,
-                (user_id, token_hash, issued_at, expires_at),
+                (user_id, token_hash, expires_at),
             )
     except sqlite3.Error as error:
-        raise PersistenceError(f"Failed to create refresh token in {db_path}") from error
+        raise PersistenceError(f"Failed to create email verification token in {db_path}") from error
 
 
-def get_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
-    """Look up an unrevoked, unexpired refresh token by its hash.
-
-    Returns a plain dict (id, user_id) rather than a domain model, since
-    this row has no dataclass of its own -- it's purely a lookup table.
-    """
+def get_email_verification_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
+    """Look up an unexpired, unused email verification token by its hash."""
     now = datetime.now(timezone.utc).isoformat()
 
     try:
         with get_connection(db_path) as connection:
             row = connection.execute(
                 """
-                SELECT id, user_id FROM refresh_tokens
-                WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?
+                SELECT id, user_id, expires_at FROM email_verification_tokens
+                WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?
                 """,
                 (token_hash, now),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load email verification token from {db_path}") from error
+
+    return dict(row) if row is not None else None
+
+
+def mark_email_verification_token_used(token_id: int, db_path: Path = DB_PATH) -> None:
+    """Mark an email verification token as used, so it can't be redeemed again."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE email_verification_tokens SET used_at = ? WHERE id = ?",
+                (now, token_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to mark email verification token {token_id} used in {db_path}"
+        ) from error
+
+
+def mark_email_verified(user_id: int, db_path: Path = DB_PATH) -> User:
+    """Set a user's email_verified_at to now."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET email_verified_at = ?, updated_at = ? WHERE id = ?",
+                (now, now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to mark email verified for user {user_id} in {db_path}") from error
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
+def record_email_verification_request(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Record one resend-verification request for a user."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "INSERT INTO email_verification_requests (user_id, requested_at) VALUES (?, ?)",
+                (user_id, now),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to record email verification request in {db_path}") from error
+
+
+def count_recent_email_verification_requests(
+    user_id: int, window_minutes: int, db_path: Path = DB_PATH
+) -> int:
+    """Count a user's resend-verification requests within the trailing window."""
+    since = (datetime.now(timezone.utc) - timedelta(minutes=window_minutes)).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) AS count FROM email_verification_requests
+                WHERE user_id = ? AND requested_at > ?
+                """,
+                (user_id, since),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to count email verification requests in {db_path}") from error
+
+    return int(row["count"])
+
+
+def create_refresh_token(
+    user_id: int,
+    token_hash: str,
+    issued_at: str,
+    expires_at: str,
+    db_path: Path = DB_PATH,
+    *,
+    user_agent: str | None = None,
+    ip_address: str | None = None,
+) -> None:
+    """Insert a new refresh token row for a user."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO refresh_tokens
+                    (user_id, token_hash, issued_at, expires_at, revoked_at, user_agent, ip_address)
+                VALUES (?, ?, ?, ?, NULL, ?, ?)
+                """,
+                (user_id, token_hash, issued_at, expires_at, user_agent, ip_address),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to create refresh token in {db_path}") from error
+
+
+def get_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
+    """Look up a refresh token by its hash, regardless of whether it's revoked
+    or expired -- returns None only if the hash was never issued at all.
+
+    Returns a plain dict (id, user_id, expires_at, revoked_at) rather than a
+    domain model, since this row has no dataclass of its own. Callers must
+    check `revoked_at`/`expires_at` themselves to determine whether the
+    token is currently usable -- intentionally not filtered in SQL, because
+    refresh_session()'s reuse detection needs to distinguish "this token was
+    already used and rotated out" (a real theft signal) from "this token
+    never existed," and a query that only ever returns unrevoked rows can't
+    tell those apart.
+    """
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                "SELECT id, user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash = ?",
+                (token_hash,),
             ).fetchone()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load refresh token from {db_path}") from error
@@ -357,6 +505,76 @@ def revoke_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> None:
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to revoke refresh token in {db_path}") from error
+
+
+def revoke_refresh_token_by_id(session_id: int, user_id: int, db_path: Path = DB_PATH) -> bool:
+    """Revoke one specific refresh token by its row id, scoped to the owning user.
+
+    Returns whether a row was actually revoked -- False means the id either
+    doesn't exist or belongs to a different user, which the caller should
+    treat as "not found" rather than leaking which case it was.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            cursor = connection.execute(
+                """
+                UPDATE refresh_tokens SET revoked_at = ?
+                WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+                """,
+                (now, session_id, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to revoke refresh token {session_id} in {db_path}") from error
+
+    return cursor.rowcount > 0
+
+
+def list_active_refresh_tokens_for_user(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
+    """Return every currently-valid (unrevoked, unexpired) refresh token row
+    for a user, newest first -- powers the self-service active-sessions list.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            rows = connection.execute(
+                """
+                SELECT id, token_hash, issued_at, expires_at, user_agent, ip_address
+                FROM refresh_tokens
+                WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ?
+                ORDER BY issued_at DESC
+                """,
+                (user_id, now),
+            ).fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to list refresh tokens for user {user_id} in {db_path}") from error
+
+    return [dict(row) for row in rows]
+
+
+def revoke_all_refresh_tokens_for_user(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Revoke every unrevoked refresh token belonging to a user.
+
+    Ends every session the user currently holds at once -- used by admin
+    deactivation and explicit session revocation, unlike revoke_refresh_token()
+    above which only ends the one session tied to a single known token.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
+                (now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to revoke refresh tokens for user {user_id} in {db_path}"
+        ) from error
+
+    logger.debug("Revoked all refresh tokens for user %d in %s", user_id, db_path)
 
 
 def create_admin_audit_event(
@@ -401,6 +619,22 @@ def create_admin_audit_event(
         raise PersistenceError(f"Failed to record admin audit event in {db_path}") from error
 
     logger.info("Admin audit event: %s (actor=%s, target=%s/%s)", action, actor_user_id, target_type, target_id)
+
+
+def list_users(db_path: Path = DB_PATH) -> list[User]:
+    """Return every user, active or not, ordered by id.
+
+    Unlike list_active_users below (scoped to active accounts for the
+    notification scheduler), this is for the admin console's user list --
+    admins need to see deactivated accounts too.
+    """
+    try:
+        with get_connection(db_path) as connection:
+            rows = connection.execute(f"SELECT {_COLUMNS} FROM users ORDER BY id").fetchall()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load users from {db_path}") from error
+
+    return [User.from_dict(dict(row)) for row in rows]
 
 
 def list_active_users(db_path: Path = DB_PATH) -> list[User]:

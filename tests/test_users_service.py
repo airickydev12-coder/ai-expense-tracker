@@ -2,7 +2,12 @@
 
 import pytest
 
-from src.core.exceptions import AuthenticationError, RateLimitError, ValidationError
+from src.core.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
 from src.financial.users import service as user_service
 from src.financial.users.service import (
     authenticate_user,
@@ -368,3 +373,192 @@ def test_authenticate_user_lockout_is_scoped_to_username(db_path) -> None:
     # Bob isn't locked out by Alice's failures.
     authenticated = authenticate_user("bob", "correct-password", db_path)
     assert authenticated.username == "bob"
+
+
+def test_register_user_sends_a_verification_email(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(subject=subject, body=body, to_email=to_email),
+    )
+
+    user = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    assert sent["to_email"] == "alice@example.com"
+    assert "verify-email?token=" in sent["body"]
+    assert user.email_verified is False
+
+
+def test_register_user_succeeds_even_if_the_verification_email_fails(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.exceptions import ExternalServiceError
+
+    def _raise_external_service_error(*args: object, **kwargs: object) -> None:
+        raise ExternalServiceError("SMTP is down")
+
+    monkeypatch.setattr(user_service, "send_notification_email", _raise_external_service_error)
+
+    user = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    assert user.username == "alice"
+    assert user.email_verified is False
+
+
+def test_verify_email_success(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured.update(body=body),
+    )
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    assert registered.email_verified is False
+    token = captured["body"].split("verify-email?token=")[1].split("\n")[0]
+
+    verified_user = user_service.verify_email(token, db_path)
+
+    assert verified_user.email_verified is True
+
+
+def test_verify_email_rejects_invalid_token(db_path) -> None:
+    with pytest.raises(ValidationError):
+        user_service.verify_email("not-a-real-token", db_path)
+
+
+def test_verify_email_token_is_single_use(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured.update(body=body),
+    )
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+    token = captured["body"].split("verify-email?token=")[1].split("\n")[0]
+    user_service.verify_email(token, db_path)
+
+    with pytest.raises(ValidationError):
+        user_service.verify_email(token, db_path)
+
+
+def test_resend_verification_email_sends_a_new_token(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sent_count = {"n": 0}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent_count.__setitem__("n", sent_count["n"] + 1),
+    )
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    assert sent_count["n"] == 1
+
+    user_service.resend_verification_email(registered.id, db_path)
+
+    assert sent_count["n"] == 2
+
+
+def test_resend_verification_email_rejects_already_verified(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured.update(body=body),
+    )
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    token = captured["body"].split("verify-email?token=")[1].split("\n")[0]
+    user_service.verify_email(token, db_path)
+
+    with pytest.raises(ValidationError):
+        user_service.resend_verification_email(registered.id, db_path)
+
+
+def test_resend_verification_email_locks_out_after_max_attempts(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.config import EMAIL_VERIFICATION_RESEND_LOCKOUT_MAX_ATTEMPTS
+
+    monkeypatch.setattr(
+        user_service, "send_notification_email", lambda subject, body, to_email=None: None
+    )
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    for _ in range(EMAIL_VERIFICATION_RESEND_LOCKOUT_MAX_ATTEMPTS):
+        user_service.resend_verification_email(registered.id, db_path)
+
+    with pytest.raises(RateLimitError):
+        user_service.resend_verification_email(registered.id, db_path)
+
+
+def test_refresh_session_detects_reuse_and_revokes_all_sessions(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token_1 = issue_session(registered.id, registered.username, db_path=db_path)
+    _, refresh_token_2 = issue_session(registered.id, registered.username, db_path=db_path)
+
+    refresh_session(refresh_token_1, db_path=db_path)
+
+    # Presenting the already-rotated token again is a reuse/theft signal.
+    with pytest.raises(AuthenticationError):
+        refresh_session(refresh_token_1, db_path=db_path)
+
+    # The defensive revocation should also have killed the unrelated,
+    # still-otherwise-valid second session.
+    with pytest.raises(AuthenticationError):
+        refresh_session(refresh_token_2, db_path=db_path)
+
+
+def test_list_sessions_flags_the_current_session(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, token_1 = issue_session(
+        registered.id, registered.username, db_path=db_path, user_agent="UA-1"
+    )
+    issue_session(registered.id, registered.username, db_path=db_path, user_agent="UA-2")
+
+    sessions = user_service.list_sessions(registered.id, token_1, db_path)
+
+    assert len(sessions) == 2
+    current = [session for session in sessions if session["is_current"]]
+    assert len(current) == 1
+    assert current[0]["user_agent"] == "UA-1"
+
+
+def test_list_sessions_with_no_current_token_flags_nothing(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    issue_session(registered.id, registered.username, db_path=db_path)
+
+    sessions = user_service.list_sessions(registered.id, db_path=db_path)
+
+    assert all(not session["is_current"] for session in sessions)
+
+
+def test_revoke_session_ends_only_that_session(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, token_1 = issue_session(registered.id, registered.username, db_path=db_path)
+    issue_session(registered.id, registered.username, db_path=db_path)
+    session_id = user_service.list_sessions(registered.id, token_1, db_path)[0]["id"]
+
+    user_service.revoke_session(registered.id, session_id, db_path)
+
+    remaining = user_service.list_sessions(registered.id, db_path=db_path)
+    assert len(remaining) == 1
+
+
+def test_revoke_session_raises_not_found_for_another_users_session(db_path) -> None:
+    alice = register_user("alice", "alice@example.com", "correct-password", db_path)
+    bob = register_user("bob", "bob@example.com", "correct-password", db_path)
+    issue_session(alice.id, alice.username, db_path=db_path)
+    session_id = user_service.list_sessions(alice.id, db_path=db_path)[0]["id"]
+
+    with pytest.raises(NotFoundError):
+        user_service.revoke_session(bob.id, session_id, db_path)
+
+
+def test_logout_all_sessions_revokes_every_session(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    issue_session(registered.id, registered.username, db_path=db_path)
+    issue_session(registered.id, registered.username, db_path=db_path)
+
+    user_service.logout_all_sessions(registered.id, db_path)
+
+    assert user_service.list_sessions(registered.id, db_path=db_path) == []

@@ -1,7 +1,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AdminLayout } from './components/AdminLayout'
+import { AdminRoute } from './components/AdminRoute'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AccountsPage } from './pages/AccountsPage'
+import { AdminOverviewPage } from './pages/AdminOverviewPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { BillsPage } from './pages/BillsPage'
 import { CoachPage } from './pages/CoachPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -20,6 +24,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ScenariosPage } from './pages/ScenariosPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 function App() {
   return (
@@ -29,6 +34,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -47,6 +53,12 @@ function App() {
             <Route path="/recommendations" element={<RecommendationsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route element={<AdminRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route path="/admin" element={<AdminOverviewPage />} />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+              </Route>
+            </Route>
           </Route>
         </Route>
       </Routes>

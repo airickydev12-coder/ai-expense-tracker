@@ -281,13 +281,16 @@ Following this workflow reduces technical debt and helps maintain architectural 
 
 | ADR | Title | Status |
 |------|-------|--------|
-| ADR-001 | Clean Architecture | Planned |
-| ADR-002 | Recommendation Engine | Planned |
-| ADR-003 | Application Adapters | Planned |
-| ADR-004 | Domain Serialization | Planned |
-| ADR-005 | Development Workflow | Planned |
+| ADR-001 | Clean Architecture | Accepted |
+| ADR-002 | Recommendation Engine | Accepted |
+| ADR-003 | Application Adapters | Accepted |
+| ADR-004 | Domain Model Responsibilities | Accepted |
+| ADR-005 | Development Workflow | Accepted |
+| ADR-006 | Testing Strategy | Accepted |
+| ADR-007 | Family & Child Account Domain | Proposed |
 
-Update this table whenever a new ADR is created.
+Update this table whenever a new ADR is created. (ADR-001–006's statuses were stale here —
+each has been implemented and is in active use — corrected while adding ADR-007's row.)
 
 ---
 

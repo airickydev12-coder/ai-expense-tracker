@@ -1,0 +1,331 @@
+# ADR-007: Family & Child Account Domain (Design)
+
+## Status
+
+Proposed — design only. No implementation exists yet; this ADR is Sprint 4's entire
+deliverable per `ROADMAP.md`. Nothing here should be built against until a human reviews it,
+and the legal-review items below are explicitly not satisfied by this document.
+
+## Date
+
+2026-08-04
+
+---
+
+# Context
+
+The platform today has exactly one product mode: an independent adult with full, isolated
+access to their own financial data (see `docs/PROJECT.md`'s product-modes table). The roadmap
+reset (`ROADMAP.md`) commits to a second mode — households containing guardians and child
+learners — but deliberately stopped short of designing it, because it's the single largest
+addition to the product's scope and touches nearly every table and service.
+
+`PlatformRole` (`USER`/`ADMIN`/`SUPER_ADMIN`, see ADR-004-adjacent `src/financial/users/role.py`)
+already exists and answers "what can this person operate on the platform." This ADR does not
+touch it. What's missing is the orthogonal axis: "what kind of account is this, and what
+household/guardianship relationships does it have" — a product-domain question, not a
+platform-authority one. Conflating the two was considered and rejected early in the roadmap
+reset (see `ROADMAP.md`'s "Explicitly out of scope" list) specifically because a future
+`SUPPORT` platform role and a `CHILD_LEARNER` household role answer completely different
+questions; combining them would eventually force awkward combinations like "a support agent
+who is also a child," which should be structurally impossible, not just unlikely.
+
+Two prior decisions in this codebase directly shape what follows:
+- Every domain table is already keyed by `(user_id, ...)` (per-user data isolation, done
+  2026-08-03) — a minor's financial/learning data is already fully owned by their own
+  `user_id` from day one. Nothing needs to move when they become an adult.
+- This codebase declares no `FOREIGN KEY ... REFERENCES` constraints anywhere, even though
+  `PRAGMA foreign_keys = ON` is set (`src/core/db.py`) — referential integrity is enforced at
+  the application layer only. The tables below follow that same convention for consistency,
+  not because it's necessarily ideal (a `SQLite` FK constraint would catch a real class of
+  bugs a hand-written check might miss) — flagged here as a pre-existing pattern this ADR
+  inherits, not one it introduces.
+
+---
+
+# Decision
+
+## Account type: a column on `users`, not a new table
+
+```sql
+ALTER TABLE users ADD COLUMN account_type TEXT NOT NULL DEFAULT 'adult';
+```
+
+`AccountType` (`ADULT` / `MINOR`) is a single 1:1 attribute of a user, exactly like `role` and
+`is_active` already are — it gets the same idempotent-`ALTER TABLE` treatment
+(`_ensure_role_column`'s pattern in `src/core/db.py` is the template to copy). Every existing
+account defaults to `ADULT` — zero behavior change for the current userbase, and this is the
+whole reason the migration is low-risk despite touching the `users` table.
+
+`AccountType` stays separate from `PlatformRole` for the reason given in Context above. A
+`SUPER_ADMIN` could in principle be a `MINOR` account_type; that combination should be
+*structurally representable* even if it never occurs in practice, rather than the schema
+silently assuming "admins are adults."
+
+## Household role: per-membership, not per-user
+
+```python
+class HouseholdRole(str, Enum):
+    OWNER = "owner"
+    GUARDIAN = "guardian"
+    ADULT_MEMBER = "adult_member"
+    CHILD_LEARNER = "child_learner"
+```
+
+Placed on `household_memberships`, not on `users`, because a user's role is scoped to *which
+household* — the confirmed direction already requires supporting an adult belonging to more
+than one household, so a user-level column would be wrong the first time that happens. No
+`EDUCATOR`/`MENTOR` members yet (per the roadmap's own "later" framing) — adding a household
+role is a one-line, backward-compatible enum addition whenever a real educator workflow is
+designed; nothing here should pre-build for it.
+
+## New tables
+
+Following this codebase's existing schema style (`src/core/db.py`'s `_SINGLE_USER_SCHEMA`):
+plain `sqlite3`, `TEXT` timestamps (ISO 8601, matching every other table), no ORM, no declared
+FK constraints (see Context).
+
+```sql
+CREATE TABLE IF NOT EXISTS households (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+```
+
+No `owner_user_id` column — ownership is derived from the one `household_memberships` row with
+`household_role = 'owner'`, not duplicated onto `households` itself. Two sources of truth for
+"who owns this household" is exactly the kind of drift this project's own `CLAUDE.md` already
+warns about elsewhere (the debt-to-income/net-worth threshold-duplication bugs).
+
+```sql
+CREATE TABLE IF NOT EXISTS household_memberships (
+    household_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    household_role TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (household_id, user_id)
+);
+```
+
+Composite PK, mirroring the exact pattern the 14 per-user-isolated tables already use
+(`src/core/db.py`'s `_COMPOSITE_PK_TABLE_SCHEMAS`) — a user can only hold one role per
+household, and this makes that a schema-level guarantee, not an application-level check.
+
+```sql
+CREATE TABLE IF NOT EXISTS guardian_child_relationships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guardian_user_id INTEGER NOT NULL,
+    child_user_id INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+```
+
+Deliberately a **separate** table from `household_memberships`, not derived from it, even
+though the two will usually overlap. A guardian relationship carries legal/consent weight that
+household co-membership doesn't: a non-custodial guardian may need account visibility into a
+child who isn't in their household, and permission checks ("can this guardian approve this
+child's goal?") should query one direct, explicit relationship rather than infer it through
+household structure. `status` is `PENDING` / `ACTIVE` / `REVOKED` — mutated in place on the one
+row per (guardian, child) pair (not append-only), since this represents current relationship
+state, not a historical log; the audit trail for *why* it changed belongs in
+`consent_records` below or a future admin-style audit table, not duplicated here.
+
+```sql
+CREATE TABLE IF NOT EXISTS consent_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_user_id INTEGER NOT NULL,
+    consented_by_user_id INTEGER,
+    consent_type TEXT NOT NULL,
+    policy_version TEXT NOT NULL,
+    status TEXT NOT NULL,
+    granted_at TEXT,
+    revoked_at TEXT,
+    evidence TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+```
+
+Append-only, mirroring `admin_audit_events`'s existing pattern (the right model for anything
+needing an audit trail for legal defensibility) — a new row per grant or revoke action, never
+mutated in place; current status for a `(subject_user_id, consent_type)` pair is "most recent
+row." Two deliberate departures from the original sketch, both worth flagging explicitly since
+a future implementer might otherwise "fix" them back:
+
+- **`subject_user_id` + nullable `consented_by_user_id`, not `minor_user_id` +
+  `guardian_user_id`.** The original naming only fits guardian-consents-for-minor. This
+  domain also needs adult self-consent (see Age Transition below) — same table, same
+  `consent_type` vocabulary, `consented_by_user_id IS NULL` meaning "the subject consented for
+  themselves." Mirrors how `admin_audit_events.actor_user_id` is nullable for the analogous
+  "no human actor, or the actor is the subject" case.
+- **`evidence` is `NOT NULL`**, not optional. A consent record with no evidence of how/when
+  consent was actually captured isn't a usable audit record — the column existing but being
+  empty would be worse than not having the table at all for the legal purpose it exists to
+  serve.
+
+`consent_type` values (extend as needed, not exhaustive): `ACCOUNT_CREATION`,
+`DATA_COLLECTION`, `AI_COACH_USE`, `MARKETING_COMMUNICATION`. Exact wording/scope of each is a
+legal-review item (see Legal & Privacy below), not a schema decision.
+
+```sql
+CREATE TABLE IF NOT EXISTS learning_profiles (
+    user_id INTEGER PRIMARY KEY,
+    age_band TEXT NOT NULL,
+    ai_coach_enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+```
+
+One row per `MINOR` account, `user_id` as the PK (genuinely 1:1, unlike every other table's
+surrogate `id`). **`age_band` (`"6-9"` / `"10-13"` / `"14-17"`, matching the age-banded content
+plan already in `ROADMAP.md`'s Educational content system section), never an exact birthdate**
+— a deliberate data-minimization choice: this system should collect the least amount of a
+child's personal information that still lets it function, and a birthdate is more precise than
+anything the product actually needs. This choice has a direct, load-bearing consequence for Age
+Transition below. `ai_coach_enabled` is the guardian-facing kill switch this domain provides;
+the actual AI policy-profile design (what a `MINOR` account's AI coach is and isn't allowed to
+do) is `ROADMAP.md`'s separate "AI governance" item, not duplicated here.
+
+**Deliberately not designed here**: `learning_progress`, `learning_assignments`,
+`courses`/`lessons`/etc. Those belong to `ROADMAP.md`'s Sprint 6 (the educational-content
+system), which doesn't exist yet — designing their schema now, before that system's own content
+model is worked out, would be guessing. `learning_profiles` above is the one exception because
+it's a property of the *account*, not of any piece of content.
+
+## Permission matrix
+
+| Actor | Own financial dashboard | Linked child's dashboard | Own AI coach | Household mgmt | Consent mgmt |
+|---|---|---|---|---|---|
+| Adult (independent) | Full | N/A | Full adult policy | Can create/leave households | Self-consent only |
+| Guardian (re: linked child) | Full (own) | Learning-progress view only, never raw financial data | Full adult policy (own account) | Can manage the household they own/belong to | Can grant/revoke consent *for the child* |
+| Child (`MINOR`) | N/A — has a learning dashboard instead, not the adult financial dashboard | N/A | Restricted/child AI policy, guardian-toggleable | Cannot manage households | Cannot grant own consent while a minor |
+| Platform admin | Own account only | Never — admin visibility into a household's data is out of scope for this ADR entirely | N/A | Never (not a household concept) | Never (privacy, not a platform-authority concern) |
+
+The "never" cells are as important as the "full" cells: an admin having blanket visibility into
+family financial/consent data was never asked for and isn't implied by anything in
+`ROADMAP.md`'s Admin console section — if that's ever wanted, it needs its own explicit
+decision (and likely its own consent flow), not an assumption smuggled in here.
+
+## Age transition (minor → adult)
+
+The roadmap's own five open questions, answered:
+
+1. **Is the transition automatic?** No — and this follows directly from the `age_band`
+   decision above: since exact birthdate is never stored, the system has no way to *detect*
+   the moment a child turns 18 even if it wanted to auto-transition. Transition is an explicit
+   action (self-initiated by the near-adult user, or guardian-initiated) that requires
+   re-verification, not a background job.
+2. **Does guardian visibility end automatically?** Yes, atomically, as part of the same
+   transition action — every `guardian_child_relationships` row for that child flips to
+   `REVOKED` in the same operation that flips `account_type` to `ADULT`. No gradual/partial
+   cutover state.
+3. **What data stays shared?** Nothing, automatically. Continued visibility for a (former)
+   guardian after transition is a fundamentally different thing — voluntary sharing between
+   two independent adults — and would need its own future consent flow, not a carryover of the
+   guardian relationship. Not designed here; flagged so it isn't assumed later.
+4. **Is renewed consent required?** Yes. The original `consent_records` rows for this subject
+   have `consented_by_user_id` pointing at the (now former) guardian; post-transition, the new
+   adult must produce their own self-consent rows (`consented_by_user_id IS NULL`) under the
+   adult terms before continuing to use the app. This is exactly what the `subject_user_id` /
+   nullable `consented_by_user_id` schema shape above was designed to support cleanly.
+5. **Who owns historical records?** The user's own `user_id`, unchanged — already true today
+   for every domain table thanks to per-user isolation being done. This is the one place the
+   existing architecture made a hard question trivial: there is no data-ownership migration to
+   perform at all, only relationship/consent-status changes.
+
+## API surface (design-level; none of this is implemented)
+
+- `POST /households`, `GET /households/{id}`, `POST /households/{id}/members`,
+  `DELETE /households/{id}/members/{user_id}`
+- `POST /households/{id}/children` — creates a linked `MINOR` account plus its
+  `guardian_child_relationships` row and initial `consent_records` row in one guardian-initiated
+  action (a minor realistically can't self-register with an email under most consent regimes)
+- `GET /guardian/children` — a guardian's linked-children list
+- `POST /consent/grant`, `POST /consent/revoke`
+- `POST /account/request-adult-transition`
+
+Sprint 5 (Family/child foundation) is where these actually get built, alongside the guardian
+and child dashboard shells.
+
+---
+
+# Legal & Privacy — explicitly not satisfied by this document
+
+This system would collect and process real children's personal information. In the US, that
+most directly implicates COPPA (Children's Online Privacy Protection Act) — verifiable parental
+consent, data minimization, a right to review/delete a child's data, and restrictions on
+behavioral advertising/marketing to children are all real requirements, not just good practice.
+`age_band`-not-birthdate above is a data-minimization step in the right direction, but **a
+lawyer, not this ADR, must review the actual consent flow language, the evidence-capture
+mechanism, and the overall data-handling practice before any real child account is ever
+created.** This is stated in `ROADMAP.md` already; repeating it here because it's the kind of
+constraint that's easy to lose once implementation (Sprint 5+) starts feeling like "just more
+CRUD."
+
+---
+
+# Consequences
+
+## Positive
+- `PlatformRole` and the household/child domain stay orthogonal, as confirmed — no awkward
+  combined roles, no rename risk if a `SUPPORT` platform role is added later.
+- Per-user data isolation already being done makes the highest-risk part of age transition
+  (data ownership) a non-issue.
+- The append-only `consent_records` shape reuses a pattern (`admin_audit_events`) already
+  proven in this codebase, rather than inventing a new one.
+
+## Trade-offs
+- Two tables (`household_memberships`, `guardian_child_relationships`) that mostly overlap in
+  practice is real duplication of *data* (though not of the concept each represents) — accepted
+  because collapsing them would make guardian-relationship permission checks depend on
+  household structure, which is more fragile long-term than the duplication.
+- No declared FK constraints (inherited convention) means referential integrity for this
+  domain — arguably higher-stakes than the rest of the app, given it involves consent/legal
+  records — depends entirely on application-layer discipline. Worth reconsidering as a
+  deliberate exception when Sprint 5 implements this, not silently inherited.
+
+---
+
+# Alternatives Considered
+
+## `account_type` as a separate table instead of a `users` column
+Rejected. It's a genuine 1:1 scalar attribute, exactly like `role`/`is_active` — a separate
+table would just be an extra join for no benefit, and would break the established pattern this
+project already uses for this exact shape of data.
+
+## Deriving guardian relationships from household membership alone
+Rejected — see the `guardian_child_relationships` rationale above (non-custodial guardians,
+permission-check directness).
+
+## Storing exact birthdate instead of `age_band`
+Rejected. The product only ever needs an age band for content-banding purposes (per the
+Educational content system roadmap item); collecting a more precise data point than the product
+needs has no benefit and a real cost under a data-minimization lens.
+
+## Automatic (cron-driven) age transition
+Rejected as a direct consequence of not storing birthdate — there is no reliable signal to
+trigger it automatically even if it were otherwise desirable.
+
+---
+
+# Related Files
+
+None yet — this ADR describes nothing currently implemented. Sprint 5 (Family/child
+foundation) is where `src/financial/households/`, `src/financial/consent/`, and the
+`_ensure_*` migration functions in `src/core/db.py` would first appear, following this design.
+
+---
+
+# Future Considerations
+
+- `EDUCATOR`/`MENTOR` household roles, once a real educator workflow is designed.
+- Voluntary adult-to-adult data sharing (the "what stays shared after transition" gap,
+  deliberately left open above).
+- Whether `guardian_child_relationships` and `household_memberships` should eventually be
+  reconciled once real usage shows how much they actually diverge in practice.
+- The AI governance policy-profile design (`ROADMAP.md`'s separate item) that
+  `learning_profiles.ai_coach_enabled` hooks into.

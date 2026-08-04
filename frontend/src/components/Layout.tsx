@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { EmailVerificationBanner } from './EmailVerificationBanner'
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -94,6 +95,14 @@ export function Layout() {
             >
               Notifications
             </NavLink>
+            {user && user.role !== 'user' && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+              >
+                Admin
+              </NavLink>
+            )}
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm">
             {user && <span className="text-gray-600">{user.username}</span>}
@@ -113,6 +122,7 @@ export function Layout() {
           </div>
         </div>
       </header>
+      {user && !user.email_verified && <EmailVerificationBanner />}
       <Outlet />
     </div>
   )

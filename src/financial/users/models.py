@@ -17,6 +17,7 @@ class User:
     role: PlatformRole
     created_at: datetime
     updated_at: datetime
+    email_verified_at: datetime | None = None
 
     def __post_init__(self) -> None:
         """Validate the user after initialization."""
@@ -32,6 +33,11 @@ class User:
         if not self.password_hash.strip():
             raise ValidationError("Password hash cannot be empty.")
 
+    @property
+    def email_verified(self) -> bool:
+        """Whether the user has completed email verification."""
+        return self.email_verified_at is not None
+
     def to_dict(self) -> dict:
         """Convert the user to a dictionary for JSON storage."""
         return {
@@ -43,6 +49,9 @@ class User:
             "role": self.role.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "email_verified_at": (
+                self.email_verified_at.isoformat() if self.email_verified_at else None
+            ),
         }
 
     @classmethod
@@ -57,4 +66,9 @@ class User:
             role=PlatformRole(data["role"]),
             created_at=datetime.fromisoformat(data["created_at"]),
             updated_at=datetime.fromisoformat(data["updated_at"]),
+            email_verified_at=(
+                datetime.fromisoformat(data["email_verified_at"])
+                if data.get("email_verified_at")
+                else None
+            ),
         )

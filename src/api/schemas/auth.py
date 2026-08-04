@@ -49,24 +49,38 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-class TokenResponse(BaseModel):
-    """Response body containing an access token and refresh token."""
+class VerifyEmailRequest(BaseModel):
+    """Request body for consuming an email verification token."""
+
+    token: str = Field(min_length=1)
+
+
+class SessionResponse(BaseModel):
+    """One active refresh-token-backed session, for the self-service sessions list.
+
+    Deliberately excludes the token hash itself -- this is what the user
+    sees, never anything that could be replayed.
+    """
+
+    id: int
+    issued_at: datetime
+    expires_at: datetime
+    user_agent: str | None
+    ip_address: str | None
+    is_current: bool
+
+
+class AccessTokenResponse(BaseModel):
+    """Response body containing a fresh access token.
+
+    The refresh token is never returned in a JSON body -- it's set as an
+    HttpOnly cookie by the router instead, so client-side JavaScript can
+    never read it (the whole point of the cookie-based refresh-token
+    architecture over the earlier localStorage approach).
+    """
 
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
-
-
-class RefreshRequest(BaseModel):
-    """Request body for exchanging a refresh token for a new session."""
-
-    refresh_token: str = Field(min_length=1)
-
-
-class LogoutRequest(BaseModel):
-    """Request body for logging out (revoking a refresh token)."""
-
-    refresh_token: str = Field(min_length=1)
 
 
 class UserResponse(BaseModel):
@@ -81,3 +95,4 @@ class UserResponse(BaseModel):
     role: PlatformRole
     created_at: datetime
     updated_at: datetime
+    email_verified: bool

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from './AuthContext'
 import * as authApi from '../api/auth'
 
@@ -10,13 +10,11 @@ const alice = {
   username: 'alice',
   email: 'alice@example.com',
   is_active: true,
+  role: 'user' as const,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  email_verified: true,
 }
-
-beforeEach(() => {
-  localStorage.clear()
-})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -24,15 +22,19 @@ afterEach(() => {
 })
 
 describe('AuthProvider', () => {
-  it('goes straight to unauthenticated with no stored token', async () => {
+  it('goes to unauthenticated when there is no valid refresh-token cookie', async () => {
+    vi.mocked(authApi.refresh).mockRejectedValue(new Error('no session'))
+
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
     await waitFor(() => expect(result.current.status).toBe('unauthenticated'))
   })
 
-  it('bootstraps to authenticated with a valid stored token', async () => {
-    localStorage.setItem('auth_token', 'valid-access-token')
-    localStorage.setItem('refresh_token', 'valid-refresh-token')
+  it('bootstraps to authenticated by silently refreshing via the cookie', async () => {
+    vi.mocked(authApi.refresh).mockResolvedValue({
+      access_token: 'new-access-token',
+      token_type: 'bearer',
+    })
     vi.mocked(authApi.me).mockResolvedValue(alice)
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
@@ -41,41 +43,22 @@ describe('AuthProvider', () => {
     expect(result.current.user).toEqual(alice)
   })
 
-  it('refreshes and retries once when the stored access token is expired', async () => {
-    localStorage.setItem('auth_token', 'expired-access-token')
-    localStorage.setItem('refresh_token', 'valid-refresh-token')
-    vi.mocked(authApi.me).mockRejectedValueOnce(new Error('expired')).mockResolvedValueOnce(alice)
+  it('clears the session when the silent refresh succeeds but /me fails', async () => {
     vi.mocked(authApi.refresh).mockResolvedValue({
       access_token: 'new-access-token',
-      refresh_token: 'new-refresh-token',
       token_type: 'bearer',
     })
-
-    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-    await waitFor(() => expect(result.current.status).toBe('authenticated'))
-    expect(authApi.refresh).toHaveBeenCalledWith({ refresh_token: 'valid-refresh-token' })
-    expect(localStorage.getItem('auth_token')).toBe('new-access-token')
-    expect(localStorage.getItem('refresh_token')).toBe('new-refresh-token')
-  })
-
-  it('clears the session when refresh also fails', async () => {
-    localStorage.setItem('auth_token', 'expired-access-token')
-    localStorage.setItem('refresh_token', 'expired-refresh-token')
     vi.mocked(authApi.me).mockRejectedValue(new Error('expired'))
-    vi.mocked(authApi.refresh).mockRejectedValue(new Error('invalid refresh token'))
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
     await waitFor(() => expect(result.current.status).toBe('unauthenticated'))
-    expect(localStorage.getItem('auth_token')).toBeNull()
-    expect(localStorage.getItem('refresh_token')).toBeNull()
   })
 
-  it('login stores both tokens and authenticates', async () => {
+  it('login authenticates without touching localStorage', async () => {
+    vi.mocked(authApi.refresh).mockRejectedValue(new Error('no session'))
     vi.mocked(authApi.login).mockResolvedValue({
       access_token: 'access-token',
-      refresh_token: 'refresh-token',
       token_type: 'bearer',
     })
     vi.mocked(authApi.me).mockResolvedValue(alice)
@@ -86,39 +69,39 @@ describe('AuthProvider', () => {
     await act(() => result.current.login('alice', 'correct-password'))
 
     expect(result.current.status).toBe('authenticated')
-    expect(localStorage.getItem('auth_token')).toBe('access-token')
-    expect(localStorage.getItem('refresh_token')).toBe('refresh-token')
+    expect(authApi.login).toHaveBeenCalledWith({ username: 'alice', password: 'correct-password' })
   })
 
-  it('logout clears both stored tokens and revokes the refresh token server-side', async () => {
-    localStorage.setItem('auth_token', 'valid-access-token')
-    localStorage.setItem('refresh_token', 'valid-refresh-token')
+  it('logout clears the session and revokes server-side with no arguments', async () => {
+    vi.mocked(authApi.refresh).mockResolvedValue({
+      access_token: 'new-access-token',
+      token_type: 'bearer',
+    })
     vi.mocked(authApi.me).mockResolvedValue(alice)
     vi.mocked(authApi.logout).mockResolvedValue(undefined)
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     await waitFor(() => expect(result.current.status).toBe('authenticated'))
 
-    act(() => result.current.logout())
+    await act(() => result.current.logout())
 
     expect(result.current.status).toBe('unauthenticated')
-    expect(localStorage.getItem('auth_token')).toBeNull()
-    expect(localStorage.getItem('refresh_token')).toBeNull()
-    expect(authApi.logout).toHaveBeenCalledWith({ refresh_token: 'valid-refresh-token' })
+    expect(authApi.logout).toHaveBeenCalledWith()
   })
 
   it('logout still clears local state even if the revocation request fails', async () => {
-    localStorage.setItem('auth_token', 'valid-access-token')
-    localStorage.setItem('refresh_token', 'valid-refresh-token')
+    vi.mocked(authApi.refresh).mockResolvedValue({
+      access_token: 'new-access-token',
+      token_type: 'bearer',
+    })
     vi.mocked(authApi.me).mockResolvedValue(alice)
     vi.mocked(authApi.logout).mockRejectedValue(new Error('network error'))
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     await waitFor(() => expect(result.current.status).toBe('authenticated'))
 
-    act(() => result.current.logout())
+    await act(() => result.current.logout())
 
     expect(result.current.status).toBe('unauthenticated')
-    expect(localStorage.getItem('auth_token')).toBeNull()
   })
 })

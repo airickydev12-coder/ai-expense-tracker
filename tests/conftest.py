@@ -10,6 +10,27 @@ def db_path(tmp_path):
 
 
 @pytest.fixture(autouse=True)
+def _stub_email_sending(monkeypatch: pytest.MonkeyPatch):
+    """Prevent every test from making a real SMTP call by default.
+
+    register_user() sends a verification email automatically now -- without
+    this, a real, fully-configured .env (this repo's local dev one has real
+    Gmail credentials, used for the LAN deployment) would make the test
+    suite send a real email on every single registration across the whole
+    suite, hitting a real inbox hundreds of times per run and roughly
+    doubling suite runtime on real SMTP round-trips. Individual tests that
+    need to inspect what would have been sent (e.g. the forgot-password
+    tests) already call `monkeypatch.setattr(user_service,
+    "send_notification_email", ...)` themselves -- that call simply
+    overrides this default within that one test, no conflict.
+    """
+    monkeypatch.setattr(
+        "src.financial.users.service.send_notification_email",
+        lambda subject, body, to_email=None: None,
+    )
+
+
+@pytest.fixture(autouse=True)
 def _isolate_default_database(request, tmp_path):
     """
     Redirect every caller relying on the default DB_PATH to an isolated

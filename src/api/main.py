@@ -37,7 +37,12 @@ from src.api.routers.recurring_expenses import (
     router as recurring_expenses_router,
 )
 from src.api.routers.scenarios import router as scenarios_router
-from src.core.config import JWT_SECRET_KEY, NOTIFICATION_CHECK_INTERVAL_MINUTES
+from src.core.config import (
+    COOKIE_SECURE,
+    ENVIRONMENT,
+    JWT_SECRET_KEY,
+    NOTIFICATION_CHECK_INTERVAL_MINUTES,
+)
 from src.core.db import initialize_database
 from src.core.exceptions import (
     AuthenticationError,
@@ -57,6 +62,41 @@ from src.financial.users.repository import list_active_users
 configure_logging(console_level=logging.INFO)
 
 logger = get_logger(__name__)
+
+
+_INSECURE_JWT_SECRET = "dev-insecure-secret-change-me"
+
+
+def _validate_startup_config() -> None:
+    """Validate security-sensitive config before the app starts serving requests.
+
+    Fails fast (refuses to start) rather than merely warning when running with
+    ENVIRONMENT=production and the placeholder JWT secret still in place -- a
+    log warning is easy to miss in a self-hosted deployment, and signing
+    tokens with a public, checked-into-git default secret is a real
+    compromise, not a cosmetic issue. COOKIE_SECURE is only ever warned about,
+    never fatal here: the current LAN deployment is legitimately plain HTTP
+    (see COOKIE_SECURE's definition in src/core/config.py), so it's a real,
+    supported configuration, not a mistake to block on.
+    """
+    if ENVIRONMENT == "production" and JWT_SECRET_KEY == _INSECURE_JWT_SECRET:
+        raise RuntimeError(
+            "Refusing to start: JWT_SECRET_KEY is still the insecure default while "
+            "ENVIRONMENT=production. Set a real secret, e.g. "
+            'python -c "import secrets; print(secrets.token_urlsafe(64))"'
+        )
+
+    if JWT_SECRET_KEY == _INSECURE_JWT_SECRET:
+        logger.warning(
+            "JWT_SECRET_KEY is using the insecure default — set a real secret "
+            "in .env before relying on auth for anything real."
+        )
+
+    if not COOKIE_SECURE:
+        logger.warning(
+            "COOKIE_SECURE is false — the refresh-token cookie will be sent over "
+            "plain HTTP. Set COOKIE_SECURE=true once this deployment is served over HTTPS."
+        )
 
 
 def _check_and_send_notifications_for_all_users() -> None:
@@ -82,12 +122,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     startup; stop the scheduler on shutdown."""
     initialize_database()
     register_default_scenario_handlers()
-
-    if JWT_SECRET_KEY == "dev-insecure-secret-change-me":
-        logger.warning(
-            "JWT_SECRET_KEY is using the insecure default — set a real secret "
-            "in .env before relying on auth for anything real."
-        )
+    _validate_startup_config()
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -116,8 +151,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+    # allow_credentials must be True for the browser to send/receive the
+    # HttpOnly refresh-token cookie on cross-origin requests (the Vite dev
+    # server and this API are different origins even when both run on
+    # localhost) -- CORS forbids combining that with a wildcard origin, which
+    # is already not used here.
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

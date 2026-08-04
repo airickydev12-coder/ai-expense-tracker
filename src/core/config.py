@@ -20,6 +20,8 @@ NOTIFICATION_CHECK_INTERVAL_MINUTES = int(
     os.getenv("NOTIFICATION_CHECK_INTERVAL_MINUTES", "60")
 )
 
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-insecure-secret-change-me")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 # Short-lived: refresh tokens (below) transparently renew the session, so
@@ -27,6 +29,13 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 # of the auth hardening backlog added refresh tokens.
 JWT_EXPIRY_MINUTES = int(os.getenv("JWT_EXPIRY_MINUTES", "15"))
 REFRESH_TOKEN_EXPIRY_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRY_DAYS", "30"))
+REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
+# Off by default: the current self-hosted LAN deployment is plain HTTP, and
+# browsers silently refuse to set a Secure cookie over HTTP at all (not just
+# weaken it) -- defaulting this to true would break login there the instant
+# this shipped. Flip to true once the deployment actually has TLS in front
+# of it; no code change needed, just this one var.
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 LOGIN_LOCKOUT_MAX_ATTEMPTS = int(os.getenv("LOGIN_LOCKOUT_MAX_ATTEMPTS", "5"))
 LOGIN_LOCKOUT_WINDOW_MINUTES = int(os.getenv("LOGIN_LOCKOUT_WINDOW_MINUTES", "15"))
@@ -44,6 +53,23 @@ PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS = int(
 )
 PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES = int(
     os.getenv("PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES", "60")
+)
+
+# Longer-lived than a password reset token -- verification is non-urgent
+# (it never blocks login/feature access, see register_user()), so 24 hours
+# is more forgiving than the 30-minute password-reset window.
+EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = int(
+    os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES", "1440")
+)
+# Same lockout shape as password reset, scoped to the authenticated user
+# rather than a raw email (resend is an authenticated action, unlike
+# forgot-password, so there's no anti-enumeration reason to key it by
+# email instead of user_id).
+EMAIL_VERIFICATION_RESEND_LOCKOUT_MAX_ATTEMPTS = int(
+    os.getenv("EMAIL_VERIFICATION_RESEND_LOCKOUT_MAX_ATTEMPTS", "3")
+)
+EMAIL_VERIFICATION_RESEND_LOCKOUT_WINDOW_MINUTES = int(
+    os.getenv("EMAIL_VERIFICATION_RESEND_LOCKOUT_WINDOW_MINUTES", "60")
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

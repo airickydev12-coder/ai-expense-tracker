@@ -57,6 +57,7 @@ Detailed rationale lives in `docs/Architecture/`. Load the relevant one before m
 ### Domain Model Responsibilities — `@docs/Architecture/ADR-004-domain-model-responsibilities.md.txt`
 ### Development Workflow — `@docs/Architecture/ADR-005-development-workflow.md.txt`
 ### Testing Strategy — `@docs/Architecture/ADR-006-testing-strategy.md.txt`
+### Family & Child Account Domain (design, not yet implemented) — `@docs/Architecture/ADR-007-family-child-domain.md.txt`
 
 ## Code Style & Architecture
 - **Layering** (see ADR-001 above): `src/core/` (cross-cutting infra: config, money, exceptions, logging) → `src/financial/` (domain logic, one package per domain) → `src/api/` (FastAPI REST layer) and `src/presentation/` (CLI layer) as separate, parallel presentation adapters over the same domain.

@@ -27,9 +27,14 @@ def get_current_user(
         raise AuthenticationError("Malformed authentication token.") from error
 
     try:
-        return user_service.get_user(user_id)
+        user = user_service.get_user(user_id)
     except NotFoundError as error:
         raise AuthenticationError("User account no longer exists.") from error
+
+    if not user.is_active:
+        raise AuthenticationError("This account has been deactivated.")
+
+    return user
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
