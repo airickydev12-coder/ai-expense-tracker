@@ -1,12 +1,22 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdminUsersPage } from './AdminUsersPage'
 import * as adminApi from '../api/admin'
 import * as authContext from '../context/AuthContext'
+import * as stepUpAuthContext from '../context/StepUpAuthContext'
 import type { UserResponse } from '../types/auth'
 
 vi.mock('../api/admin')
 vi.mock('../context/AuthContext')
+vi.mock('../context/StepUpAuthContext')
+
+beforeEach(() => {
+  // Default: no step-up required, actions run straight through -- the
+  // dedicated StepUpAuthContext.test.tsx covers the modal flow itself.
+  vi.mocked(stepUpAuthContext.useStepUpAuth).mockReturnValue({
+    runWithStepUp: (action) => action(),
+  })
+})
 
 const admin: UserResponse = {
   id: 1,

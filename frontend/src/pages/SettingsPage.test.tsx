@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage'
 import * as authApi from '../api/auth'
 import * as authContext from '../context/AuthContext'
+import * as stepUpAuthContext from '../context/StepUpAuthContext'
 
 vi.mock('../api/auth')
 vi.mock('../context/AuthContext')
+vi.mock('../context/StepUpAuthContext')
 
 const alice = {
   id: 1,
@@ -24,6 +26,11 @@ beforeEach(() => {
   // doesn't reject with "undefined is not a function" (auto-mocked
   // functions have no implementation until one is set).
   vi.mocked(authApi.listSessions).mockResolvedValue([])
+  // Default: no step-up required, actions run straight through -- the
+  // dedicated StepUpAuthContext.test.tsx covers the modal flow itself.
+  vi.mocked(stepUpAuthContext.useStepUpAuth).mockReturnValue({
+    runWithStepUp: (action) => action(),
+  })
 })
 
 afterEach(() => {

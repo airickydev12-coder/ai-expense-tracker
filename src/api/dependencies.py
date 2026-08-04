@@ -1,9 +1,17 @@
 """Shared FastAPI dependencies."""
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.core.exceptions import AuthenticationError, AuthorizationError, NotFoundError
+from src.core.config import STEP_UP_MAX_AGE_MINUTES
+from src.core.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    StepUpRequiredError,
+)
 from src.core.security import decode_access_token
 from src.financial.users import service as user_service
 from src.financial.users.models import User
@@ -55,4 +63,58 @@ def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != PlatformRole.SUPER_ADMIN:
         raise AuthorizationError("Super-administrator access is required.")
 
+    return current_user
+
+
+def _assert_recent_auth(credentials: HTTPAuthorizationCredentials | None) -> None:
+    """Raise StepUpRequiredError unless the caller's access token's auth_time
+    (last real password verification -- see create_access_token()) is within
+    STEP_UP_MAX_AGE_MINUTES.
+
+    Re-decodes the token rather than threading the payload through from
+    get_current_user() -- a second cheap JWT decode of an already-validated
+    token, same tradeoff get_current_user() itself makes to read `sub`.
+    """
+    if credentials is None:
+        raise AuthenticationError("Missing bearer token.")
+
+    payload = decode_access_token(credentials.credentials)
+    auth_time = payload.get("auth_time")
+
+    if auth_time is None:
+        raise StepUpRequiredError("Recent authentication required for this action.")
+
+    auth_time_dt = datetime.fromtimestamp(auth_time, tz=timezone.utc)
+    max_age = timedelta(minutes=STEP_UP_MAX_AGE_MINUTES)
+
+    if datetime.now(timezone.utc) - auth_time_dt > max_age:
+        raise StepUpRequiredError("Recent authentication required for this action.")
+
+
+def require_recent_auth(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Resolve the current user, additionally requiring a recent (step-up)
+    auth_time -- for self-service actions with no authorization tier of
+    their own beyond being logged in (e.g. revoking all sessions)."""
+    _assert_recent_auth(credentials)
+    return current_user
+
+
+def require_recent_admin(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    current_user: User = Depends(require_admin),
+) -> User:
+    """require_admin, additionally requiring a recent (step-up) auth_time."""
+    _assert_recent_auth(credentials)
+    return current_user
+
+
+def require_recent_super_admin(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    current_user: User = Depends(require_super_admin),
+) -> User:
+    """require_super_admin, additionally requiring a recent (step-up) auth_time."""
+    _assert_recent_auth(credentials)
     return current_user

@@ -8,11 +8,29 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.core.config import DB_PATH, JWT_ALGORITHM, JWT_SECRET_KEY
+from src.core.config import DB_PATH, JWT_ALGORITHM, JWT_SECRET_KEY, STEP_UP_MAX_AGE_MINUTES
 from src.core.db import get_connection
 from src.financial.users import service as user_service
 
 client = TestClient(app)
+
+
+def _stale_access_token(user_id: int, username: str = "alice") -> str:
+    """Build a validly-signed, unexpired access token whose auth_time is
+    older than STEP_UP_MAX_AGE_MINUTES -- simulates a long-lived session
+    that hasn't re-authenticated recently, for step-up-required tests."""
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {
+            "sub": str(user_id),
+            "username": username,
+            "iat": now,
+            "exp": now + timedelta(minutes=15),
+            "auth_time": int((now - timedelta(minutes=STEP_UP_MAX_AGE_MINUTES + 1)).timestamp()),
+        },
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
 
 
 def setup_function() -> None:
@@ -565,3 +583,74 @@ def test_revoke_all_sessions_ends_every_session_and_clears_the_cookie() -> None:
     client.cookies.set("refresh_token", refresh_token)
     refresh_response = client.post("/auth/refresh")
     assert refresh_response.status_code == 401
+
+
+def test_revoke_all_sessions_requires_recent_auth() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+    user_id = client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"}).json()["id"]
+    stale_token = _stale_access_token(user_id)
+
+    response = client.post(
+        "/auth/sessions/revoke-all", headers={"Authorization": f"Bearer {stale_token}"}
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "step_up_required"
+
+
+def test_reauth_success_returns_a_fresh_access_token() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+
+    response = client.post(
+        "/auth/reauth",
+        json={"password": "correct-password"},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+
+def test_reauth_rejects_the_wrong_password() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+
+    response = client.post(
+        "/auth/reauth",
+        json={"password": "wrong-password"},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_reauth_requires_authentication() -> None:
+    response = client.post("/auth/reauth", json={"password": "correct-password"})
+
+    assert response.status_code == 401
+
+
+def test_reauth_clears_the_step_up_requirement() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+    user_id = client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"}).json()["id"]
+    stale_token = _stale_access_token(user_id)
+
+    rejected = client.post(
+        "/auth/sessions/revoke-all", headers={"Authorization": f"Bearer {stale_token}"}
+    )
+    assert rejected.status_code == 403
+
+    reauth_response = client.post(
+        "/auth/reauth",
+        json={"password": "correct-password"},
+        headers={"Authorization": f"Bearer {stale_token}"},
+    )
+    fresh_token = reauth_response.json()["access_token"]
+
+    allowed = client.post(
+        "/auth/sessions/revoke-all", headers={"Authorization": f"Bearer {fresh_token}"}
+    )
+    assert allowed.status_code == 204

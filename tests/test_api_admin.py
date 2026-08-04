@@ -1,12 +1,34 @@
 """Tests for the admin API endpoints and authorization enforcement."""
 
+from datetime import datetime, timedelta, timezone
+
+import jwt
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY, STEP_UP_MAX_AGE_MINUTES
 from src.financial.users.repository import update_user_role
 from src.financial.users.role import PlatformRole
 
 client = TestClient(app)
+
+
+def _stale_access_token(user_id: int, username: str) -> str:
+    """Build a validly-signed, unexpired access token whose auth_time is
+    older than STEP_UP_MAX_AGE_MINUTES -- simulates a long-lived session
+    that hasn't re-authenticated recently, for step-up-required tests."""
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {
+            "sub": str(user_id),
+            "username": username,
+            "iat": now,
+            "exp": now + timedelta(minutes=15),
+            "auth_time": int((now - timedelta(minutes=STEP_UP_MAX_AGE_MINUTES + 1)).timestamp()),
+        },
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
 
 
 def _register_and_login(username: str = "alice", password: str = "correct-password") -> str:
@@ -196,3 +218,35 @@ def test_revoke_user_sessions_ends_refresh_session() -> None:
     client.cookies.set("refresh_token", bob_refresh_token)
     refresh_response = client.post("/auth/refresh")
     assert refresh_response.status_code == 401
+
+
+def test_set_user_active_requires_recent_auth() -> None:
+    admin_token, admin_id = _register_admin()
+    bob_token = _register_and_login("bob")
+    bob_id = client.get("/auth/me", headers={"Authorization": f"Bearer {bob_token}"}).json()["id"]
+    stale_admin_token = _stale_access_token(admin_id, "admin")
+
+    response = client.patch(
+        f"/admin/users/{bob_id}/active",
+        json={"is_active": False},
+        headers={"Authorization": f"Bearer {stale_admin_token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "step_up_required"
+
+
+def test_assign_role_requires_recent_auth() -> None:
+    super_admin_token, super_admin_id = _register_super_admin()
+    bob_token = _register_and_login("bob")
+    bob_id = client.get("/auth/me", headers={"Authorization": f"Bearer {bob_token}"}).json()["id"]
+    stale_super_admin_token = _stale_access_token(super_admin_id, "superadmin")
+
+    response = client.patch(
+        f"/admin/users/{bob_id}/role",
+        json={"role": "admin"},
+        headers={"Authorization": f"Bearer {stale_super_admin_token}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "step_up_required"

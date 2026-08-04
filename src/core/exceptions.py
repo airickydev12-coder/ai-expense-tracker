@@ -42,3 +42,10 @@ class AuthorizationError(AppError):
 
 class RateLimitError(AppError):
     """Raised when a caller exceeds an allowed rate (e.g. repeated failed login attempts)."""
+
+
+class StepUpRequiredError(AppError):
+    """Raised when an action requires recent re-authentication ("step-up")
+    that the caller's current session doesn't have -- distinct from
+    AuthorizationError (which means the caller can never do this) since a
+    fresh POST /auth/reauth is enough to satisfy it."""

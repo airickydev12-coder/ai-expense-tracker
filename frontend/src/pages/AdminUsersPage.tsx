@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { assignUserRole, listUsers, revokeUserSessions, setUserActive } from '../api/admin'
 import { useAuth } from '../context/AuthContext'
+import { useStepUpAuth } from '../context/StepUpAuthContext'
 import type { PlatformRole, UserResponse } from '../types/auth'
 
 type LoadState =
@@ -18,6 +19,7 @@ const ROLE_LABELS: Record<PlatformRole, string> = {
 
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth()
+  const { runWithStepUp } = useStepUpAuth()
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [search, setSearch] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export function AdminUsersPage() {
 
     setActionError(null)
     setActioningId(user.id)
-    setUserActive(user.id, { is_active: nextActive })
+    runWithStepUp(() => setUserActive(user.id, { is_active: nextActive }))
       .then(() => refetch())
       .catch((err: unknown) => {
         setActionError(err instanceof Error ? err.message : 'Failed to update account status')
@@ -78,7 +80,7 @@ export function AdminUsersPage() {
 
     setActionError(null)
     setActioningId(user.id)
-    assignUserRole(user.id, { role })
+    runWithStepUp(() => assignUserRole(user.id, { role }))
       .then(() => refetch())
       .catch((err: unknown) => {
         setActionError(err instanceof Error ? err.message : 'Failed to assign role')

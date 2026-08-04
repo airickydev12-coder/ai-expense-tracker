@@ -4,6 +4,43 @@ Dated history of major milestones, grouped by phase. This summarizes; it does no
 `git log` — each entry names representative commits, not every commit in the phase. Newest
 first.
 
+## 2026-08-04 — Security-event notifications & step-up auth (Sprint 3 item 4b)
+
+- Security-event notification emails via the existing `send_notification_email`: new device/IP
+  sign-in (compared against the caller's other active sessions, skipped on a user's first-ever
+  login), refresh-token reuse detected (alongside the existing mass-revoke), password changed,
+  and all sessions logged out. All four soft-fail on `ExternalServiceError`, matching the
+  established pattern from registration's verification email — delivery failure never blocks
+  the underlying action.
+- Recent-auth ("step-up") requirement: a new `auth_time` claim on the access token (set at
+  login, carried forward unchanged across `POST /auth/refresh` rotations — a refresh never
+  re-verifies a password, so rotation alone can't count as recent auth) gates
+  `POST /auth/sessions/revoke-all` and the admin role-change/activate-deactivate endpoints. A
+  stale `auth_time` returns 403 with `code: "step_up_required"`; a new `POST /auth/reauth`
+  (re-verifies the password, mints a fresh access token, updates the session's stored
+  `auth_time` so the next refresh carries the fresher value forward) clears it. New
+  `refresh_tokens.auth_time` column (self-healing migration, backfilled from `issued_at` for
+  pre-existing rows). Change-password was deliberately left ungated — its own inline
+  current-password check is already at least as strong, so a separate step-up prompt would just
+  be a redundant second password entry.
+- Frontend: `StepUpAuthContext`/`ReauthModal` — a `runWithStepUp(action)` wrapper that catches a
+  403 `step_up_required`, opens a password-confirmation modal, and retries the original action
+  once reauth succeeds; wired into "log out of all devices" and the admin role-change/
+  activate-deactivate controls.
+- Live-verified end-to-end over real HTTP (`curl` against a throwaway backend instance) for both
+  the self-service and admin step-up paths, plus reuse detection — no visual browser check this
+  pass, since neither `chromium-cli` nor a Playwright install is available in this environment;
+  covered instead by `StepUpAuthContext.test.tsx`'s real-DOM RTL interactions (modal open →
+  wrong password → inline error → correct password → close + retry → cancel → reject).
+- A bug caught mid-implementation, not by a written test: PyJWT only auto-converts its own
+  reserved `iat`/`exp`/`nbf` claims from `datetime` — a custom claim like `auth_time` was left
+  as a raw `datetime` and crashed every login with `TypeError: Object of type datetime is not
+  JSON serializable`. Fixed by encoding it as a Unix timestamp explicitly. A second bug: the
+  `auth_time` backfill `UPDATE` on `refresh_tokens` (DML) left an implicit transaction open
+  under Python's default `sqlite3` isolation, which then broke the composite-primary-key
+  migration's own `BEGIN` for any test exercising a pre-existing ("old-shape") database — fixed
+  by committing right after the one-time backfill.
+
 ## 2026-08-04 — Email verification & session management (Sprint 3, continued)
 
 - Soft email verification: `POST /auth/register` now emails a verification link

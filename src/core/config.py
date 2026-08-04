@@ -72,6 +72,14 @@ EMAIL_VERIFICATION_RESEND_LOCKOUT_WINDOW_MINUTES = int(
     os.getenv("EMAIL_VERIFICATION_RESEND_LOCKOUT_WINDOW_MINUTES", "60")
 )
 
+# How long an access token's auth_time (last real password verification) is
+# considered "recent enough" for step-up-gated actions (revoking all
+# sessions, admin role changes, admin activate/deactivate) before the caller
+# must re-authenticate via POST /auth/reauth. Deliberately shorter than the
+# access token's own JWT_EXPIRY_MINUTES -- refresh rotates the access token
+# without re-verifying a password, so this can't just be "token still valid."
+STEP_UP_MAX_AGE_MINUTES = int(os.getenv("STEP_UP_MAX_AGE_MINUTES", "10"))
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = PROJECT_ROOT / "logs"

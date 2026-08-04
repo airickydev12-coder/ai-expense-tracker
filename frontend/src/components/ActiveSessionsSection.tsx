@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listSessions, revokeAllSessions, revokeSession } from '../api/auth'
+import { useStepUpAuth } from '../context/StepUpAuthContext'
 import type { SessionResponse } from '../types/auth'
 
 type LoadState =
@@ -12,6 +13,7 @@ function formatDate(value: string): string {
 }
 
 export function ActiveSessionsSection() {
+  const { runWithStepUp } = useStepUpAuth()
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [actionError, setActionError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<number | 'all' | null>(null)
@@ -63,7 +65,7 @@ export function ActiveSessionsSection() {
 
     setActionError(null)
     setActioningId('all')
-    revokeAllSessions()
+    runWithStepUp(() => revokeAllSessions())
       .then(() => {
         // Full reload so the in-memory access token and AuthContext state
         // both reset cleanly -- the now-cookieless bootstrap lands on

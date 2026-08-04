@@ -2,12 +2,13 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, require_recent_auth
 from src.api.schemas.auth import (
     AccessTokenResponse,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    ReauthRequest,
     RegisterRequest,
     ResetPasswordRequest,
     SessionResponse,
@@ -70,13 +71,30 @@ def login(request: LoginRequest, http_request: Request, response: Response) -> A
         username=request.username,
         password=request.password,
     )
+    user_agent = http_request.headers.get("user-agent")
+    ip_address = _client_ip(http_request)
+    user_service.notify_new_device_if_needed(user, user_agent, ip_address)
     access_token, refresh_token = user_service.issue_session(
         user.id,
         user.username,
-        user_agent=http_request.headers.get("user-agent"),
-        ip_address=_client_ip(http_request),
+        user_agent=user_agent,
+        ip_address=ip_address,
     )
     _set_refresh_cookie(response, refresh_token)
+    return AccessTokenResponse(access_token=access_token)
+
+
+@router.post("/reauth", response_model=AccessTokenResponse)
+def reauth(
+    request: Request,
+    body: ReauthRequest,
+    current_user: User = Depends(get_current_user),
+) -> AccessTokenResponse:
+    """Re-verify the current user's password and mint a fresh access token
+    with a fresh auth_time -- clears a StepUpRequiredError so a previously-
+    rejected sensitive action can be retried."""
+    refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE_NAME)
+    access_token = user_service.reauth(current_user.id, body.password, refresh_token=refresh_token)
     return AccessTokenResponse(access_token=access_token)
 
 
@@ -202,7 +220,7 @@ def revoke_session(
 
 
 @router.post("/sessions/revoke-all", status_code=204)
-def revoke_all_sessions(response: Response, current_user: User = Depends(get_current_user)) -> None:
+def revoke_all_sessions(response: Response, current_user: User = Depends(require_recent_auth)) -> None:
     """Log out of every session/device for the current user, including this one.
 
     Also clears this request's own refresh-token cookie, since the session

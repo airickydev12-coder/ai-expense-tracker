@@ -35,14 +35,30 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def create_access_token(user_id: int, username: str) -> str:
-    """Issue a signed JWT access token for the given user."""
+def create_access_token(
+    user_id: int, username: str, auth_time: datetime | None = None
+) -> str:
+    """Issue a signed JWT access token for the given user.
+
+    auth_time defaults to now (a fresh login) but callers that are rotating
+    an existing session (see refresh_session()) pass through the original
+    login's auth_time unchanged -- it marks when the password was last
+    actually verified, which token rotation alone doesn't refresh. Sensitive
+    endpoints use it (via require_recent_auth in src/api/dependencies.py) to
+    require a recent-enough auth_time before allowing the action.
+
+    auth_time is encoded as a Unix timestamp explicitly -- PyJWT only
+    auto-converts its own reserved claims (iat/exp/nbf) from datetime; a
+    custom claim like auth_time is left to json.dumps() as-is and raises
+    TypeError if it's still a datetime.
+    """
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "username": username,
         "iat": now,
         "exp": now + timedelta(minutes=JWT_EXPIRY_MINUTES),
+        "auth_time": int((auth_time or now).timestamp()),
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 

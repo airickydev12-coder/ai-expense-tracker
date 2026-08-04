@@ -29,6 +29,7 @@ from src.financial.users.repository import (
     revoke_all_refresh_tokens_for_user,
     revoke_refresh_token,
     revoke_refresh_token_by_id,
+    update_refresh_token_auth_time,
     update_user,
     update_user_active_status,
     update_user_role,
@@ -301,6 +302,53 @@ def test_get_refresh_token_returns_the_row_once_revoked(db_path) -> None:
     found = get_refresh_token("a-token-hash", db_path)
     assert found is not None
     assert found["revoked_at"] is not None
+
+
+def test_create_refresh_token_defaults_auth_time_to_issued_at(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(days=30)).isoformat()
+
+    create_refresh_token(user.id, "a-token-hash", now.isoformat(), expires_at, db_path)
+
+    found = get_refresh_token("a-token-hash", db_path)
+    assert found is not None
+    assert found["auth_time"] == now.isoformat()
+
+
+def test_create_refresh_token_stores_explicit_auth_time(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(days=30)).isoformat()
+    original_auth_time = (now - timedelta(hours=2)).isoformat()
+
+    create_refresh_token(
+        user.id, "a-token-hash", now.isoformat(), expires_at, db_path, auth_time=original_auth_time
+    )
+
+    found = get_refresh_token("a-token-hash", db_path)
+    assert found is not None
+    assert found["auth_time"] == original_auth_time
+
+
+def test_update_refresh_token_auth_time_updates_the_stored_value(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(days=30)).isoformat()
+    create_refresh_token(user.id, "a-token-hash", now.isoformat(), expires_at, db_path)
+
+    fresher_auth_time = (now + timedelta(minutes=5)).isoformat()
+    update_refresh_token_auth_time("a-token-hash", fresher_auth_time, db_path)
+
+    found = get_refresh_token("a-token-hash", db_path)
+    assert found is not None
+    assert found["auth_time"] == fresher_auth_time
 
 
 def test_update_user_updates_username_and_email(db_path) -> None:

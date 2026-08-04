@@ -7,10 +7,17 @@ export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8
 
 export class ApiError extends Error {
   status: number
+  // Set for error responses that carry a machine-readable `code` alongside
+  // `detail` (currently just step_up_required, see StepUpAuthContext) --
+  // undefined for the common case of a plain {"detail": "..."} body, so
+  // callers can distinguish "this specific, recoverable error" from a
+  // generic failure without string-matching `message`.
+  code?: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message)
     this.status = status
+    this.code = code
   }
 }
 
@@ -57,14 +64,16 @@ async function fetchOrThrow(
   })
   if (!res.ok) {
     let message = `Request to ${path} failed with status ${res.status}`
+    let code: string | undefined
     try {
-      const body = (await res.json()) as { detail?: string }
+      const body = (await res.json()) as { detail?: string; code?: string }
       if (typeof body?.detail === 'string') message = body.detail
+      if (typeof body?.code === 'string') code = body.code
     } catch {
       // response wasn't JSON — keep the generic message
     }
     if (res.status === 401 && !options?.skipUnauthorizedHandling) unauthorizedHandler?.()
-    throw new ApiError(res.status, message)
+    throw new ApiError(res.status, message, code)
   }
   return res
 }

@@ -4,6 +4,7 @@ import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  ReauthRequest,
   RegisterRequest,
   ResetPasswordRequest,
   SessionResponse,
@@ -40,6 +41,10 @@ export function updateProfile(request: UpdateProfileRequest): Promise<UserRespon
 
 export function changePassword(request: ChangePasswordRequest): Promise<void> {
   return apiPost<void>('/auth/change-password', request)
+}
+
+export function reauth(request: ReauthRequest): Promise<AccessTokenResponse> {
+  return apiPost<AccessTokenResponse>('/auth/reauth', request)
 }
 
 export function forgotPassword(request: ForgotPasswordRequest): Promise<void> {

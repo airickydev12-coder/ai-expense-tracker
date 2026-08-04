@@ -55,6 +55,12 @@ class VerifyEmailRequest(BaseModel):
     token: str = Field(min_length=1)
 
 
+class ReauthRequest(BaseModel):
+    """Request body for step-up re-authentication (POST /auth/reauth)."""
+
+    password: str = Field(min_length=1)
+
+
 class SessionResponse(BaseModel):
     """One active refresh-token-backed session, for the self-service sessions list.
 

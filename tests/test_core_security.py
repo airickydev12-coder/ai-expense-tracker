@@ -48,6 +48,30 @@ def test_create_and_decode_access_token_round_trip() -> None:
     assert payload["username"] == "alice"
 
 
+def test_create_access_token_defaults_auth_time_to_now() -> None:
+    before = datetime.now(timezone.utc)
+    token = create_access_token(user_id=42, username="alice")
+    after = datetime.now(timezone.utc)
+
+    payload = decode_access_token(token)
+    auth_time = datetime.fromtimestamp(payload["auth_time"], tz=timezone.utc)
+
+    # auth_time is encoded as a whole-second Unix timestamp (truncated, not
+    # rounded), so it can read up to ~1s earlier than `before`.
+    assert before - timedelta(seconds=1) <= auth_time <= after
+
+
+def test_create_access_token_accepts_an_explicit_auth_time() -> None:
+    original_auth_time = datetime.now(timezone.utc) - timedelta(hours=2)
+
+    token = create_access_token(user_id=42, username="alice", auth_time=original_auth_time)
+
+    payload = decode_access_token(token)
+    auth_time = datetime.fromtimestamp(payload["auth_time"], tz=timezone.utc)
+
+    assert abs((auth_time - original_auth_time).total_seconds()) < 1
+
+
 def test_decode_access_token_rejects_wrong_signature() -> None:
     tampered_token = jwt.encode(
         {"sub": "42", "username": "alice"},

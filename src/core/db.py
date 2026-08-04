@@ -82,7 +82,8 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     expires_at TEXT NOT NULL,
     revoked_at TEXT,
     user_agent TEXT,
-    ip_address TEXT
+    ip_address TEXT,
+    auth_time TEXT
 );
 
 CREATE TABLE IF NOT EXISTS financial_history (
@@ -329,17 +330,33 @@ def _ensure_email_verified_at_column(connection: sqlite3.Connection) -> None:
 
 
 def _ensure_refresh_token_metadata_columns(connection: sqlite3.Connection) -> None:
-    """Add user_agent/ip_address columns to `refresh_tokens` if missing --
-    same idempotent-ALTER-TABLE pattern as _ensure_role_column. Powers the
-    self-service active-sessions list (which device/location a session
-    belongs to) — existing rows just get NULL for both, same as any
-    session issued before this shipped.
+    """Add user_agent/ip_address/auth_time columns to `refresh_tokens` if
+    missing -- same idempotent-ALTER-TABLE pattern as _ensure_role_column.
+    user_agent/ip_address power the self-service active-sessions list
+    (which device/location a session belongs to) -- existing rows just get
+    NULL for both, same as any session issued before this shipped.
+    auth_time backs the step-up-auth freshness check and is backfilled from
+    issued_at rather than left NULL, since a pre-existing row still needs a
+    usable value the moment this migration runs.
     """
     columns = {row["name"] for row in connection.execute("PRAGMA table_info(refresh_tokens)")}
     if "user_agent" not in columns:
         connection.execute("ALTER TABLE refresh_tokens ADD COLUMN user_agent TEXT")
     if "ip_address" not in columns:
         connection.execute("ALTER TABLE refresh_tokens ADD COLUMN ip_address TEXT")
+    if "auth_time" not in columns:
+        connection.execute("ALTER TABLE refresh_tokens ADD COLUMN auth_time TEXT")
+        # Backfill once, right after adding the column: a row with no
+        # auth_time predates the step-up-auth feature -- treat its issuance
+        # as the last real password verification, same as freshly-issued
+        # rows do (see issue_session()). Unlike the ALTER statements above
+        # (DDL, auto-commits immediately), UPDATE is DML and leaves an
+        # implicit transaction open under Python's sqlite3 default isolation
+        # -- commit it here so _ensure_composite_primary_keys's own BEGIN
+        # (run later in the same get_connection() migration chain) doesn't
+        # fail with "cannot start a transaction within a transaction".
+        connection.execute("UPDATE refresh_tokens SET auth_time = issued_at WHERE auth_time IS NULL")
+        connection.commit()
 
 
 def _table_has_composite_user_pk(connection: sqlite3.Connection, table: str) -> bool:

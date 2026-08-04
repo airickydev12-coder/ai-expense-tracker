@@ -60,3 +60,7 @@ export interface SessionResponse {
   ip_address: string | null
   is_current: boolean
 }
+
+export interface ReauthRequest {
+  password: string
+}

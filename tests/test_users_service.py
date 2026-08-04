@@ -562,3 +562,193 @@ def test_logout_all_sessions_revokes_every_session(db_path) -> None:
     user_service.logout_all_sessions(registered.id, db_path)
 
     assert user_service.list_sessions(registered.id, db_path=db_path) == []
+
+
+def _auth_time_of(access_token: str):
+    from datetime import datetime, timezone
+
+    from src.core.security import decode_access_token
+
+    payload = decode_access_token(access_token)
+    return datetime.fromtimestamp(payload["auth_time"], tz=timezone.utc)
+
+
+def test_issue_session_sets_a_fresh_auth_time(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    before = datetime.now(timezone.utc)
+    access_token, _ = issue_session(registered.id, registered.username, db_path=db_path)
+    after = datetime.now(timezone.utc)
+
+    # auth_time is encoded as a whole-second Unix timestamp (truncated, not
+    # rounded), so it can read up to ~1s earlier than `before`.
+    assert before - timedelta(seconds=1) <= _auth_time_of(access_token) <= after
+
+
+def test_refresh_session_carries_auth_time_forward_unchanged(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    original_access_token, refresh_token = issue_session(
+        registered.id, registered.username, db_path=db_path
+    )
+
+    new_access_token, _ = refresh_session(refresh_token, db_path=db_path)
+
+    original_auth_time = _auth_time_of(original_access_token)
+    new_auth_time = _auth_time_of(new_access_token)
+    assert abs((new_auth_time - original_auth_time).total_seconds()) < 1
+
+
+def test_reauth_success_returns_a_token_with_a_fresh_auth_time(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    before = datetime.now(timezone.utc)
+    access_token = user_service.reauth(registered.id, "correct-password", refresh_token, db_path)
+    after = datetime.now(timezone.utc)
+
+    # auth_time is encoded as a whole-second Unix timestamp (truncated, not
+    # rounded), so it can read up to ~1s earlier than `before`.
+    assert before - timedelta(seconds=1) <= _auth_time_of(access_token) <= after
+
+
+def test_reauth_rejects_wrong_password(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    with pytest.raises(AuthenticationError):
+        user_service.reauth(registered.id, "wrong-password", None, db_path)
+
+
+def test_reauth_updates_the_active_sessions_stored_auth_time(db_path) -> None:
+    """A subsequent /auth/refresh must carry the *reauth-freshened* auth_time
+    forward, not the session's original (now stale) login auth_time."""
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+
+    reauth_token = user_service.reauth(registered.id, "correct-password", refresh_token, db_path)
+    refreshed_access_token, _ = refresh_session(refresh_token, db_path=db_path)
+
+    reauth_auth_time = _auth_time_of(reauth_token)
+    refreshed_auth_time = _auth_time_of(refreshed_access_token)
+    assert abs((refreshed_auth_time - reauth_auth_time).total_seconds()) < 1
+
+
+def test_notify_new_device_if_needed_skips_a_users_first_login(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: pytest.fail("Should not email on a first-ever login"),
+    )
+
+    user_service.notify_new_device_if_needed(registered, "UA-1", "1.2.3.4", db_path)
+
+
+def test_notify_new_device_if_needed_sends_email_for_an_unrecognized_device(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    issue_session(registered.id, registered.username, db_path=db_path, user_agent="UA-1", ip_address="1.2.3.4")
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(subject=subject, to_email=to_email),
+    )
+
+    user_service.notify_new_device_if_needed(registered, "UA-2", "5.6.7.8", db_path)
+
+    assert sent["to_email"] == "alice@example.com"
+
+
+def test_notify_new_device_if_needed_skips_a_recognized_device(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    issue_session(registered.id, registered.username, db_path=db_path, user_agent="UA-1", ip_address="1.2.3.4")
+
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: pytest.fail("Should not email for a known device"),
+    )
+
+    user_service.notify_new_device_if_needed(registered, "UA-1", "1.2.3.4", db_path)
+
+
+def test_refresh_session_reuse_sends_a_security_alert_email(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    _, refresh_token = issue_session(registered.id, registered.username, db_path=db_path)
+    refresh_session(refresh_token, db_path=db_path)
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(subject=subject, to_email=to_email),
+    )
+
+    with pytest.raises(AuthenticationError):
+        refresh_session(refresh_token, db_path=db_path)
+
+    assert sent["to_email"] == "alice@example.com"
+    assert "logged out" in sent["subject"].lower()
+
+
+def test_change_password_sends_a_confirmation_email(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(subject=subject, to_email=to_email),
+    )
+
+    change_password(registered.id, "correct-password", "new-password", db_path=db_path)
+
+    assert sent["to_email"] == "alice@example.com"
+
+
+def test_change_password_succeeds_even_if_the_confirmation_email_fails(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.exceptions import ExternalServiceError
+
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    def _raise_external_service_error(subject, body, to_email=None):
+        raise ExternalServiceError("SMTP is down")
+
+    monkeypatch.setattr(user_service, "send_notification_email", _raise_external_service_error)
+
+    change_password(registered.id, "correct-password", "new-password", db_path=db_path)
+
+    authenticated = authenticate_user("alice", "new-password", db_path)
+    assert authenticated.id == registered.id
+
+
+def test_logout_all_sessions_sends_a_confirmation_email(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    issue_session(registered.id, registered.username, db_path=db_path)
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(subject=subject, to_email=to_email),
+    )
+
+    user_service.logout_all_sessions(registered.id, db_path)
+
+    assert sent["to_email"] == "alice@example.com"

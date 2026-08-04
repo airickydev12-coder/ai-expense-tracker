@@ -10,7 +10,7 @@ authorization layer.
 
 from fastapi import APIRouter, Depends
 
-from src.api.dependencies import require_admin, require_super_admin
+from src.api.dependencies import require_admin, require_recent_admin, require_recent_super_admin
 from src.api.schemas.admin import AssignRoleRequest, UpdateUserActiveRequest
 from src.api.schemas.auth import UserResponse
 from src.financial.users import admin_service
@@ -50,7 +50,7 @@ def get_user(user_id: int, current_user: User = Depends(require_admin)) -> User:
 def set_user_active(
     user_id: int,
     request: UpdateUserActiveRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_recent_admin),
 ) -> User:
     """Activate or deactivate a user account.
 
@@ -64,7 +64,7 @@ def set_user_active(
 def assign_user_role(
     user_id: int,
     request: AssignRoleRequest,
-    current_user: User = Depends(require_super_admin),
+    current_user: User = Depends(require_recent_super_admin),
 ) -> User:
     """Assign a user's platform role. Requires SUPER_ADMIN."""
     return admin_service.assign_role(current_user, user_id, request.role)

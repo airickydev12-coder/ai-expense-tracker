@@ -52,6 +52,7 @@ from src.core.exceptions import (
     NotFoundError,
     PersistenceError,
     RateLimitError,
+    StepUpRequiredError,
     ValidationError,
 )
 from src.core.logging import configure_logging, get_logger
@@ -217,6 +218,19 @@ def handle_authorization_error(
 def handle_rate_limit_error(request: Request, exc: RateLimitError) -> JSONResponse:
     """Map an exceeded rate limit (e.g. repeated failed logins) to a 429 response."""
     return JSONResponse(status_code=429, content={"detail": str(exc)})
+
+
+@app.exception_handler(StepUpRequiredError)
+def handle_step_up_required_error(
+    request: Request, exc: StepUpRequiredError
+) -> JSONResponse:
+    """Map a stale-auth_time rejection to 403 with a `code` field distinct
+    from a generic AuthorizationError, so the frontend can tell "prompt for
+    reauth" apart from "you can never do this" without string-matching
+    `detail`."""
+    return JSONResponse(
+        status_code=403, content={"detail": str(exc), "code": "step_up_required"}
+    )
 
 
 app.include_router(health_router)

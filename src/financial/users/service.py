@@ -54,6 +54,7 @@ from src.financial.users.repository import (
     revoke_refresh_token,
     revoke_refresh_token_by_id,
     update_password_hash,
+    update_refresh_token_auth_time,
     update_user,
 )
 
@@ -158,6 +159,7 @@ def issue_session(
     *,
     user_agent: str | None = None,
     ip_address: str | None = None,
+    auth_time: datetime | None = None,
 ) -> tuple[str, str]:
     """Issue a new (access_token, refresh_token) pair for a user.
 
@@ -166,11 +168,19 @@ def issue_session(
     ip_address are stored on the refresh-token row purely for the
     self-service active-sessions list -- they play no role in validating
     the token itself.
+
+    auth_time defaults to now (a fresh login) but refresh_session() passes
+    through the session's original auth_time unchanged -- rotating the
+    token doesn't re-verify a password, so it must not reset step-up
+    freshness (see create_access_token()'s docstring).
     """
-    access_token = create_access_token(user_id=user_id, username=username)
+    issued_at = datetime.now(timezone.utc)
+    resolved_auth_time = auth_time or issued_at
+    access_token = create_access_token(
+        user_id=user_id, username=username, auth_time=resolved_auth_time
+    )
 
     raw_refresh_token = generate_refresh_token()
-    issued_at = datetime.now(timezone.utc)
     expires_at = issued_at + timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS)
     create_refresh_token(
         user_id,
@@ -180,6 +190,7 @@ def issue_session(
         db_path,
         user_agent=user_agent,
         ip_address=ip_address,
+        auth_time=resolved_auth_time.isoformat(),
     )
 
     return access_token, raw_refresh_token
@@ -218,6 +229,7 @@ def refresh_session(
             token_row["user_id"],
         )
         revoke_all_refresh_tokens_for_user(token_row["user_id"], db_path)
+        _notify_reuse_detected(token_row["user_id"], db_path)
         raise AuthenticationError("Invalid or expired refresh token.")
 
     if token_row["expires_at"] <= datetime.now(timezone.utc).isoformat():
@@ -226,7 +238,108 @@ def refresh_session(
     user = get_user(token_row["user_id"], db_path)
     revoke_refresh_token(token_hash, db_path)
 
-    return issue_session(user.id, user.username, db_path, user_agent=user_agent, ip_address=ip_address)
+    return issue_session(
+        user.id,
+        user.username,
+        db_path,
+        user_agent=user_agent,
+        ip_address=ip_address,
+        auth_time=datetime.fromisoformat(token_row["auth_time"]),
+    )
+
+
+def _notify_reuse_detected(user_id: int, db_path: Path) -> None:
+    """Best-effort security alert after refresh-token reuse triggers a mass
+    revoke -- soft-fails the same way registration's verification email
+    does, since a notification-delivery failure must never surface as (or
+    mask) the AuthenticationError the caller is about to raise."""
+    try:
+        user = get_user(user_id, db_path)
+        send_notification_email(
+            "Security alert: your sessions were logged out",
+            "We detected a used session token being replayed on your account "
+            "and logged out every active session as a precaution. If this "
+            "wasn't you, change your password immediately.",
+            to_email=user.email,
+        )
+    except (ExternalServiceError, NotFoundError):
+        logger.warning("Could not send reuse-detection alert email for user %d", user_id)
+
+
+def reauth(
+    user_id: int,
+    password: str,
+    refresh_token: str | None = None,
+    db_path: Path = DB_PATH,
+) -> str:
+    """Re-verify the current user's password and mint a fresh access token
+    with a fresh auth_time, without rotating the refresh token/session.
+
+    Powers step-up auth: the frontend calls this when a sensitive action is
+    rejected with StepUpRequiredError, then retries the original action with
+    the new access token. If refresh_token is provided (it always should be
+    for a real browser session), the active session's stored auth_time is
+    also updated so the *next* /auth/refresh carries the fresher value
+    forward instead of reverting to this session's original login time.
+    """
+    user = get_user(user_id, db_path)
+
+    if not verify_password(password, user.password_hash):
+        raise AuthenticationError("Current password is incorrect.")
+
+    auth_time = datetime.now(timezone.utc)
+    access_token = create_access_token(user_id=user.id, username=user.username, auth_time=auth_time)
+
+    if refresh_token is not None:
+        update_refresh_token_auth_time(_hash_token(refresh_token), auth_time.isoformat(), db_path)
+
+    logger.info("Step-up reauth succeeded for user %d (%s)", user.id, user.username)
+
+    return access_token
+
+
+def notify_new_device_if_needed(
+    user: User,
+    user_agent: str | None,
+    ip_address: str | None,
+    db_path: Path = DB_PATH,
+) -> None:
+    """Send a "new sign-in" alert if this login's (user_agent, ip_address)
+    doesn't match any of the user's other currently-active sessions.
+
+    Must be called *before* the new session is created (see /auth/login),
+    using the pre-login snapshot of active sessions -- not folded into
+    issue_session() itself, since that's also called from refresh_session()
+    where the just-rotated-out session would spuriously be missing from the
+    "active" list on every single token rotation, false-positiving on every
+    refresh instead of only on genuinely new devices.
+
+    Skipped entirely when the user has no other active sessions at all
+    (first-ever login), so registration doesn't immediately trigger a
+    "new device" alert for the user's own first sign-in.
+    """
+    existing_sessions = list_active_refresh_tokens_for_user(user.id, db_path)
+    if not existing_sessions:
+        return
+
+    known = any(
+        session["user_agent"] == user_agent and session["ip_address"] == ip_address
+        for session in existing_sessions
+    )
+    if known:
+        return
+
+    try:
+        send_notification_email(
+            "New sign-in to your account",
+            f"A new sign-in was detected on your account from "
+            f"{ip_address or 'an unknown location'} using "
+            f"{user_agent or 'an unknown device'}. If this wasn't you, "
+            "change your password and log out of all devices immediately.",
+            to_email=user.email,
+        )
+    except ExternalServiceError:
+        logger.warning("Could not send new-device alert email for user %d", user.id)
 
 
 def logout(refresh_token: str, db_path: Path = DB_PATH) -> None:
@@ -269,6 +382,17 @@ def revoke_session(user_id: int, session_id: int, db_path: Path = DB_PATH) -> No
 def logout_all_sessions(user_id: int, db_path: Path = DB_PATH) -> None:
     """Revoke every session for a user at once -- "log out all devices"."""
     revoke_all_refresh_tokens_for_user(user_id, db_path)
+
+    try:
+        user = get_user(user_id, db_path)
+        send_notification_email(
+            "You were logged out of all devices",
+            "Every active session on your account was just logged out. If "
+            "you didn't do this, change your password immediately.",
+            to_email=user.email,
+        )
+    except ExternalServiceError:
+        logger.warning("Could not send logout-all-sessions confirmation email for user %d", user_id)
 
 
 def update_profile(
@@ -313,6 +437,16 @@ def change_password(
     update_password_hash(user_id, new_password_hash, db_path)
 
     logger.info("Changed password for user %d (%s)", user.id, user.username)
+
+    try:
+        send_notification_email(
+            "Your password was changed",
+            "Your account password was just changed. If you didn't do this, "
+            "reset your password immediately.",
+            to_email=user.email,
+        )
+    except ExternalServiceError:
+        logger.warning("Could not send password-changed confirmation email for user %d", user_id)
 
 
 def get_user(user_id: int, db_path: Path = DB_PATH) -> User:

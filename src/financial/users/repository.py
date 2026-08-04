@@ -452,17 +452,25 @@ def create_refresh_token(
     *,
     user_agent: str | None = None,
     ip_address: str | None = None,
+    auth_time: str | None = None,
 ) -> None:
-    """Insert a new refresh token row for a user."""
+    """Insert a new refresh token row for a user.
+
+    auth_time defaults to issued_at when omitted -- same fallback the
+    startup migration backfill uses for pre-existing rows (see
+    _ensure_refresh_token_metadata_columns in src/core/db.py), so callers
+    that don't care about step-up freshness (most repository-level tests)
+    don't need to pass it explicitly.
+    """
     try:
         with get_connection(db_path) as connection:
             connection.execute(
                 """
                 INSERT INTO refresh_tokens
-                    (user_id, token_hash, issued_at, expires_at, revoked_at, user_agent, ip_address)
-                VALUES (?, ?, ?, ?, NULL, ?, ?)
+                    (user_id, token_hash, issued_at, expires_at, revoked_at, user_agent, ip_address, auth_time)
+                VALUES (?, ?, ?, ?, NULL, ?, ?, ?)
                 """,
-                (user_id, token_hash, issued_at, expires_at, user_agent, ip_address),
+                (user_id, token_hash, issued_at, expires_at, user_agent, ip_address, auth_time or issued_at),
             )
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to create refresh token in {db_path}") from error
@@ -472,25 +480,39 @@ def get_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
     """Look up a refresh token by its hash, regardless of whether it's revoked
     or expired -- returns None only if the hash was never issued at all.
 
-    Returns a plain dict (id, user_id, expires_at, revoked_at) rather than a
-    domain model, since this row has no dataclass of its own. Callers must
-    check `revoked_at`/`expires_at` themselves to determine whether the
-    token is currently usable -- intentionally not filtered in SQL, because
-    refresh_session()'s reuse detection needs to distinguish "this token was
-    already used and rotated out" (a real theft signal) from "this token
-    never existed," and a query that only ever returns unrevoked rows can't
-    tell those apart.
+    Returns a plain dict (id, user_id, expires_at, revoked_at, auth_time)
+    rather than a domain model, since this row has no dataclass of its own.
+    Callers must check `revoked_at`/`expires_at` themselves to determine
+    whether the token is currently usable -- intentionally not filtered in
+    SQL, because refresh_session()'s reuse detection needs to distinguish
+    "this token was already used and rotated out" (a real theft signal)
+    from "this token never existed," and a query that only ever returns
+    unrevoked rows can't tell those apart.
     """
     try:
         with get_connection(db_path) as connection:
             row = connection.execute(
-                "SELECT id, user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash = ?",
+                "SELECT id, user_id, expires_at, revoked_at, auth_time FROM refresh_tokens WHERE token_hash = ?",
                 (token_hash,),
             ).fetchone()
     except sqlite3.Error as error:
         raise PersistenceError(f"Failed to load refresh token from {db_path}") from error
 
     return dict(row) if row is not None else None
+
+
+def update_refresh_token_auth_time(token_hash: str, auth_time: str, db_path: Path = DB_PATH) -> None:
+    """Update a refresh token's stored auth_time -- called by reauth() so the
+    freshened value carries forward into the *next* rotation instead of
+    reverting to the session's original login auth_time."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE refresh_tokens SET auth_time = ? WHERE token_hash = ?",
+                (auth_time, token_hash),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to update refresh token auth_time in {db_path}") from error
 
 
 def revoke_refresh_token(token_hash: str, db_path: Path = DB_PATH) -> None:

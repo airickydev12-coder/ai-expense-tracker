@@ -43,10 +43,10 @@ today on the operator's LAN, not exposed to the public internet.
 
 ## Current sprint
 
-Not yet chosen. What's left of Sprint 3 is now just MFA design, security-event notifications,
-recent-auth ("step-up") requirements, and breached-password screening — see Security work
-below — or begin Sprint 5 (Family/child foundation, the first *implementation* sprint against
-ADR-007), depending on priority when picked up.
+Sprint 3 item 4b (security-event notifications + recent-auth "step-up" requirement) just
+shipped — see Security work below, item 4b. What's left of Sprint 3 is now just MFA design and
+breached-password screening, or begin Sprint 5 (Family/child foundation, the first
+*implementation* sprint against ADR-007), depending on priority when picked up.
 
 ## Next sprint
 
@@ -85,6 +85,15 @@ sequenced against each other.
   Live-verified in a real browser across two simulated devices. Deliberately **not** done this
   pass: MFA design, security-event notifications, recent-auth ("step-up") requirements,
   breached-password screening — see Security work below.
+- **Sprint 3 item 4b — Security-event notifications & step-up auth.** Email alerts (new device/
+  IP sign-in, refresh-token reuse detected, password changed, all sessions logged out) via the
+  existing `send_notification_email`; a recent-auth (`auth_time`) claim on the access token,
+  refreshed only by `POST /auth/reauth`, gating self-service revoke-all-sessions and admin role-
+  change/activate-deactivate behind a 403 `step_up_required` → password-confirmation-modal →
+  retry flow. Live-verified over real HTTP (`curl`) end-to-end for both the self-service and
+  admin paths, plus reuse detection; no visual browser check this pass (no Playwright/
+  chromium-cli available in this environment — covered instead by `StepUpAuthContext.test.tsx`'s
+  real-DOM RTL interactions). See Security work below, item 4b.
 
 ## Completed capabilities
 
@@ -136,9 +145,9 @@ Real gaps in what's shipped, not aspirational — flag these if they become rele
   `admin_audit_events` already has the data an Audit Log page needs; it just has no viewer.
 - **Notification configuration is global**, not per-user (no per-user channel/quiet-hours/
   digest preferences yet).
-- **No MFA, security-event notifications, or recent-auth ("step-up") requirement** for
-  sensitive actions — see Security work below, items 4–6. (Email verification and the
-  session/device list both shipped and are no longer gaps.)
+- **No MFA or breached-password screening** yet — see Security work below, items 5–6. (Email
+  verification, the session/device list, security-event notifications, and the recent-auth
+  "step-up" requirement have all shipped and are no longer gaps.)
 - **Email verification is soft only** — it never blocks login, registration, or any feature.
   There's no path today to require it before, say, using the AI coach or exporting data; that
   would be a deliberate future product decision, not an oversight to silently fix.
@@ -192,12 +201,21 @@ Ordered roughly by risk, not necessarily by implementation order:
    `user_agent`/`ip_address` captured per session. **Implemented** (Sprint 3, continued).
    Security-event notifications and a recent-auth ("step-up") requirement for sensitive actions
    were scoped as part of this item but **not** built — see item 4b below.
-4b. Security-event notifications (e.g. "new device signed in") and a recent-auth/step-up
-    requirement before sensitive actions (role changes, revoking all sessions, etc.).
-    **Planned**, no design started — natural follow-ups now that the session list exists to
-    build on, but deliberately not bundled into the same pass.
+4b. Security-event notifications (new device/IP sign-in, refresh-token reuse detected, password
+    changed, all sessions logged out — email via the existing `send_notification_email`) and a
+    recent-auth/step-up requirement before sensitive actions (self-service revoke-all-sessions,
+    admin role changes, admin activate/deactivate). **Implemented** (Sprint 3, continued).
+    Step-up is an `auth_time` claim embedded in the access token at login, carried forward
+    unchanged across refreshes (a refresh never re-verifies a password, so rotation alone
+    doesn't count as recent auth), and refreshed only by a new `POST /auth/reauth` endpoint;
+    a 403 with `code: "step_up_required"` from any gated endpoint triggers a password-
+    confirmation modal (`StepUpAuthContext`/`ReauthModal`) that retries the original action once
+    reauth succeeds. Change-password was deliberately **not** gated by the same check — it
+    already re-verifies the current password inline, so a separate step-up prompt would just be
+    a second back-to-back password entry with no added security value.
 5. Optional MFA — strongly encouraged/required for admins and (once it exists) guardians.
-   **Planned**, no design started.
+   **Planned**, no design started. Can reuse the `auth_time`/step-up primitive from item 4b for
+   its own "require recent auth before enrolling/disabling MFA" step.
 6. Breached-password screening. **Planned**, low priority.
 
 ## Admin console
@@ -343,9 +361,9 @@ rediscovered later as a surprise.
 2. **Sprint 2 — Admin Console MVP** — done (Overview + Users; Security/Audit/System-health
    pages still open).
 3. **Sprint 3 — Security hardening** — mostly done: cookie-based refresh tokens, prod secret
-   fail-fast validation, the `is_active` re-check, email verification, and session/device
-   management all shipped. Still open: MFA design, security-event notifications, recent-auth
-   requirements, breached-password screening.
+   fail-fast validation, the `is_active` re-check, email verification, session/device
+   management, and item 4b's security-event notifications + step-up auth all shipped. Still
+   open: MFA design, breached-password screening.
 4. **Sprint 4 — Family/child domain design** — done. See
    [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt).
 5. **Sprint 5 — Family/child foundation** *(next candidate, alongside Sprint 3's remaining
