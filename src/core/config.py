@@ -36,6 +36,16 @@ PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = int(
 )
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
 
+# Tighter than login's lockout: forgot-password abuse (spamming reset emails
+# at an address) is lower-frequency but higher-annoyance-per-hit than login
+# brute-forcing.
+PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS = int(
+    os.getenv("PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS", "3")
+)
+PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES = int(
+    os.getenv("PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES", "60")
+)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = PROJECT_ROOT / "logs"

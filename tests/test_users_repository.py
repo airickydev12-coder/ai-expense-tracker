@@ -5,6 +5,7 @@ import pytest
 from src.core.exceptions import ValidationError
 from src.financial.users.repository import (
     count_recent_failed_attempts,
+    count_recent_password_reset_requests,
     create_password_reset_token,
     create_refresh_token,
     create_user,
@@ -15,6 +16,7 @@ from src.financial.users.repository import (
     get_user_by_username,
     mark_password_reset_token_used,
     record_login_attempt,
+    record_password_reset_request,
     revoke_refresh_token,
     update_user,
 )
@@ -216,3 +218,33 @@ def test_count_recent_failed_attempts_ignores_attempts_outside_window(db_path) -
         )
 
     assert count_recent_failed_attempts("alice", 15, db_path) == 0
+
+
+def test_count_recent_password_reset_requests_counts_requests(db_path) -> None:
+    record_password_reset_request("alice@example.com", db_path=db_path)
+    record_password_reset_request("alice@example.com", db_path=db_path)
+
+    assert count_recent_password_reset_requests("alice@example.com", 60, db_path) == 2
+
+
+def test_count_recent_password_reset_requests_is_scoped_to_email(db_path) -> None:
+    record_password_reset_request("alice@example.com", db_path=db_path)
+    record_password_reset_request("bob@example.com", db_path=db_path)
+
+    assert count_recent_password_reset_requests("alice@example.com", 60, db_path) == 1
+
+
+def test_count_recent_password_reset_requests_ignores_requests_outside_window(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from src.core.db import get_connection
+
+    stale_timestamp = (datetime.now(timezone.utc) - timedelta(minutes=90)).isoformat()
+
+    with get_connection(db_path) as connection:
+        connection.execute(
+            "INSERT INTO password_reset_requests (email, requested_at) VALUES (?, ?)",
+            ("alice@example.com", stale_timestamp),
+        )
+
+    assert count_recent_password_reset_requests("alice@example.com", 60, db_path) == 0

@@ -244,6 +244,25 @@ def test_forgot_password_returns_202_for_unknown_email(monkeypatch: pytest.Monke
     assert response.status_code == 202
 
 
+def test_forgot_password_locks_out_after_max_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.core.config import PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+
+    _register()
+    monkeypatch.setattr(
+        user_service, "send_notification_email", lambda subject, body, to_email=None: None
+    )
+
+    for _ in range(PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS):
+        response = client.post("/auth/forgot-password", json={"email": "alice@example.com"})
+        assert response.status_code == 202
+
+    locked_out_response = client.post(
+        "/auth/forgot-password", json={"email": "alice@example.com"}
+    )
+
+    assert locked_out_response.status_code == 429
+
+
 def test_reset_password_success(monkeypatch: pytest.MonkeyPatch) -> None:
     _register()
 

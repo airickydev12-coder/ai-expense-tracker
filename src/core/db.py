@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     used_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    requested_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,

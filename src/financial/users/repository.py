@@ -186,6 +186,41 @@ def count_recent_failed_attempts(
     return int(row["count"])
 
 
+def record_password_reset_request(email: str, db_path: Path = DB_PATH) -> None:
+    """Record one password reset request for an email address."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "INSERT INTO password_reset_requests (email, requested_at) VALUES (?, ?)",
+                (email, now),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to record password reset request in {db_path}") from error
+
+
+def count_recent_password_reset_requests(
+    email: str, window_minutes: int, db_path: Path = DB_PATH
+) -> int:
+    """Count an email's password reset requests within the trailing window."""
+    since = (datetime.now(timezone.utc) - timedelta(minutes=window_minutes)).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) AS count FROM password_reset_requests
+                WHERE email = ? AND requested_at > ?
+                """,
+                (email, since),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to count password reset requests in {db_path}") from error
+
+    return int(row["count"])
+
+
 def create_password_reset_token(
     user_id: int, token_hash: str, expires_at: str, db_path: Path = DB_PATH
 ) -> None:

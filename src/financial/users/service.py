@@ -8,6 +8,8 @@ from src.core.config import (
     FRONTEND_BASE_URL,
     LOGIN_LOCKOUT_MAX_ATTEMPTS,
     LOGIN_LOCKOUT_WINDOW_MINUTES,
+    PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS,
+    PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES,
     PASSWORD_RESET_TOKEN_EXPIRY_MINUTES,
     REFRESH_TOKEN_EXPIRY_DAYS,
 )
@@ -25,6 +27,7 @@ from src.financial.notifications.email_sender import send_notification_email
 from src.financial.users.models import User
 from src.financial.users.repository import (
     count_recent_failed_attempts,
+    count_recent_password_reset_requests,
     create_password_reset_token,
     create_refresh_token,
     create_user,
@@ -35,6 +38,7 @@ from src.financial.users.repository import (
     get_user_by_username,
     mark_password_reset_token_used,
     record_login_attempt,
+    record_password_reset_request,
     revoke_refresh_token,
     update_password_hash,
     update_user,
@@ -231,8 +235,27 @@ def request_password_reset(email: str, db_path: Path = DB_PATH) -> None:
     Always returns normally regardless of whether the email exists (matches
     the existing anti-enumeration convention from authenticate_user) -- the
     caller should show the same "if that email exists..." message either way.
+
+    Raises RateLimitError once an email has PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+    recent requests within PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES -- keyed by
+    the raw requested email (not user_id) and counted before the lookup below,
+    the same way authenticate_user's login lockout works, so a 429 here never
+    reveals whether the email is actually registered.
     """
     normalized_email = email.strip().lower()
+
+    if (
+        count_recent_password_reset_requests(
+            normalized_email, PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES, db_path
+        )
+        >= PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+    ):
+        raise RateLimitError(
+            "Too many password reset requests. "
+            f"Try again in {PASSWORD_RESET_LOCKOUT_WINDOW_MINUTES} minutes."
+        )
+
+    record_password_reset_request(normalized_email, db_path)
     user = get_user_by_email(normalized_email, db_path)
 
     if user is None:

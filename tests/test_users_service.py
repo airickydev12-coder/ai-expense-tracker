@@ -160,6 +160,61 @@ def test_request_password_reset_does_nothing_for_unknown_email(
     request_password_reset("nobody@example.com", db_path)
 
 
+def test_request_password_reset_locks_out_after_max_requests(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.config import PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+    monkeypatch.setattr(
+        user_service, "send_notification_email", lambda subject, body, to_email=None: None
+    )
+
+    for _ in range(PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS):
+        request_password_reset("alice@example.com", db_path)
+
+    with pytest.raises(RateLimitError):
+        request_password_reset("alice@example.com", db_path)
+
+
+def test_request_password_reset_lockout_applies_to_unknown_emails(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.config import PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: pytest.fail(
+            "Should not send an email for an unknown address"
+        ),
+    )
+
+    for _ in range(PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS):
+        request_password_reset("nobody@example.com", db_path)
+
+    with pytest.raises(RateLimitError):
+        request_password_reset("nobody@example.com", db_path)
+
+
+def test_request_password_reset_lockout_is_scoped_to_email(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.config import PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS
+
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+    register_user("bob", "bob@example.com", "correct-password", db_path)
+    monkeypatch.setattr(
+        user_service, "send_notification_email", lambda subject, body, to_email=None: None
+    )
+
+    for _ in range(PASSWORD_RESET_LOCKOUT_MAX_ATTEMPTS):
+        request_password_reset("alice@example.com", db_path)
+
+    # Bob isn't locked out by Alice's requests.
+    request_password_reset("bob@example.com", db_path)
+
+
 def test_reset_password_success(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
     register_user("alice", "alice@example.com", "correct-password", db_path)
 

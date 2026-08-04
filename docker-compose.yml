@@ -8,8 +8,10 @@ services:
       - .env
     volumes:
       - expense-data:/app/data
-    ports:
-      - "8000:8000"
+    # No host port mapping: nginx (the frontend container) reaches this over
+    # the internal Docker network at http://backend:8000 (see
+    # frontend/nginx.conf) and that's the only consumer that needs it — the
+    # host never has to reach the raw backend directly.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
       interval: 10s
