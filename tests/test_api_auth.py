@@ -3,11 +3,13 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import pytest
 
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from src.financial.users import service as user_service
 
 client = TestClient(app)
 
@@ -209,6 +211,65 @@ def test_change_password_without_authorization_header_returns_401() -> None:
     )
 
     assert response.status_code == 401
+
+
+def test_forgot_password_returns_202_for_known_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    _register()
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(body=body),
+    )
+
+    response = client.post("/auth/forgot-password", json={"email": "alice@example.com"})
+
+    assert response.status_code == 202
+    assert "reset-password?token=" in sent["body"]
+
+
+def test_forgot_password_returns_202_for_unknown_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: pytest.fail("Should not send for an unknown email"),
+    )
+
+    response = client.post("/auth/forgot-password", json={"email": "nobody@example.com"})
+
+    # Same 202 either way -- don't leak whether the email is registered.
+    assert response.status_code == 202
+
+
+def test_reset_password_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    _register()
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(body=body),
+    )
+    client.post("/auth/forgot-password", json={"email": "alice@example.com"})
+    token = sent["body"].split("reset-password?token=")[1].split("\n")[0]
+
+    response = client.post(
+        "/auth/reset-password", json={"token": token, "new_password": "new-password"}
+    )
+
+    assert response.status_code == 204
+
+    new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
+    assert new_login.status_code == 200
+
+
+def test_reset_password_rejects_invalid_token() -> None:
+    response = client.post(
+        "/auth/reset-password", json={"token": "not-a-real-token", "new_password": "new-password"}
+    )
+
+    assert response.status_code == 400
 
 
 def test_login_locks_out_after_max_failed_attempts() -> None:

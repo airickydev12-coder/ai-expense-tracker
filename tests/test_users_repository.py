@@ -5,9 +5,13 @@ import pytest
 from src.core.exceptions import ValidationError
 from src.financial.users.repository import (
     count_recent_failed_attempts,
+    create_password_reset_token,
     create_user,
+    get_password_reset_token,
+    get_user_by_email,
     get_user_by_id,
     get_user_by_username,
+    mark_password_reset_token_used,
     record_login_attempt,
     update_user,
 )
@@ -61,6 +65,58 @@ def test_get_user_by_id_found(db_path) -> None:
 
 def test_get_user_by_id_not_found(db_path) -> None:
     assert get_user_by_id(999, db_path) is None
+
+
+def test_get_user_by_email_found(db_path) -> None:
+    created = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    found = get_user_by_email("alice@example.com", db_path)
+
+    assert found is not None
+    assert found.id == created.id
+
+
+def test_get_user_by_email_not_found(db_path) -> None:
+    assert get_user_by_email("nobody@example.com", db_path) is None
+
+
+def test_password_reset_token_round_trip(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+
+    create_password_reset_token(user.id, "a-token-hash", expires_at, db_path)
+
+    found = get_password_reset_token("a-token-hash", db_path)
+    assert found is not None
+    assert found["user_id"] == user.id
+
+
+def test_get_password_reset_token_returns_none_when_expired(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    expired_at = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+
+    create_password_reset_token(user.id, "a-token-hash", expired_at, db_path)
+
+    assert get_password_reset_token("a-token-hash", db_path) is None
+
+
+def test_get_password_reset_token_returns_none_once_used(db_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+    create_password_reset_token(user.id, "a-token-hash", expires_at, db_path)
+
+    token_row = get_password_reset_token("a-token-hash", db_path)
+    assert token_row is not None
+
+    mark_password_reset_token_used(token_row["id"], db_path)
+
+    assert get_password_reset_token("a-token-hash", db_path) is None
 
 
 def test_update_user_updates_username_and_email(db_path) -> None:

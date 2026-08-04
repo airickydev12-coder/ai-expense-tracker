@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.api.dependencies import get_current_user
 from src.api.schemas.auth import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserResponse,
@@ -76,3 +78,19 @@ def change_password(
         current_password=request.current_password,
         new_password=request.new_password,
     )
+
+
+@router.post("/forgot-password", status_code=202)
+def forgot_password(request: ForgotPasswordRequest) -> None:
+    """Request a password reset email.
+
+    Always returns 202 regardless of whether the email matches an account,
+    so the response can't be used to enumerate registered emails.
+    """
+    user_service.request_password_reset(email=request.email)
+
+
+@router.post("/reset-password", status_code=204)
+def reset_password(request: ResetPasswordRequest) -> None:
+    """Consume a password reset token and set a new password."""
+    user_service.reset_password(token=request.token, new_password=request.new_password)

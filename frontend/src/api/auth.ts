@@ -1,8 +1,10 @@
 import { apiGet, apiPatch, apiPost } from './client'
 import type {
   ChangePasswordRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   TokenResponse,
   UpdateProfileRequest,
   UserResponse,
@@ -26,4 +28,12 @@ export function updateProfile(request: UpdateProfileRequest): Promise<UserRespon
 
 export function changePassword(request: ChangePasswordRequest): Promise<void> {
   return apiPost<void>('/auth/change-password', request)
+}
+
+export function forgotPassword(request: ForgotPasswordRequest): Promise<void> {
+  return apiPost<void>('/auth/forgot-password', request)
+}
+
+export function resetPassword(request: ResetPasswordRequest): Promise<void> {
+  return apiPost<void>('/auth/reset-password', request)
 }

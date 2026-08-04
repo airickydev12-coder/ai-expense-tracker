@@ -3,11 +3,14 @@
 import pytest
 
 from src.core.exceptions import AuthenticationError, RateLimitError, ValidationError
+from src.financial.users import service as user_service
 from src.financial.users.service import (
     authenticate_user,
     change_password,
     get_user,
     register_user,
+    request_password_reset,
+    reset_password,
     update_profile,
 )
 
@@ -118,6 +121,98 @@ def test_change_password_rejects_short_new_password(db_path) -> None:
 
     with pytest.raises(ValidationError):
         change_password(registered.id, "correct-password", "short", db_path=db_path)
+
+
+def test_request_password_reset_sends_email_for_known_address(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(
+            subject=subject, body=body, to_email=to_email
+        ),
+    )
+
+    request_password_reset("alice@example.com", db_path)
+
+    assert sent["to_email"] == "alice@example.com"
+    assert "reset-password?token=" in sent["body"]
+
+
+def test_request_password_reset_does_nothing_for_unknown_email(
+    db_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: pytest.fail(
+            "Should not send an email for an unknown address"
+        ),
+    )
+
+    request_password_reset("nobody@example.com", db_path)
+
+
+def test_reset_password_success(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    captured_link: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured_link.update(body=body),
+    )
+    request_password_reset("alice@example.com", db_path)
+
+    token = captured_link["body"].split("reset-password?token=")[1].split("\n")[0]
+
+    reset_password(token, "new-password", db_path=db_path)
+
+    authenticated = authenticate_user("alice", "new-password", db_path)
+    assert authenticated.username == "alice"
+
+
+def test_reset_password_rejects_invalid_token(db_path) -> None:
+    with pytest.raises(ValidationError):
+        reset_password("not-a-real-token", "new-password", db_path=db_path)
+
+
+def test_reset_password_token_is_single_use(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    captured_link: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured_link.update(body=body),
+    )
+    request_password_reset("alice@example.com", db_path)
+    token = captured_link["body"].split("reset-password?token=")[1].split("\n")[0]
+
+    reset_password(token, "new-password", db_path=db_path)
+
+    with pytest.raises(ValidationError):
+        reset_password(token, "another-password", db_path=db_path)
+
+
+def test_reset_password_rejects_short_new_password(db_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    captured_link: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: captured_link.update(body=body),
+    )
+    request_password_reset("alice@example.com", db_path)
+    token = captured_link["body"].split("reset-password?token=")[1].split("\n")[0]
+
+    with pytest.raises(ValidationError):
+        reset_password(token, "short", db_path=db_path)
 
 
 def test_authenticate_user_locks_out_after_max_failed_attempts(db_path) -> None:

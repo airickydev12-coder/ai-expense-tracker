@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     succeeded INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS financial_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,

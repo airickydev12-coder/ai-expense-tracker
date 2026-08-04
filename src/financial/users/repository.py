@@ -123,6 +123,20 @@ def get_user_by_username(username: str, db_path: Path = DB_PATH) -> User | None:
     return User.from_dict(dict(row)) if row is not None else None
 
 
+def get_user_by_email(email: str, db_path: Path = DB_PATH) -> User | None:
+    """Look up a user by email, returning None if not found."""
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                f"SELECT {_COLUMNS} FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load user from {db_path}") from error
+
+    return User.from_dict(dict(row)) if row is not None else None
+
+
 def get_user_by_id(user_id: int, db_path: Path = DB_PATH) -> User | None:
     """Look up a user by id, returning None if not found."""
     try:
@@ -170,6 +184,62 @@ def count_recent_failed_attempts(
         raise PersistenceError(f"Failed to count login attempts in {db_path}") from error
 
     return int(row["count"])
+
+
+def create_password_reset_token(
+    user_id: int, token_hash: str, expires_at: str, db_path: Path = DB_PATH
+) -> None:
+    """Insert a new password reset token row for a user."""
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, used_at)
+                VALUES (?, ?, ?, NULL)
+                """,
+                (user_id, token_hash, expires_at),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to create password reset token in {db_path}") from error
+
+
+def get_password_reset_token(token_hash: str, db_path: Path = DB_PATH) -> dict | None:
+    """Look up an unexpired, unused password reset token by its hash.
+
+    Returns a plain dict (id, user_id, expires_at) rather than a domain model,
+    since this row has no dataclass of its own -- it's purely a lookup table.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT id, user_id, expires_at FROM password_reset_tokens
+                WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?
+                """,
+                (token_hash, now),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load password reset token from {db_path}") from error
+
+    return dict(row) if row is not None else None
+
+
+def mark_password_reset_token_used(token_id: int, db_path: Path = DB_PATH) -> None:
+    """Mark a password reset token as used, so it can't be redeemed again."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE password_reset_tokens SET used_at = ? WHERE id = ?",
+                (now, token_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(
+            f"Failed to mark password reset token {token_id} used in {db_path}"
+        ) from error
 
 
 def list_active_users(db_path: Path = DB_PATH) -> list[User]:
