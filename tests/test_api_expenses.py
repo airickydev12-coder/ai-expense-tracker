@@ -14,11 +14,26 @@ from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
 
 client = TestClient(app)
+USER_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def test_list_expenses_returns_empty_list(monkeypatch: pytest.MonkeyPatch) -> None:
     """The endpoint should return an empty list when no expenses exist."""
-    monkeypatch.setattr(expense_service, "expenses", [])
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: []})
     response = client.get("/expenses")
     assert response.status_code == 200
     assert response.json() == []
@@ -36,7 +51,7 @@ def test_list_expenses_returns_serialized_expenses(
             amount=Decimal("5.25"),
         )
     ]
-    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: test_expenses})
     response = client.get("/expenses")
     assert response.status_code == 200
     assert response.json() == [
@@ -56,10 +71,12 @@ def test_create_expense_returns_created_expense(
     )
 
     def fake_add_expense(
+        user_id: int,
         name: str,
         category: ExpenseCategory,
         amount: Decimal,
     ) -> Expense:
+        assert user_id == USER_ID
         assert name == "Coffee"
         assert category == ExpenseCategory.FOOD
         assert amount == Decimal("5.25")
@@ -87,6 +104,7 @@ def test_create_expense_rejects_negative_amount(
     """Negative amounts should fail before the service is called."""
 
     def fail_if_called(
+        user_id: int,
         name: str,
         category: ExpenseCategory,
         amount: Decimal,
@@ -112,7 +130,8 @@ def test_get_expense_returns_serialized_expense(
         amount=Decimal("84.50"),
     )
 
-    def fake_get_expense_by_id(expense_id: int) -> Expense | None:
+    def fake_get_expense_by_id(user_id: int, expense_id: int) -> Expense | None:
+        assert user_id == USER_ID
         assert expense_id == 7
         return existing_expense
 
@@ -132,7 +151,8 @@ def test_get_expense_returns_404_when_not_found(
 ) -> None:
     """A missing expense should return HTTP 404."""
 
-    def fake_get_expense_by_id(expense_id: int) -> Expense | None:
+    def fake_get_expense_by_id(user_id: int, expense_id: int) -> Expense | None:
+        assert user_id == USER_ID
         assert expense_id == 999
         return None
 
@@ -154,11 +174,13 @@ def test_update_expense_returns_updated_expense(
     )
 
     def fake_update_expense(
+        user_id: int,
         expense_id: int,
         name: str | None = None,
         category: ExpenseCategory | None = None,
         amount: Decimal | None = None,
     ) -> Expense | None:
+        assert user_id == USER_ID
         assert expense_id == 5
         assert name == "Lunch"
         assert category == ExpenseCategory.FOOD
@@ -217,7 +239,8 @@ def test_delete_expense_returns_deleted_expense(
         amount=Decimal("12.00"),
     )
 
-    def fake_delete_expense(expense_id: int) -> Expense | None:
+    def fake_delete_expense(user_id: int, expense_id: int) -> Expense | None:
+        assert user_id == USER_ID
         assert expense_id == 8
         return deleted
 
@@ -237,7 +260,8 @@ def test_delete_expense_returns_404_when_not_found(
 ) -> None:
     """Deleting a missing expense should return HTTP 404."""
 
-    def fake_delete_expense(expense_id: int) -> Expense | None:
+    def fake_delete_expense(user_id: int, expense_id: int) -> Expense | None:
+        assert user_id == USER_ID
         assert expense_id == 999
         return None
 
@@ -300,7 +324,7 @@ def test_export_expenses_returns_csv(monkeypatch: pytest.MonkeyPatch) -> None:
             amount=Decimal("5.25"),
         )
     ]
-    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: test_expenses})
 
     response = client.get("/expenses/export")
 

@@ -3,12 +3,28 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.financial.history.service import clear_history, record_snapshot
 
 client = TestClient(app)
+USER_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def setup_function() -> None:
@@ -18,6 +34,7 @@ def setup_function() -> None:
     now = datetime.now(timezone.utc)
 
     record_snapshot(
+        USER_ID,
         {
             "total_income": Decimal("4000"),
             "total_expenses": Decimal("2500"),
@@ -32,6 +49,7 @@ def setup_function() -> None:
         timestamp=now - timedelta(days=30),
     )
     record_snapshot(
+        USER_ID,
         {
             "total_income": Decimal("5000"),
             "total_expenses": Decimal("2500"),

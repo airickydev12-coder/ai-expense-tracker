@@ -47,7 +47,6 @@ EXIT_OPTION = "16"
 
 def run_cli() -> None:
     """Run the primary command-line menu."""
-    load_financial_state()
     register_default_scenario_handlers()
     display_dashboard()
 
@@ -63,7 +62,7 @@ def run_cli() -> None:
             display_expenses()
 
         elif choice == "3":
-            total = get_total(get_expenses())
+            total = get_total(get_expenses(get_cli_user_id()))
 
             print(f"Total spending: ${total:.2f}")
 
@@ -83,7 +82,7 @@ def run_cli() -> None:
             display_saved_budget_summaries()
 
         elif choice == "9":
-            snapshot, _ = record_current_financial_snapshot()
+            snapshot, _ = record_current_financial_snapshot(get_cli_user_id())
 
             display_financial_snapshot(snapshot)
 
@@ -93,7 +92,7 @@ def run_cli() -> None:
             manage_recommendations()
 
         elif choice == "11":
-            display_financial_trends(get_history())
+            display_financial_trends(get_history(get_cli_user_id()))
 
         elif choice == "12":
             display_current_forecast()

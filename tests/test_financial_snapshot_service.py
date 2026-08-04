@@ -19,6 +19,8 @@ from src.financial.goals.models import Goal
 from src.financial.income import service as income_service
 from src.financial.shared.categories import ExpenseCategory
 
+USER_ID = 1
+
 
 def test_build_financial_snapshot_with_data(
     monkeypatch: pytest.MonkeyPatch,
@@ -72,16 +74,16 @@ def test_build_financial_snapshot_with_data(
         ),
     ]
 
-    monkeypatch.setattr(expense_service, "expenses", test_expenses)
-    monkeypatch.setattr(budget_service, "budgets", test_budgets)
-    monkeypatch.setattr(goal_service, "goals", test_goals)
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: test_expenses})
+    monkeypatch.setattr(budget_service, "budgets", {USER_ID: test_budgets})
+    monkeypatch.setattr(goal_service, "goals", {USER_ID: test_goals})
 
-    monkeypatch.setattr(income_service, "income_entries", [])
-    monkeypatch.setattr(account_service, "accounts", [])
-    monkeypatch.setattr(debt_service, "debts", [])
-    monkeypatch.setattr(bill_service, "bills", [])
+    monkeypatch.setattr(income_service, "income_entries", {USER_ID: []})
+    monkeypatch.setattr(account_service, "accounts", {USER_ID: []})
+    monkeypatch.setattr(debt_service, "debts", {USER_ID: []})
+    monkeypatch.setattr(bill_service, "bills", {USER_ID: []})
 
-    snapshot = build_financial_snapshot()
+    snapshot = build_financial_snapshot(USER_ID)
 
     assert snapshot.total_expenses == Decimal("150.00")
     assert snapshot.average_expense == Decimal("75.00")
@@ -105,16 +107,16 @@ def test_build_financial_snapshot_without_data(
 ) -> None:
     """Build an empty financial snapshot."""
 
-    monkeypatch.setattr(expense_service, "expenses", [])
-    monkeypatch.setattr(budget_service, "budgets", [])
-    monkeypatch.setattr(goal_service, "goals", [])
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: []})
+    monkeypatch.setattr(budget_service, "budgets", {USER_ID: []})
+    monkeypatch.setattr(goal_service, "goals", {USER_ID: []})
 
-    monkeypatch.setattr(income_service, "income_entries", [])
-    monkeypatch.setattr(account_service, "accounts", [])
-    monkeypatch.setattr(debt_service, "debts", [])
-    monkeypatch.setattr(bill_service, "bills", [])
+    monkeypatch.setattr(income_service, "income_entries", {USER_ID: []})
+    monkeypatch.setattr(account_service, "accounts", {USER_ID: []})
+    monkeypatch.setattr(debt_service, "debts", {USER_ID: []})
+    monkeypatch.setattr(bill_service, "bills", {USER_ID: []})
 
-    snapshot = build_financial_snapshot()
+    snapshot = build_financial_snapshot(USER_ID)
 
     assert snapshot.total_expenses == Decimal("0")
     assert snapshot.average_expense == Decimal("0")

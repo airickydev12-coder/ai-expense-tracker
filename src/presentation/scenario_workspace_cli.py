@@ -7,6 +7,7 @@ from src.financial.scenarios.workspace_service import (
     remove_result_from_workspace,
     save_scenario_workspace,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.views import (
     display_scenario_result,
 )
@@ -58,7 +59,7 @@ def select_ranking_metric() -> ScenarioRankingMetric | None:
 
 def display_saved_scenarios() -> None:
     """Display all saved scenario names."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
     results = workspace.get_results()
 
     if not results:
@@ -76,7 +77,7 @@ def display_saved_scenarios() -> None:
 
 def display_ranked_scenarios() -> None:
     """Rank and display saved scenarios."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
 
     if workspace.is_empty():
         print("No scenarios are saved.")
@@ -97,7 +98,7 @@ def display_ranked_scenarios() -> None:
 
 def display_best_scenario() -> None:
     """Display the strongest saved scenario."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
 
     if workspace.is_empty():
         print("No scenarios are saved.")
@@ -121,7 +122,7 @@ def display_best_scenario() -> None:
 
 def remove_saved_scenario() -> None:
     """Select and remove one persisted scenario."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
     results = workspace.get_results()
 
     if not results:
@@ -142,7 +143,7 @@ def remove_saved_scenario() -> None:
         print("Scenario selection is out of range.")
         return
 
-    removed = remove_result_from_workspace(results[selection - 1].name)
+    removed = remove_result_from_workspace(get_cli_user_id(), results[selection - 1].name)
 
     if removed is None:
         print("Scenario was not found.")
@@ -153,20 +154,20 @@ def remove_saved_scenario() -> None:
 
 def save_workspace_flow() -> None:
     """Persist the current scenario workspace."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
 
     if workspace.is_empty():
         print("No scenarios are saved.")
         return
 
-    save_scenario_workspace()
+    save_scenario_workspace(get_cli_user_id())
 
     print("Scenario workspace saved successfully.")
 
 
 def clear_workspace_flow() -> None:
     """Confirm and clear persisted workspace data."""
-    workspace = get_scenario_workspace()
+    workspace = get_scenario_workspace(get_cli_user_id())
 
     if workspace.is_empty():
         print("No scenarios are saved.")
@@ -178,7 +179,7 @@ def clear_workspace_flow() -> None:
         print("Workspace was not cleared.")
         return
 
-    clear_persisted_scenario_workspace()
+    clear_persisted_scenario_workspace(get_cli_user_id())
 
     print("Scenario workspace cleared.")
 

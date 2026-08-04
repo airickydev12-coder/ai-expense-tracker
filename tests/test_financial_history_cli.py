@@ -49,8 +49,8 @@ def test_run_cli_displays_financial_trends(
 
     monkeypatch.setattr(
         cli,
-        "load_financial_state",
-        lambda: None,
+        "get_cli_user_id",
+        lambda: 1,
     )
 
     monkeypatch.setattr(
@@ -68,7 +68,7 @@ def test_run_cli_displays_financial_trends(
     monkeypatch.setattr(
         cli,
         "get_history",
-        build_history,
+        lambda user_id: build_history(),
     )
 
     def fake_display(history):

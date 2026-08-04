@@ -194,8 +194,14 @@ def test_display_current_budgets(
 
     monkeypatch.setattr(
         views,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        views,
         "get_budgets",
-        lambda: budgets,
+        lambda user_id: budgets,
     )
 
     views.display_current_budgets()

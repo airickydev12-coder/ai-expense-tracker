@@ -101,6 +101,12 @@ def test_run_expense_reduction_flow(
         lambda _: next(inputs),
     )
 
+    monkeypatch.setattr(
+        scenario_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
     def fake_run(
         request,
         snapshot,
@@ -118,7 +124,7 @@ def test_run_expense_reduction_flow(
     monkeypatch.setattr(
         scenario_cli,
         "save_result_to_workspace",
-        lambda result: captured.update(
+        lambda user_id, result: captured.update(
             {
                 "saved_result": result,
             }
@@ -170,8 +176,14 @@ def test_manage_scenarios_routes_income(
 
     monkeypatch.setattr(
         scenario_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     def fake_income_flow(snapshot):
@@ -299,6 +311,12 @@ def test_execute_scenario_persists_and_displays_result(
 
     monkeypatch.setattr(
         scenario_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        scenario_cli,
         "run_financial_scenario",
         lambda request, snapshot: expected_result,
     )
@@ -306,7 +324,7 @@ def test_execute_scenario_persists_and_displays_result(
     monkeypatch.setattr(
         scenario_cli,
         "save_result_to_workspace",
-        lambda result: captured.update(
+        lambda user_id, result: captured.update(
             {
                 "saved_result": result,
             }

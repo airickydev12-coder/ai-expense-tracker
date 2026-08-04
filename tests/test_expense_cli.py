@@ -35,11 +35,18 @@ def test_add_expense_flow(
 
     monkeypatch.setattr(
         expense_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        expense_cli,
         "select_category",
         lambda: ExpenseCategory.FOOD,
     )
 
     def fake_add_expense(
+        user_id,
         name,
         category,
         amount,
@@ -162,6 +169,12 @@ def test_delete_expense_flow(
 
     monkeypatch.setattr(
         expense_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        expense_cli,
         "display_expenses",
         lambda: None,
     )
@@ -172,6 +185,7 @@ def test_delete_expense_flow(
     )
 
     def fake_delete_expense(
+        user_id: int,
         expense_id: int,
     ):
         captured["expense_id"] = expense_id
@@ -219,6 +233,12 @@ def test_delete_expense_flow_handles_missing_expense(
 ):
     monkeypatch.setattr(
         expense_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        expense_cli,
         "display_expenses",
         lambda: None,
     )
@@ -231,7 +251,7 @@ def test_delete_expense_flow_handles_missing_expense(
     monkeypatch.setattr(
         expense_cli,
         "delete_expense",
-        lambda expense_id: None,
+        lambda user_id, expense_id: None,
     )
 
     expense_cli.delete_expense_flow()
@@ -263,6 +283,12 @@ def test_update_expense_flow(
 
     monkeypatch.setattr(
         expense_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        expense_cli,
         "display_expenses",
         lambda: None,
     )
@@ -274,6 +300,7 @@ def test_update_expense_flow(
     )
 
     def fake_update_expense(
+        user_id,
         expense_id,
         name=None,
         category=None,
@@ -329,11 +356,18 @@ def test_update_expense_flow_preserves_blank_fields(
 
     monkeypatch.setattr(
         expense_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        expense_cli,
         "display_expenses",
         lambda: None,
     )
 
     def fake_update_expense(
+        user_id,
         expense_id,
         name=None,
         category=None,

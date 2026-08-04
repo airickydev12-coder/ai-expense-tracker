@@ -97,17 +97,24 @@ def test_manage_recommendations_completes_record(
 
     monkeypatch.setattr(
         cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     monkeypatch.setattr(
         cli,
         "get_recommendation_history",
-        lambda: [build_record()],
+        lambda user_id: [build_record()],
     )
 
     def fake_complete(
+        user_id: int,
         recommendation_key: str,
         note: str = "",
     ):
@@ -148,17 +155,24 @@ def test_manage_recommendations_dismisses_record(
 
     monkeypatch.setattr(
         cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     monkeypatch.setattr(
         cli,
         "get_recommendation_history",
-        lambda: [build_record()],
+        lambda user_id: [build_record()],
     )
 
     def fake_dismiss(
+        user_id: int,
         recommendation_key: str,
         note: str = "",
     ):

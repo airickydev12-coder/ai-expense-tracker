@@ -9,11 +9,25 @@ from src.financial.expenses.models import Expense
 from src.financial.shared.categories import ExpenseCategory
 
 client = TestClient(app)
+USER_ID = 1
+
+
+def setup_function() -> None:
+    """Register and log in a throwaway user, authenticating client for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def test_category_totals_empty(monkeypatch: MonkeyPatch) -> None:
     """Return an empty list when no expenses exist."""
-    monkeypatch.setattr(expense_service, "expenses", [])
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: []})
 
     response = client.get("/expenses/category-totals")
 
@@ -46,7 +60,7 @@ def test_category_totals_returns_grouped_totals(
         ),
     ]
 
-    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: test_expenses})
 
     response = client.get("/expenses/category-totals")
 
@@ -65,7 +79,7 @@ def test_category_totals_returns_grouped_totals(
 
 def test_expense_statistics_empty(monkeypatch: MonkeyPatch) -> None:
     """Return zeroed statistics when no expenses exist."""
-    monkeypatch.setattr(expense_service, "expenses", [])
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: []})
 
     response = client.get("/expenses/statistics")
 
@@ -103,7 +117,7 @@ def test_expense_statistics_returns_summary(
         ),
     ]
 
-    monkeypatch.setattr(expense_service, "expenses", test_expenses)
+    monkeypatch.setattr(expense_service, "expenses", {USER_ID: test_expenses})
 
     response = client.get("/expenses/statistics")
 

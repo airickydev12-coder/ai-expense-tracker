@@ -47,7 +47,7 @@ def run_scenario(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Run one financial scenario against the current financial state."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     result = run_financial_scenario(_build_request(request), snapshot)
     return result.to_dict()
 
@@ -70,7 +70,7 @@ def optimize_scenarios(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Run the scenario optimizer against the current financial state."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     result = optimize_financial_snapshot(
         snapshot,
         limit=request.limit,
@@ -87,7 +87,7 @@ def run_combined_plan(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Run a combined, multi-step scenario plan."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     result = run_combined_scenario_plan(
         name=request.name,
         description=request.description,
@@ -113,7 +113,7 @@ def save_workspace_result(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Run a scenario and save the result to the workspace."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(current_user.id)
     result = run_financial_scenario(_build_request(request), snapshot)
     save_result_to_workspace(current_user.id, result)
     return result.to_dict()

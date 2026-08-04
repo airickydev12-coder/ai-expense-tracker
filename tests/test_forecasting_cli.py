@@ -66,11 +66,18 @@ def test_display_current_forecast(
 
     monkeypatch.setattr(
         cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        cli,
         "select_forecast_horizon",
         lambda: 90,
     )
 
     def fake_build_forecast(
+        user_id: int,
         horizon_days: int,
     ) -> FinancialForecast:
         captured["horizon"] = horizon_days
@@ -105,11 +112,18 @@ def test_display_current_forecast_handles_missing_history(
 ):
     monkeypatch.setattr(
         cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        cli,
         "select_forecast_horizon",
         lambda: 30,
     )
 
     def fake_build_forecast(
+        user_id: int,
         horizon_days: int,
     ) -> FinancialForecast:
         raise ValueError("At least one historical snapshot is required.")

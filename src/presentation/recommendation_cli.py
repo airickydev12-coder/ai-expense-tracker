@@ -11,6 +11,7 @@ from src.financial.recommendations.history_service import (
     get_recommendation_history,
     suppress_recommendation,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.views import (
     display_recommendation_history,
     display_recommendation_management_menu,
@@ -87,12 +88,12 @@ def manage_recommendations() -> None:
 
         recommendation_choice = input("Choose an option: ").strip()
 
-        snapshot = build_current_financial_snapshot()
+        snapshot = build_current_financial_snapshot(get_cli_user_id())
         active_recommendations = snapshot.get(
             "recommendations",
             [],
         )
-        history = get_recommendation_history()
+        history = get_recommendation_history(get_cli_user_id())
 
         if recommendation_choice == "1":
             display_recommendations(active_recommendations)
@@ -109,6 +110,7 @@ def manage_recommendations() -> None:
             note = input("Optional note: ").strip()
 
             record = activate_recommendation(
+                get_cli_user_id(),
                 recommendation_key,
                 note=note,
             )
@@ -127,6 +129,7 @@ def manage_recommendations() -> None:
             note = input("Optional completion note: ").strip()
 
             record = complete_recommendation(
+                get_cli_user_id(),
                 recommendation_key,
                 note=note,
             )
@@ -145,6 +148,7 @@ def manage_recommendations() -> None:
             note = input("Optional dismissal note: ").strip()
 
             record = dismiss_recommendation(
+                get_cli_user_id(),
                 recommendation_key,
                 note=note,
             )
@@ -163,6 +167,7 @@ def manage_recommendations() -> None:
             note = input("Optional suppression note: ").strip()
 
             record = suppress_recommendation(
+                get_cli_user_id(),
                 recommendation_key,
                 note=note,
             )

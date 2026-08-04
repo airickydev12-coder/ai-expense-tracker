@@ -170,8 +170,14 @@ def test_run_combined_plan_builder(
 
     monkeypatch.setattr(
         combined_plan_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        combined_plan_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     monkeypatch.setattr(
@@ -238,8 +244,14 @@ def test_builder_requires_at_least_one_step(
 
     monkeypatch.setattr(
         combined_plan_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        combined_plan_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     monkeypatch.setattr(

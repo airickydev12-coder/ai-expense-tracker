@@ -81,6 +81,7 @@ def test_build_financial_snapshot():
     ]
 
     snapshot = build_financial_snapshot(
+        user_id=1,
         income_entries=income_entries,
         expenses=expenses,
         budgets=budgets,

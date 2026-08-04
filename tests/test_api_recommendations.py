@@ -16,6 +16,20 @@ from src.financial.recommendations.status import RecommendationStatus
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating client for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+
+
 def make_test_recommendation() -> Recommendation:
     """Create a recommendation used by API tests."""
 
@@ -42,7 +56,7 @@ def test_get_recommendations(
     monkeypatch.setattr(
         recommendations_router,
         "build_recommendations",
-        lambda priority=None, category=None, limit=None: (test_recommendations),
+        lambda user_id, priority=None, category=None, limit=None: (test_recommendations),
     )
 
     response = client.get("/recommendations")
@@ -75,6 +89,7 @@ def test_get_recommendations_passes_filters_and_limit(
     captured_arguments: dict[str, object] = {}
 
     def fake_build_recommendations(
+        user_id: int,
         priority: str | None = None,
         category: str | None = None,
         limit: int | None = None,
@@ -113,6 +128,7 @@ def test_get_recommendations_accepts_cash_flow_category(
     captured_category: str | None = None
 
     def fake_build_recommendations(
+        user_id: int,
         priority: str | None = None,
         category: str | None = None,
         limit: int | None = None,
@@ -169,7 +185,7 @@ def test_get_recommendation_by_key(
     monkeypatch.setattr(
         recommendations_router,
         "get_recommendation_by_key",
-        lambda key: recommendation,
+        lambda user_id, key: recommendation,
     )
 
     response = client.get("/recommendations/budget:reduce_dining_expenses")
@@ -198,7 +214,7 @@ def test_get_recommendation_by_key_not_found(
     monkeypatch.setattr(
         recommendations_router,
         "get_recommendation_by_key",
-        lambda key: None,
+        lambda user_id, key: None,
     )
 
     response = client.get("/recommendations/unknown")
@@ -296,7 +312,7 @@ def test_recommendation_metadata_routes_are_not_treated_as_keys(
 ) -> None:
     """Keep static metadata routes ahead of the dynamic key route."""
 
-    def fail_if_called(key: str) -> Recommendation | None:
+    def fail_if_called(user_id: int, key: str) -> Recommendation | None:
         raise AssertionError(f"Dynamic recommendation route received key: {key}")
 
     monkeypatch.setattr(
@@ -333,7 +349,7 @@ def test_dismiss_recommendation(
 
     captured_arguments: dict[str, object] = {}
 
-    def fake_dismiss(key: str, note: str = "") -> RecommendationRecord:
+    def fake_dismiss(user_id: int, key: str, note: str = "") -> RecommendationRecord:
         captured_arguments["key"] = key
         captured_arguments["note"] = note
         return make_test_record()
@@ -370,7 +386,7 @@ def test_dismiss_recommendation_defaults_to_empty_note(
 
     captured_note: str | None = None
 
-    def fake_dismiss(key: str, note: str = "") -> RecommendationRecord:
+    def fake_dismiss(user_id: int, key: str, note: str = "") -> RecommendationRecord:
         nonlocal captured_note
         captured_note = note
         return make_test_record()
@@ -395,7 +411,7 @@ def test_dismiss_recommendation_returns_404_when_not_registered(
     monkeypatch.setattr(
         recommendations_router,
         "dismiss_recommendation",
-        lambda key, note="": None,
+        lambda user_id, key, note="": None,
     )
 
     response = client.post("/recommendations/unknown/dismiss")
@@ -418,7 +434,7 @@ def test_complete_recommendation(
     monkeypatch.setattr(
         recommendations_router,
         "complete_recommendation",
-        lambda key, note="": record,
+        lambda user_id, key, note="": record,
     )
 
     response = client.post("/recommendations/budget:reduce_dining_expenses/complete")
@@ -435,7 +451,7 @@ def test_complete_recommendation_returns_404_when_not_registered(
     monkeypatch.setattr(
         recommendations_router,
         "complete_recommendation",
-        lambda key, note="": None,
+        lambda user_id, key, note="": None,
     )
 
     response = client.post("/recommendations/unknown/complete")
@@ -458,7 +474,7 @@ def test_suppress_recommendation(
     monkeypatch.setattr(
         recommendations_router,
         "suppress_recommendation",
-        lambda key, note="": record,
+        lambda user_id, key, note="": record,
     )
 
     response = client.post("/recommendations/budget:reduce_dining_expenses/suppress")
@@ -475,7 +491,7 @@ def test_suppress_recommendation_returns_404_when_not_registered(
     monkeypatch.setattr(
         recommendations_router,
         "suppress_recommendation",
-        lambda key, note="": None,
+        lambda user_id, key, note="": None,
     )
 
     response = client.post("/recommendations/unknown/suppress")

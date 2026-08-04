@@ -14,6 +14,8 @@ from src.financial.recommendations.category import RecommendationCategory
 from src.financial.recommendations.models import Recommendation
 from src.financial.recommendations.priority import RecommendationPriority
 
+USER_ID = 1
+
 
 def build_current_snapshot() -> dict:
     return {
@@ -68,9 +70,9 @@ def test_generate_monthly_review_returns_no_history_status_with_empty_history(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """No recorded snapshots should produce a no_history status without an LLM call."""
-    monkeypatch.setattr(monthly_review, "get_history", lambda: [])
+    monkeypatch.setattr(monthly_review, "get_history", lambda user_id: [])
 
-    result = monthly_review.generate_monthly_review(build_current_snapshot())
+    result = monthly_review.generate_monthly_review(USER_ID, build_current_snapshot())
 
     assert result["status"] == "no_history"
 
@@ -82,9 +84,10 @@ def test_generate_monthly_review_returns_insufficient_status_with_one_recent_sna
     now = datetime.now(timezone.utc)
     history = [build_snapshot_record(5, now=now)]
 
-    monkeypatch.setattr(monthly_review, "get_history", lambda: history)
+    monkeypatch.setattr(monthly_review, "get_history", lambda user_id: history)
 
     result = monthly_review.generate_monthly_review(
+        USER_ID,
         build_current_snapshot(),
         now=now,
     )
@@ -104,9 +107,10 @@ def test_generate_monthly_review_excludes_stale_snapshots_outside_window(
         build_snapshot_record(5, now=now),
     ]
 
-    monkeypatch.setattr(monthly_review, "get_history", lambda: history)
+    monkeypatch.setattr(monthly_review, "get_history", lambda user_id: history)
 
     result = monthly_review.generate_monthly_review(
+        USER_ID,
         build_current_snapshot(),
         now=now,
     )
@@ -124,11 +128,11 @@ def test_generate_monthly_review_ok_status_calls_llm_with_two_recent_snapshots(
         build_snapshot_record(1, now=now),
     ]
 
-    monkeypatch.setattr(monthly_review, "get_history", lambda: history)
+    monkeypatch.setattr(monthly_review, "get_history", lambda user_id: history)
     monkeypatch.setattr(
         monthly_review,
         "build_recommendations",
-        lambda limit: [build_recommendation()],
+        lambda user_id, limit: [build_recommendation()],
     )
     monkeypatch.setattr(
         monthly_review,
@@ -146,6 +150,7 @@ def test_generate_monthly_review_ok_status_calls_llm_with_two_recent_snapshots(
     )
 
     result = monthly_review.generate_monthly_review(
+        USER_ID,
         build_current_snapshot(),
         now=now,
     )
@@ -172,9 +177,9 @@ def test_generate_monthly_review_surfaces_real_category_trends(
         ),
     ]
 
-    monkeypatch.setattr(monthly_review, "get_history", lambda: history)
+    monkeypatch.setattr(monthly_review, "get_history", lambda user_id: history)
     monkeypatch.setattr(
-        monthly_review, "build_recommendations", lambda limit: [build_recommendation()]
+        monthly_review, "build_recommendations", lambda user_id, limit: [build_recommendation()]
     )
     monkeypatch.setattr(
         monthly_review,
@@ -192,6 +197,7 @@ def test_generate_monthly_review_surfaces_real_category_trends(
     )
 
     result = monthly_review.generate_monthly_review(
+        USER_ID,
         build_current_snapshot(),
         now=now,
     )

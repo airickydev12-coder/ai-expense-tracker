@@ -109,8 +109,14 @@ def test_run_optimizer(
 
     monkeypatch.setattr(
         optimizer_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        optimizer_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     def fake_optimize(
@@ -171,8 +177,14 @@ def test_run_optimizer_uses_defaults(
 
     monkeypatch.setattr(
         optimizer_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        optimizer_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     def fake_optimize(
@@ -223,8 +235,14 @@ def test_run_optimizer_handles_error(
 
     monkeypatch.setattr(
         optimizer_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        optimizer_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     def fake_optimize(
@@ -263,8 +281,14 @@ def test_save_best_optimizer_result(
 
     monkeypatch.setattr(
         optimizer_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        optimizer_cli,
         "save_result_to_workspace",
-        lambda result: captured.update(
+        lambda user_id, result: captured.update(
             {
                 "saved_result": result,
             }

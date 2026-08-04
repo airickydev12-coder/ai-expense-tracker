@@ -8,21 +8,16 @@ from src.financial.expenses.analytics import (
     get_total,
 )
 from src.financial.expenses.models import Expense
-from src.financial.expenses.service import expenses
 from src.financial.shared.categories import ExpenseCategory
 
 
 def test_get_total():
-    expenses.clear()
-
-    expenses.append(
+    expenses = [
         Expense(
             id=1, name="Coffee", category=ExpenseCategory.FOOD, amount=Decimal("5.25")
-        )
-    )
-    expenses.append(
-        Expense(id=2, name="Tea", category=ExpenseCategory.FOOD, amount=Decimal("4.00"))
-    )
+        ),
+        Expense(id=2, name="Tea", category=ExpenseCategory.FOOD, amount=Decimal("4.00")),
+    ]
 
     total = get_total(expenses)
 
@@ -30,25 +25,20 @@ def test_get_total():
 
 
 def test_get_average():
-    expenses.clear()
-
-    expenses.append(
+    expenses = [
         Expense(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
             amount=Decimal("5.00"),
-        )
-    )
-
-    expenses.append(
+        ),
         Expense(
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
             amount=Decimal("15.00"),
-        )
-    )
+        ),
+    ]
 
     average = get_average(expenses)
 
@@ -56,25 +46,20 @@ def test_get_average():
 
 
 def test_get_highest_expense():
-    expenses.clear()
-
-    expenses.append(
+    expenses = [
         Expense(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
             amount=Decimal("5.00"),
-        )
-    )
-
-    expenses.append(
+        ),
         Expense(
             id=2,
             name="Shoes",
             category=ExpenseCategory.CLOTHING,
             amount=Decimal("120.00"),
-        )
-    )
+        ),
+    ]
 
     highest = get_highest_expense(expenses)
 
@@ -84,25 +69,20 @@ def test_get_highest_expense():
 
 
 def test_get_lowest_expense():
-    expenses.clear()
-
-    expenses.append(
+    expenses = [
         Expense(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
             amount=Decimal("5.00"),
-        )
-    )
-
-    expenses.append(
+        ),
         Expense(
             id=2,
             name="Shoes",
             category=ExpenseCategory.CLOTHING,
             amount=Decimal("120.00"),
-        )
-    )
+        ),
+    ]
 
     lowest = get_lowest_expense(expenses)
 
@@ -112,34 +92,26 @@ def test_get_lowest_expense():
 
 
 def test_get_category_totals():
-    expenses.clear()
-
-    expenses.append(
+    expenses = [
         Expense(
             id=1,
             name="Coffee",
             category=ExpenseCategory.FOOD,
             amount=Decimal("5.00"),
-        )
-    )
-
-    expenses.append(
+        ),
         Expense(
             id=2,
             name="Lunch",
             category=ExpenseCategory.FOOD,
             amount=Decimal("15.00"),
-        )
-    )
-
-    expenses.append(
+        ),
         Expense(
             id=3,
             name="Gas",
             category=ExpenseCategory.TRANSPORTATION,
             amount=Decimal("40.00"),
-        )
-    )
+        ),
+    ]
 
     totals = get_category_totals(expenses)
 

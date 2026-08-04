@@ -82,8 +82,14 @@ def test_build_current_coaching_session(
 
     monkeypatch.setattr(
         coach_cli,
+        "get_cli_user_id",
+        lambda: 1,
+    )
+
+    monkeypatch.setattr(
+        coach_cli,
         "build_current_financial_snapshot",
-        build_snapshot,
+        lambda user_id: build_snapshot(),
     )
 
     def fake_optimize(

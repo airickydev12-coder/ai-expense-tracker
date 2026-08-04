@@ -1,6 +1,7 @@
 from src.financial.forecasting.service import (
     build_current_financial_forecast,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.views import (
     display_financial_forecast,
 )
@@ -42,7 +43,7 @@ def display_current_forecast() -> None:
         return
 
     try:
-        forecast = build_current_financial_forecast(horizon_days=horizon_days)
+        forecast = build_current_financial_forecast(get_cli_user_id(), horizon_days=horizon_days)
     except ValueError as error:
         print(f"\nUnable to build forecast: {error}")
         return

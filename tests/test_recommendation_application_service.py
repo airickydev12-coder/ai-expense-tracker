@@ -53,7 +53,7 @@ def test_build_recommendations(monkeypatch):
     monkeypatch.setattr(
         recommendation_application_service,
         "build_financial_snapshot",
-        lambda: snapshot,
+        lambda user_id: snapshot,
     )
 
     monkeypatch.setattr(
@@ -65,10 +65,10 @@ def test_build_recommendations(monkeypatch):
     monkeypatch.setattr(
         recommendation_application_service,
         "generate_recommendations",
-        lambda snapshot, limit=None: [recommendation],
+        lambda user_id, snapshot, limit=None: [recommendation],
     )
 
-    results = recommendation_application_service.build_recommendations()
+    results = recommendation_application_service.build_recommendations(1)
 
     assert len(results) == 1
     assert results[0].title == "Improve Health"

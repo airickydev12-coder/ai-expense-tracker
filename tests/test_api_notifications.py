@@ -44,6 +44,7 @@ def test_get_notification_log_returns_empty_list() -> None:
 
 
 def test_get_notification_log_returns_entries_most_recent_first() -> None:
+    assert current_user_id is not None
     notification_log[current_user_id] = [
         NotificationLogEntry(
             id=1,

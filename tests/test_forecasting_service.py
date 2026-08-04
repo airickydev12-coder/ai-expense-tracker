@@ -15,6 +15,8 @@ from src.financial.history.service import (
     record_snapshot,
 )
 
+USER_ID = 1
+
 
 def build_history() -> list[FinancialSnapshotRecord]:
     """Create historical snapshots for forecasting tests."""
@@ -122,7 +124,7 @@ def test_build_financial_forecast_rejects_empty_history():
 
 
 def test_build_standard_forecasts():
-    forecasts = build_standard_forecasts(build_history())
+    forecasts = build_standard_forecasts(USER_ID, build_history())
 
     assert set(forecasts) == {
         30,
@@ -140,11 +142,12 @@ def test_build_current_financial_forecast(
 ):
     file_path = tmp_path / "financial_history.json"
 
-    load_history(file_path)
+    load_history(USER_ID, file_path)
 
     earlier_timestamp = datetime.now(timezone.utc) - timedelta(days=30)
 
     record_snapshot(
+        USER_ID,
         {
             **build_snapshot(),
             "net_worth": -6000,
@@ -160,12 +163,13 @@ def test_build_current_financial_forecast(
     )
 
     record_snapshot(
+        USER_ID,
         build_snapshot(),
         file_path=file_path,
         timestamp=datetime.now(timezone.utc),
     )
 
-    forecast = build_current_financial_forecast(horizon_days=30)
+    forecast = build_current_financial_forecast(USER_ID, horizon_days=30)
 
     assert forecast.history_points == 2
     assert forecast.horizon_days == 30

@@ -1,3 +1,6 @@
+import pytest
+
+from src.core.db import clear_test_database, initialize_database, set_test_database
 from src.financial.scenarios.models import (
     ScenarioResult,
     ScenarioType,
@@ -5,11 +8,11 @@ from src.financial.scenarios.models import (
 from src.financial.scenarios.ranking import (
     ScenarioRankingMetric,
 )
-from src.financial.scenarios.workspace import (
-    clear_scenario_workspace,
-    save_scenario_result,
-)
+from src.financial.scenarios import workspace_service
+from src.financial.scenarios.workspace_service import save_result_to_workspace
 from src.presentation import scenario_workspace_cli
+
+TEST_USER_ID = 1
 
 
 def build_result(
@@ -43,14 +46,21 @@ def build_result(
     )
 
 
-def setup_function():
-    """Clear workspace before each test."""
-    clear_scenario_workspace()
+@pytest.fixture(autouse=True)
+def _isolated_database(monkeypatch, tmp_path):
+    """Redirect the default DB_PATH to a throwaway database for this file."""
+    test_db_path = tmp_path / "test_app.db"
+    initialize_database(test_db_path)
+    set_test_database(test_db_path)
 
+    workspace_service._workspaces.clear()
+    workspace_service._loaded_workspace_files.clear()
 
-def teardown_function():
-    """Clear workspace after each test."""
-    clear_scenario_workspace()
+    monkeypatch.setattr(scenario_workspace_cli, "get_cli_user_id", lambda: TEST_USER_ID)
+
+    yield
+
+    clear_test_database()
 
 
 def test_select_ranking_metric(
@@ -69,11 +79,12 @@ def test_select_ranking_metric(
 def test_display_saved_scenarios(
     capsys,
 ):
-    save_scenario_result(
+    save_result_to_workspace(
+        TEST_USER_ID,
         build_result(
             "Income Increase",
             6500,
-        )
+        ),
     )
 
     scenario_workspace_cli.display_saved_scenarios()
@@ -88,17 +99,19 @@ def test_display_ranked_scenarios(
     monkeypatch,
     capsys,
 ):
-    save_scenario_result(
+    save_result_to_workspace(
+        TEST_USER_ID,
         build_result(
             "Smaller Increase",
             3000,
-        )
+        ),
     )
-    save_scenario_result(
+    save_result_to_workspace(
+        TEST_USER_ID,
         build_result(
             "Larger Increase",
             7000,
-        )
+        ),
     )
 
     monkeypatch.setattr(
@@ -118,11 +131,12 @@ def test_display_ranked_scenarios(
 def test_remove_saved_scenario(
     monkeypatch,
 ):
-    save_scenario_result(
+    save_result_to_workspace(
+        TEST_USER_ID,
         build_result(
             "Income Increase",
             6500,
-        )
+        ),
     )
 
     monkeypatch.setattr(
@@ -132,17 +146,18 @@ def test_remove_saved_scenario(
 
     scenario_workspace_cli.remove_saved_scenario()
 
-    assert scenario_workspace_cli.get_scenario_workspace().is_empty()
+    assert scenario_workspace_cli.get_scenario_workspace(TEST_USER_ID).is_empty()
 
 
 def test_clear_workspace_flow(
     monkeypatch,
 ):
-    save_scenario_result(
+    save_result_to_workspace(
+        TEST_USER_ID,
         build_result(
             "Income Increase",
             6500,
-        )
+        ),
     )
 
     monkeypatch.setattr(
@@ -152,7 +167,7 @@ def test_clear_workspace_flow(
 
     scenario_workspace_cli.clear_workspace_flow()
 
-    assert scenario_workspace_cli.get_scenario_workspace().is_empty()
+    assert scenario_workspace_cli.get_scenario_workspace(TEST_USER_ID).is_empty()
 
 
 def test_manage_workspace_returns_on_seven(

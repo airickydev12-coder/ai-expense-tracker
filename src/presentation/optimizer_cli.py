@@ -11,6 +11,7 @@ from src.financial.scenarios.ranking import (
 from src.financial.scenarios.workspace_service import (
     save_result_to_workspace,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.views import (
     display_optimizer_menu,
     display_optimizer_result,
@@ -63,7 +64,7 @@ def _run_optimizer(
     if result_limit is None:
         return None
 
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(get_cli_user_id())
 
     try:
         result = optimize_financial_snapshot(
@@ -100,7 +101,7 @@ def save_best_optimizer_result(
         print("The optimizer result was not saved.")
         return
 
-    save_result_to_workspace(best.result)
+    save_result_to_workspace(get_cli_user_id(), best.result)
 
     print(f"Saved optimizer recommendation: " f"{best.scenario_name}")
 

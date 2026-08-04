@@ -14,6 +14,7 @@ from src.financial.scenarios.ranking import (
 from src.presentation.coach_views import (
     display_complete_coaching_session,
 )
+from src.presentation.cli_context import get_cli_user_id
 
 
 def build_current_coaching_session(
@@ -24,7 +25,7 @@ def build_current_coaching_session(
     horizon_months: int = 12,
 ) -> CoachingSession:
     """Build a coaching session from current financial state."""
-    snapshot = build_current_financial_snapshot()
+    snapshot = build_current_financial_snapshot(get_cli_user_id())
 
     optimization_result = optimize_financial_snapshot(
         snapshot,

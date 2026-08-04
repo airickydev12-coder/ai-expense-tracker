@@ -10,16 +10,31 @@ from src.financial.debt.service import debts
 from src.financial.expenses.service import expenses
 from src.financial.scenarios.factory import register_default_scenario_handlers
 from src.financial.scenarios.service import reset_scenario_handlers
-from src.financial.scenarios.workspace import scenario_workspace
+from src.financial.scenarios.workspace_service import get_scenario_workspace
 
 client = TestClient(app)
+USER_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def _authenticate() -> None:
+    """Register and log in a throwaway user, authenticating `client` for every test."""
+    client.post(
+        "/auth/register",
+        json={"username": "testuser", "email": "testuser@example.com", "password": "correct-password"},
+    )
+    token = client.post(
+        "/auth/login",
+        json={"username": "testuser", "password": "correct-password"},
+    ).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
 
 
 def setup_function() -> None:
     """Reset scenario state and unrelated domain state before each test."""
     reset_scenario_handlers()
     register_default_scenario_handlers()
-    scenario_workspace.clear()
+    get_scenario_workspace(USER_ID).clear()
     expenses.clear()
     debts.clear()
 

@@ -8,6 +8,7 @@ from src.financial.scenarios.models import (
     ScenarioRequest,
     ScenarioType,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.views import (
     display_combined_plan_builder_menu,
     display_combined_plan_result,
@@ -322,7 +323,7 @@ def run_combined_plan_builder() -> None:
 
     description = input("Plan description " "(optional): ").strip()
 
-    baseline_snapshot = build_current_financial_snapshot()
+    baseline_snapshot = build_current_financial_snapshot(get_cli_user_id())
 
     requests: list[ScenarioRequest] = []
 

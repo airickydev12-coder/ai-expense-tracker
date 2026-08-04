@@ -17,6 +17,7 @@ from src.presentation.combined_plan_cli import (
 from src.presentation.optimizer_cli import (
     manage_optimizer,
 )
+from src.presentation.cli_context import get_cli_user_id
 from src.presentation.scenario_workspace_cli import (
     manage_scenario_workspace,
 )
@@ -322,7 +323,7 @@ def _execute_scenario(
         print(f"\nUnable to run scenario: {error}")
         return
 
-    save_result_to_workspace(result)
+    save_result_to_workspace(get_cli_user_id(), result)
     display_scenario_result(result)
 
     print("\nScenario saved to the current " "planning workspace.")
@@ -350,7 +351,7 @@ def manage_scenarios() -> None:
             manage_scenario_workspace()
             continue
 
-        snapshot = build_current_financial_snapshot()
+        snapshot = build_current_financial_snapshot(get_cli_user_id())
 
         if choice == "1":
             run_expense_reduction_flow(snapshot)

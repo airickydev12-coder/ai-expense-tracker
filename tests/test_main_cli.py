@@ -15,8 +15,8 @@ def configure_cli_test(
 
     monkeypatch.setattr(
         cli,
-        "load_financial_state",
-        lambda: None,
+        "get_cli_user_id",
+        lambda: 1,
     )
 
     monkeypatch.setattr(
@@ -212,7 +212,7 @@ def test_run_cli_routes_financial_trends(
     monkeypatch.setattr(
         cli,
         "get_history",
-        lambda: history,
+        lambda user_id: history,
     )
 
     def fake_display_financial_trends(
@@ -278,7 +278,7 @@ def test_run_cli_records_financial_snapshot(
     monkeypatch.setattr(
         cli,
         "record_current_financial_snapshot",
-        lambda: (
+        lambda user_id: (
             snapshot,
             "record",
         ),

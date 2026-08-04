@@ -52,7 +52,7 @@ def generated_recommendations(
     monkeypatch.setattr(
         recommendation_service,
         "build_financial_snapshot",
-        lambda: {"snapshot": "financial"},
+        lambda user_id: {"snapshot": "financial"},
     )
 
     monkeypatch.setattr(
@@ -64,7 +64,7 @@ def generated_recommendations(
     monkeypatch.setattr(
         recommendation_service,
         "generate_recommendations",
-        lambda snapshot: recommendations.copy(),
+        lambda user_id, snapshot: recommendations.copy(),
     )
 
     return recommendations
@@ -76,6 +76,7 @@ def test_build_recommendations_filters_by_priority(
     """Return recommendations matching the requested priority."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         priority="HIGH",
     )
 
@@ -92,6 +93,7 @@ def test_build_recommendations_filters_by_category(
     """Return recommendations matching the requested category."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         category="Budget",
     )
 
@@ -108,6 +110,7 @@ def test_build_recommendations_combines_filters(
     """Require both filters to match when both are supplied."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         priority="HIGH",
         category="Budget",
     )
@@ -122,6 +125,7 @@ def test_build_recommendations_applies_limit_after_filtering(
     """Apply the result limit after filtering recommendations."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         priority="HIGH",
         limit=1,
     )
@@ -137,6 +141,7 @@ def test_build_recommendations_filters_case_insensitively(
     """Normalize filter values used outside the API layer."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         priority=" high ",
         category=" budget ",
     )
@@ -151,6 +156,7 @@ def test_build_recommendations_returns_empty_for_invalid_limit(
     """Return no recommendations for a non-positive service limit."""
 
     recommendations = recommendation_service.build_recommendations(
+        1,
         limit=0,
     )
 

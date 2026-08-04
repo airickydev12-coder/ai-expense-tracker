@@ -11,6 +11,7 @@ from src.presentation import goal_planning_cli
 
 def test_run_goal_planning_menu_displays_dashboard(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     goal = Goal(
         id=1,
@@ -45,10 +46,12 @@ def test_run_goal_planning_menu_displays_dashboard(
     )
 
     goal_planning_cli.run_goal_planning_menu(
+        1,
         [goal],
         input_fn=lambda prompt: "7",
         output_fn=messages.append,
         today=date(2027, 1, 1),
+        planning_file_path=tmp_path / "planning.db",
     )
 
     assert captured["goals"] == [goal]

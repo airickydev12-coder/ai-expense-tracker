@@ -28,10 +28,12 @@ def test_save_and_load_expenses(db_path):
 
     save_expenses_to_file(
         original_expenses,
+        1,
         db_path,
     )
 
     loaded_expenses = load_expenses_from_file(
+        1,
         db_path,
     )
 
@@ -43,7 +45,7 @@ def test_load_expenses_returns_empty_list_when_db_missing(
 ):
     db_path = tmp_path / "missing_expenses.db"
 
-    assert load_expenses_from_file(db_path) == []
+    assert load_expenses_from_file(1, db_path) == []
 
 
 def test_save_expenses_creates_parent_directory(
@@ -62,6 +64,7 @@ def test_save_expenses_creates_parent_directory(
 
     save_expenses_to_file(
         expenses,
+        1,
         db_path,
     )
 
@@ -81,4 +84,4 @@ def test_load_expenses_rejects_invalid_database_file(
         ValueError,
         match="Failed to load expenses",
     ):
-        load_expenses_from_file(db_path)
+        load_expenses_from_file(1, db_path)
