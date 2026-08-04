@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { updateProfile } from '../api/auth'
+import { changePassword, updateProfile } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 
 export function SettingsPage() {
@@ -10,6 +10,36 @@ export function SettingsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordFormError, setPasswordFormError] = useState<string | null>(null)
+  const [passwordSuccessMessage, setPasswordSuccessMessage] = useState<string | null>(null)
+
+  function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+
+    if (newPassword.length < 8 || newPassword.length > 128) {
+      setPasswordFormError('New password must be between 8 and 128 characters.')
+      setPasswordSuccessMessage(null)
+      return
+    }
+
+    setPasswordFormError(null)
+    setPasswordSuccessMessage(null)
+    setChangingPassword(true)
+    changePassword({ current_password: currentPassword, new_password: newPassword })
+      .then(() => {
+        setPasswordSuccessMessage('Password changed successfully.')
+        setCurrentPassword('')
+        setNewPassword('')
+      })
+      .catch((err: unknown) => {
+        setPasswordFormError(err instanceof Error ? err.message : 'Failed to change password')
+      })
+      .finally(() => setChangingPassword(false))
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -84,6 +114,54 @@ export function SettingsPage() {
             className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {submitting ? 'Saving...' : 'Save Changes'}
+          </button>
+        </form>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium text-gray-900">Change Password</h2>
+
+        <form
+          onSubmit={handleChangePassword}
+          className="space-y-3 rounded border border-gray-200 p-4"
+        >
+          {passwordFormError && <p className="text-sm text-red-600">{passwordFormError}</p>}
+          {passwordSuccessMessage && (
+            <p className="text-sm text-green-600">{passwordSuccessMessage}</p>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="settings-current-password" className="text-xs text-gray-500">
+              Current Password
+            </label>
+            <input
+              id="settings-current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="rounded border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="settings-new-password" className="text-xs text-gray-500">
+              New Password
+            </label>
+            <input
+              id="settings-new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="rounded border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={changingPassword}
+            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {changingPassword ? 'Changing...' : 'Change Password'}
           </button>
         </form>
       </section>

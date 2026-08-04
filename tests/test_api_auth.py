@@ -154,6 +154,63 @@ def test_update_profile_without_authorization_header_returns_401() -> None:
     assert response.status_code == 401
 
 
+def test_change_password_success() -> None:
+    _register()
+    token = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.post(
+        "/auth/change-password",
+        json={"current_password": "correct-password", "new_password": "new-password"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 204
+
+    new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
+    assert new_login.status_code == 200
+
+
+def test_change_password_rejects_wrong_current_password() -> None:
+    _register()
+    token = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.post(
+        "/auth/change-password",
+        json={"current_password": "wrong-password", "new_password": "new-password"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_change_password_rejects_weak_new_password() -> None:
+    _register()
+    token = client.post(
+        "/auth/login", json={"username": "alice", "password": "correct-password"}
+    ).json()["access_token"]
+
+    response = client.post(
+        "/auth/change-password",
+        json={"current_password": "correct-password", "new_password": "short"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_change_password_without_authorization_header_returns_401() -> None:
+    response = client.post(
+        "/auth/change-password",
+        json={"current_password": "correct-password", "new_password": "new-password"},
+    )
+
+    assert response.status_code == 401
+
+
 def test_login_locks_out_after_max_failed_attempts() -> None:
     from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
 

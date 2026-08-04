@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost } from './client'
 import type {
+  ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
   TokenResponse,
@@ -21,4 +22,8 @@ export function me(): Promise<UserResponse> {
 
 export function updateProfile(request: UpdateProfileRequest): Promise<UserResponse> {
   return apiPatch<UserResponse>('/auth/me', request)
+}
+
+export function changePassword(request: ChangePasswordRequest): Promise<void> {
+  return apiPost<void>('/auth/change-password', request)
 }

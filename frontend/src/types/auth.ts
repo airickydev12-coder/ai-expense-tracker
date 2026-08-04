@@ -27,3 +27,8 @@ export interface UpdateProfileRequest {
   username?: string
   email?: string
 }
+
+export interface ChangePasswordRequest {
+  current_password: string
+  new_password: string
+}

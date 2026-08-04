@@ -20,6 +20,7 @@ from src.financial.users.repository import (
     get_user_by_id,
     get_user_by_username,
     record_login_attempt,
+    update_password_hash,
     update_user,
 )
 
@@ -113,6 +114,27 @@ def update_profile(
     logger.info("Updated profile for user %d (%s)", user.id, user.username)
 
     return user
+
+
+def change_password(
+    user_id: int,
+    current_password: str,
+    new_password: str,
+    db_path: Path = DB_PATH,
+) -> None:
+    """Verify the current password and replace it with a new one."""
+    user = get_user(user_id, db_path)
+
+    if not verify_password(current_password, user.password_hash):
+        raise AuthenticationError("Current password is incorrect.")
+
+    if len(new_password) < MIN_PASSWORD_LENGTH:
+        raise ValidationError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters long.")
+
+    new_password_hash = hash_password(new_password)
+    update_password_hash(user_id, new_password_hash, db_path)
+
+    logger.info("Changed password for user %d (%s)", user.id, user.username)
 
 
 def get_user(user_id: int, db_path: Path = DB_PATH) -> User:

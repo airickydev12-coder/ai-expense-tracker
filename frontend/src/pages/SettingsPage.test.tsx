@@ -86,4 +86,50 @@ describe('SettingsPage', () => {
       await screen.findByText("Username 'bob' or email 'alice@example.com' is already registered."),
     ).toBeInTheDocument()
   })
+
+  it('submits a password change', async () => {
+    mockAuth()
+    vi.mocked(authApi.changePassword).mockResolvedValue(undefined)
+
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current Password'), {
+      target: { value: 'correct-password' },
+    })
+    fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'new-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    expect(await screen.findByText('Password changed successfully.')).toBeInTheDocument()
+    expect(authApi.changePassword).toHaveBeenCalledWith({
+      current_password: 'correct-password',
+      new_password: 'new-password',
+    })
+  })
+
+  it('rejects a new password that is too short', () => {
+    mockAuth()
+
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current Password'), {
+      target: { value: 'correct-password' },
+    })
+    fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'short' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    expect(screen.getByText('New password must be between 8 and 128 characters.')).toBeInTheDocument()
+  })
+
+  it('shows the API error message when the current password is wrong', async () => {
+    mockAuth()
+    vi.mocked(authApi.changePassword).mockRejectedValue(new Error('Current password is incorrect.'))
+
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current Password'), { target: { value: 'wrong' } })
+    fireEvent.change(screen.getByLabelText('New Password'), { target: { value: 'new-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    expect(await screen.findByText('Current password is incorrect.')).toBeInTheDocument()
+  })
 })

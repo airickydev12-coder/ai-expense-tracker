@@ -93,6 +93,22 @@ def update_user(
     return updated_user
 
 
+def update_password_hash(user_id: int, password_hash: str, db_path: Path = DB_PATH) -> None:
+    """Overwrite a user's stored password hash."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+                (password_hash, now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to update password for user {user_id} in {db_path}") from error
+
+    logger.debug("Updated password hash for user %d in %s", user_id, db_path)
+
+
 def get_user_by_username(username: str, db_path: Path = DB_PATH) -> User | None:
     """Look up a user by username, returning None if not found."""
     try:

@@ -27,6 +27,13 @@ class UpdateProfileRequest(BaseModel):
     email: EmailStr | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    """Request body for changing the current user's password."""
+
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class TokenResponse(BaseModel):
     """Response body containing an access token."""
 

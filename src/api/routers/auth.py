@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api.dependencies import get_current_user
 from src.api.schemas.auth import (
+    ChangePasswordRequest,
     LoginRequest,
     RegisterRequest,
     TokenResponse,
@@ -62,3 +63,16 @@ def update_me(
         email=request.email,
     )
     return UserResponse.model_validate(user)
+
+
+@router.post("/change-password", status_code=204)
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Change the currently authenticated user's password."""
+    user_service.change_password(
+        current_user.id,
+        current_password=request.current_password,
+        new_password=request.new_password,
+    )
