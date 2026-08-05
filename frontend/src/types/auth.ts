@@ -18,6 +18,8 @@ export interface AccessTokenResponse {
 
 export type PlatformRole = 'user' | 'admin' | 'super_admin'
 
+export type AccountType = 'adult' | 'minor'
+
 export interface UserResponse {
   id: number
   username: string
@@ -28,6 +30,7 @@ export interface UserResponse {
   updated_at: string
   email_verified: boolean
   mfa_enabled: boolean
+  account_type: AccountType
 }
 
 export interface UpdateProfileRequest {

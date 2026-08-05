@@ -15,6 +15,7 @@ const alice = {
   updated_at: '2026-01-01T00:00:00Z',
   email_verified: true,
   mfa_enabled: false,
+  account_type: 'adult' as const,
 }
 
 afterEach(() => {

@@ -28,6 +28,7 @@ const admin: UserResponse = {
   updated_at: '2020-01-01T00:00:00Z',
   email_verified: true,
   mfa_enabled: false,
+  account_type: 'adult',
 }
 
 const bob: UserResponse = {
@@ -40,6 +41,7 @@ const bob: UserResponse = {
   updated_at: '2020-01-01T00:00:00Z',
   email_verified: true,
   mfa_enabled: false,
+  account_type: 'adult',
 }
 
 function mockAuth(currentUser: UserResponse) {

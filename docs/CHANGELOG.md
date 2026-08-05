@@ -4,6 +4,36 @@ Dated history of major milestones, grouped by phase. This summarizes; it does no
 `git log` — each entry names representative commits, not every commit in the phase. Newest
 first.
 
+## 2026-08-05 — Family/child domain guardian-side frontend (Sprint 5, continued)
+
+- Scoped via `AskUserQuestion`: guardian-facing pages only this pass (household selector,
+  household management, child-account creation), plus routing MINOR accounts away from the adult
+  dashboard — no real child dashboard yet, that's still blocked on Sprint 6's content model.
+- `frontend/src/pages/HouseholdsPage.tsx`: list/create households, "My Children" summary (`GET
+  /guardian/children`). `HouseholdDetailPage.tsx`: members list, add/remove member, "Add a Child
+  Account" form (username/email/password/age band/consent evidence) wired to `POST
+  /households/{id}/children` via the existing `useStepUpAuth`/`runWithStepUp` wrapper, matching
+  the backend's `require_recent_auth` gate on that endpoint.
+- New `AdultAccountRoute` guard (mirrors the existing `AdminRoute` pattern exactly) wraps the
+  entire adult route tree — dashboard, every financial page, admin, and the new household pages
+  — redirecting any MINOR account to a new minimal `/minor` placeholder instead. Closes the
+  frontend side of the "MINOR accounts aren't blocked yet" gap from the backend pass; the
+  underlying API endpoints themselves still have no server-side `account_type` check (tracked in
+  `ROADMAP.md`'s Known limitations, not solved this pass).
+- `UserResponse`'s frontend type gained `account_type` (`'adult' | 'minor'`), which had been
+  missing since the backend added the field in the prior pass.
+- Live-verified end-to-end in a real headless browser: installed Playwright fresh into a scratch
+  directory (`chromium-cli` wasn't available in this environment) and drove the full flow against
+  a throwaway backend on port 8001 (the default port 8000 had a stale pre-Sprint-5 process
+  squatting it — same recurring issue noted in earlier sprints) — register guardian → create
+  household → create child account (no unexpected step-up prompt, confirming fresh `auth_time`
+  works correctly) → child appears in both the member list and "My Children" → log out → log in
+  as the child → correctly routed to `/minor` → direct URL navigation to `/dashboard` and
+  `/households` as that account both redirect straight back to `/minor`. Throwaway accounts and
+  household fully scrubbed from the real `data/app.db` afterward via scoped deletes.
+- 166/166 frontend tests passing (up from 152), clean `tsc -b`, clean `oxlint` (only the two
+  pre-existing, unrelated fast-refresh warnings on `AuthContext.tsx`/`StepUpAuthContext.tsx`).
+
 ## 2026-08-04 — Family/child domain backend foundation (Sprint 5, first ADR-007 code pass)
 
 - First code pass against [ADR-007](Architecture/ADR-007-family-child-domain.md.txt), scoped

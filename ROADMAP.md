@@ -43,16 +43,16 @@ today on the operator's LAN, not exposed to the public internet.
 
 ## Current sprint
 
-Sprint 5 (Family/child foundation, the first *implementation* sprint against ADR-007) just
-shipped its backend — see Adult/child learning model below. Sprint 3 is now fully complete
-(item 6, breached-password screening, shipped earlier the same day — see Security work, item 6).
+Sprint 5 (Family/child foundation, the first *implementation* sprint against ADR-007) has now
+shipped both backend and its guardian-side frontend — see Adult/child learning model below.
+Sprint 3 is fully complete (item 6, breached-password screening — see Security work, item 6).
 
 ## Next sprint
 
-Unsequenced — candidates are the Sprint 5 frontend (household selector, guardian/child dashboard
-shells — deliberately deferred from the backend-only pass just shipped) and Sprint 6
-(educational-content system, which the child dashboard needs before it has anything to show).
-Ask before picking one; neither has been scoped in detail yet.
+Unsequenced — candidates are the child-facing frontend (a real learning dashboard, not the
+current bare `/minor` placeholder — blocked on Sprint 6's content model to have anything to
+show) and Sprint 6 itself (educational-content system). Ask before picking one; neither has been
+scoped in detail yet.
 
 ## Completed sprints
 
@@ -128,6 +128,28 @@ Ask before picking one; neither has been scoped in detail yet.
   selector UI, guardian/child dashboard shells, the approval queue (needs Sprint 6's
   not-yet-designed `learning_progress` domain). See Adult/child learning model below and Known
   limitations for what's intentionally left open.
+- **Sprint 5, continued — Guardian-side frontend.** Scoped via `AskUserQuestion`: guardian-facing
+  pages only this pass (household selector, household management, child-account creation) plus a
+  minimal `/minor` landing stub so `account_type`-based routing has somewhere to send a MINOR
+  account — not a real child dashboard (that's still blocked on Sprint 6). New `HouseholdsPage`
+  (list/create households, linked-children summary) and `HouseholdDetailPage` (members list,
+  add/remove member, "Add a Child Account" form) under a new `/households` nav item; a new
+  `AdultAccountRoute` guard (mirrors the existing `AdminRoute` pattern) redirects any MINOR
+  account away from the entire adult route tree — dashboard, every financial page, admin, and the
+  new household pages — to `/minor`, closing the frontend side of the "MINOR accounts aren't
+  blocked yet" gap from the backend pass (the backend API endpoints themselves still aren't
+  locked down — that part of the gap remains, tracked in Known limitations). Child-account
+  creation reuses the existing `useStepUpAuth`/`runWithStepUp` wrapper, matching the backend's
+  `require_recent_auth` gate on that endpoint. Live-verified end-to-end in a real headless
+  browser (Playwright, installed fresh into a scratch directory — `chromium-cli` wasn't available
+  in this environment, unlike some earlier sprints): register guardian → create household →
+  create child account (no unexpected step-up prompt, since `auth_time` was fresh from the just-
+  completed login) → child appears under both the household's member list and "My Children" →
+  log out → log in as the child → correctly routed to `/minor`, not the dashboard → direct URL
+  navigation to `/dashboard` or `/households` as that same minor account both redirect straight
+  back to `/minor`. One benign console 401 observed (the existing, pre-existing silent-refresh-
+  attempt-on-mount pattern firing before any session exists — not a regression). Throwaway
+  accounts/household fully scrubbed from the real `data/app.db` afterward via scoped deletes.
 
 ## Completed capabilities
 
@@ -182,12 +204,14 @@ Real gaps in what's shipped, not aspirational — flag these if they become rele
 - **Sprint 3's Security work is fully shipped** — email verification, session/device list,
   security-event notifications, recent-auth "step-up", MFA, and breached-password screening are
   all implemented; no items remain open in that list.
-- **MINOR accounts aren't blocked from ordinary adult financial endpoints yet.** Sprint 5's
-  permission matrix says a child gets a learning dashboard "instead of" the adult financial one,
-  but enforcing that would mean an `account_type` check on every one of the ~14 existing
-  financial routers — out of Sprint 5's declared backend-foundation scope, and naturally belongs
-  alongside the (also deferred) dashboard shells and AI-governance work. Not a real risk yet
-  since no real child accounts exist (dev/test scaffolding only).
+- **MINOR accounts aren't blocked from ordinary adult financial *API endpoints* yet, though the
+  frontend now routes them away.** The Sprint 5 frontend's `AdultAccountRoute` guard redirects any
+  MINOR account to `/minor` before it can reach the dashboard/financial pages in the browser, but
+  the underlying API endpoints themselves have no `account_type` check — a MINOR account's access
+  token could still call them directly (e.g. via `curl`). Enforcing that server-side would mean
+  touching every one of the ~14 existing financial routers — out of scope for both the backend and
+  frontend passes so far. Not a real risk yet since no real child accounts exist (dev/test
+  scaffolding only).
 - **Sprint 5's multi-table writes aren't transactional.** Guardian-initiated child account
   creation (5 writes across 3 tables) and adult transition (2 writes) each commit independently,
   matching this codebase's existing pattern (`register_user()` isn't atomic with its
@@ -316,22 +340,31 @@ Users/Overview show account metadata only, never financial data).
 
 ## Adult/child learning model
 
-**Status: backend implemented (Sprint 5), dev/test scaffolding only — no dashboards/frontend
-yet.** The design pass (Sprint 4) produced [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt);
-Sprint 5 implemented it — household CRUD + selection, guardian-initiated child account creation,
-consent grant/revoke, and self-initiated adult transition are all real, tested API endpoints
-today (`src/financial/households/`, `src/financial/consent/`). Do not begin further coding
-against assumptions from this section — read the ADR itself for the data model/permission
-matrix/age-transition policy, this is a summary, not the source of truth.
+**Status: backend + guardian-side frontend implemented (Sprint 5), dev/test scaffolding only —
+no real child dashboard yet.** The design pass (Sprint 4) produced
+[ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt); Sprint 5 implemented it —
+household CRUD + selection, guardian-initiated child account creation, consent grant/revoke, and
+self-initiated adult transition are all real, tested API endpoints
+(`src/financial/households/`, `src/financial/consent/`), now with a real, tested, live-verified
+guardian-facing UI in front of them (`frontend/src/pages/HouseholdsPage.tsx`,
+`HouseholdDetailPage.tsx`). Do not begin further coding against assumptions from this section —
+read the ADR itself for the data model/permission matrix/age-transition policy, this is a
+summary, not the source of truth.
 
-**Shipped in Sprint 5**: `POST/GET /households`, `GET /households/{id}`,
+**Shipped in Sprint 5 (backend)**: `POST/GET /households`, `GET /households/{id}`,
 `POST /households/{id}/members`, `DELETE /households/{id}/members/{user_id}`,
 `POST /households/{id}/children` (guardian-initiated MINOR account creation), `GET
 /guardian/children`, `POST /consent/grant`, `POST /consent/revoke`,
-`POST /account/request-adult-transition`. **Not** shipped: any frontend, the household
-selector UI, guardian/child dashboard shells, the approval queue, or `account_type`-based
-gating of the existing adult financial endpoints (a MINOR account isn't technically blocked from
-calling them yet — see Known limitations).
+`POST /account/request-adult-transition`.
+
+**Shipped in Sprint 5 (guardian-side frontend)**: a `/households` page (list/create households,
+"My Children" summary), a household detail page (members, add/remove, "Add a Child Account"
+form), and `account_type`-based routing (`AdultAccountRoute`) that sends any MINOR account to a
+minimal `/minor` placeholder instead of the adult dashboard. **Not** shipped: a real child
+dashboard/learning content (blocked on Sprint 6), the approval queue, or `account_type`-based
+gating of the adult financial *API endpoints themselves* (the frontend now keeps a MINOR account
+from reaching those pages in the browser, but the endpoints have no server-side check yet — see
+Known limitations).
 
 **Confirmed and now designed:**
 - `PlatformRole` (`USER`/`ADMIN`/`SUPER_ADMIN`) stays exactly what it is — *platform operator
@@ -352,15 +385,18 @@ calling them yet — see Known limitations).
   accounts — the design accounts for COPPA-shaped requirements (data minimization, evidence-
   backed consent) but does not itself constitute legal clearance.
 
-**Planned child-specific product surface** (frontend, now that the Sprint 5 backend exists):
-age-appropriate dashboard, simulated budgets/allowance tracking, needs-vs-wants exercises,
-savings goals, challenges/achievements, financial-literacy lessons, guardian approvals, a
-restricted-policy AI coach (`learning_profiles.ai_coach_enabled` is the guardian toggle;
-the actual policy design is the separate AI governance item below), no access to adult
-financial data or unrestricted account-linking.
+**Planned child-specific product surface** (still needed — the current `/minor` page is a bare
+placeholder, not this): age-appropriate dashboard, simulated budgets/allowance tracking,
+needs-vs-wants exercises, savings goals, challenges/achievements, financial-literacy lessons,
+guardian approvals, a restricted-policy AI coach (`learning_profiles.ai_coach_enabled` is the
+guardian toggle; the actual policy design is the separate AI governance item below), no access to
+adult financial data or unrestricted account-linking.
 
-**Planned guardian surface**: linked-child overview, learning progress, goal approvals,
-allowance controls, challenge assignments, consent management, AI safety settings.
+**Guardian surface**: linked-child overview **(shipped, Sprint 5 — "My Children" on
+`/households`)**. Still planned: learning progress, goal approvals, allowance controls, challenge
+assignments, AI safety settings (consent management itself — grant/revoke — is shipped
+API-side, `POST /consent/grant`/`revoke`, but has no dedicated frontend view yet beyond the
+one-time grant at child-account creation).
 
 ## Educational content system
 

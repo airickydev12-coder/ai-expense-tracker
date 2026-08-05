@@ -22,6 +22,7 @@ function buildUser(id: number, role: UserResponse['role'], createdAt: string): U
     updated_at: createdAt,
     email_verified: true,
     mfa_enabled: false,
+    account_type: 'adult',
   }
 }
 

@@ -95,6 +95,12 @@ export function Layout() {
             >
               Notifications
             </NavLink>
+            <NavLink
+              to="/households"
+              className={({ isActive }) => (isActive ? 'font-medium text-blue-600' : 'text-gray-600')}
+            >
+              Households
+            </NavLink>
             {user && user.role !== 'user' && (
               <NavLink
                 to="/admin"
