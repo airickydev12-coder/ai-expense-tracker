@@ -47,7 +47,7 @@ def is_password_breached(password: str) -> bool:
     "unknown," returning False -- this check must never block or delay a
     password-set action.
     """
-    sha1_hash = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
+    sha1_hash = hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
     prefix, suffix = sha1_hash[:5], sha1_hash[5:]
 
     try:
