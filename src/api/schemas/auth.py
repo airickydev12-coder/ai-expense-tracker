@@ -140,3 +140,24 @@ class UserResponse(BaseModel):
     updated_at: datetime
     email_verified: bool
     mfa_enabled: bool
+
+
+class RegisterResponse(UserResponse):
+    """Returned by POST /auth/register: the new user plus an optional
+    breached-password warning. password_warning is non-null only when the
+    chosen password was found in a known data breach -- the account is
+    registered either way, this is advisory only (see
+    src/financial/users/breach_check.py)."""
+
+    password_warning: str | None = None
+
+
+class PasswordActionResponse(BaseModel):
+    """Returned by POST /auth/change-password and POST /auth/reset-password.
+
+    password_warning is non-null only when the new password was found in a
+    known data breach -- the password is set either way, this is advisory
+    only (see src/financial/users/breach_check.py).
+    """
+
+    password_warning: str | None = None

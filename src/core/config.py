@@ -97,6 +97,15 @@ MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES = int(
     os.getenv("MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES", "5")
 )
 
+# HaveIBeenPwned's k-anonymity range API, used to soft-warn (never block) a
+# password found in a known breach at registration/change/reset time. Only a
+# truncated SHA-1 hash prefix is ever sent -- see
+# src/financial/users/breach_check.py. Short timeout because this check must
+# fail open instantly if the API is slow or unreachable, never delay or
+# block a password-set action.
+HIBP_API_URL = os.getenv("HIBP_API_URL", "https://api.pwnedpasswords.com/range")
+HIBP_API_TIMEOUT_SECONDS = float(os.getenv("HIBP_API_TIMEOUT_SECONDS", "3"))
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = PROJECT_ROOT / "logs"

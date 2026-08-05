@@ -65,8 +65,72 @@ def test_register_success() -> None:
     assert body["username"] == "alice"
     assert body["email"] == "alice@example.com"
     assert body["role"] == "user"
+    assert body["password_warning"] is None
     assert "password" not in body
     assert "password_hash" not in body
+
+
+def test_register_warns_when_password_is_breached(monkeypatch: pytest.MonkeyPatch) -> None:
+    import src.api.routers.auth as auth_router
+
+    monkeypatch.setattr(auth_router, "is_password_breached", lambda password: True)
+
+    response = _register()
+
+    assert response.status_code == 201
+    assert response.json()["password_warning"]
+
+
+def test_change_password_warns_when_new_password_is_breached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import src.api.routers.auth as auth_router
+
+    _register()
+    token = _login().json()["access_token"]
+    monkeypatch.setattr(auth_router, "is_password_breached", lambda password: True)
+
+    response = client.post(
+        "/auth/change-password",
+        json={"current_password": "correct-password", "new_password": "new-password"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["password_warning"]
+
+    # The password is still set despite the warning -- soft gate, never a block.
+    new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
+    assert new_login.status_code == 200
+
+
+def test_reset_password_warns_when_new_password_is_breached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import src.api.routers.auth as auth_router
+
+    _register()
+    sent: dict = {}
+    monkeypatch.setattr(
+        user_service,
+        "send_notification_email",
+        lambda subject, body, to_email=None: sent.update(body=body),
+    )
+    client.post("/auth/forgot-password", json={"email": "alice@example.com"})
+    token = sent["body"].split("reset-password?token=")[1].split("\n")[0]
+
+    monkeypatch.setattr(auth_router, "is_password_breached", lambda password: True)
+
+    response = client.post(
+        "/auth/reset-password", json={"token": token, "new_password": "new-password"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["password_warning"]
+
+    # The password is still set despite the warning -- soft gate, never a block.
+    new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
+    assert new_login.status_code == 200
 
 
 def test_register_duplicate_username_returns_400() -> None:
@@ -221,7 +285,8 @@ def test_change_password_success() -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 204
+    assert response.status_code == 200
+    assert response.json()["password_warning"] is None
 
     new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
     assert new_login.status_code == 200
@@ -326,7 +391,8 @@ def test_reset_password_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "/auth/reset-password", json={"token": token, "new_password": "new-password"}
     )
 
-    assert response.status_code == 204
+    assert response.status_code == 200
+    assert response.json()["password_warning"] is None
 
     new_login = client.post("/auth/login", json={"username": "alice", "password": "new-password"})
     assert new_login.status_code == 200

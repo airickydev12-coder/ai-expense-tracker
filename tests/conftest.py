@@ -31,6 +31,25 @@ def _stub_email_sending(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(autouse=True)
+def _stub_breach_check(monkeypatch: pytest.MonkeyPatch):
+    """Prevent every test from making a real HIBP network call by default.
+
+    register/change-password/reset-password all call is_password_breached()
+    now -- without this, hundreds of test registrations across the whole
+    suite would each make a real HTTP call to api.pwnedpasswords.com,
+    slowing the suite and making it depend on network access. Individual
+    tests that need to exercise the actual breach-found/breach-check-failed
+    paths override this themselves via `monkeypatch.setattr(auth_router,
+    "is_password_breached", ...)`, the same way `_stub_email_sending` works
+    above.
+    """
+    monkeypatch.setattr(
+        "src.api.routers.auth.is_password_breached",
+        lambda password: False,
+    )
+
+
+@pytest.fixture(autouse=True)
 def _isolate_default_database(request, tmp_path):
     """
     Redirect every caller relying on the default DB_PATH to an isolated

@@ -13,8 +13,10 @@ from src.api.schemas.auth import (
     MfaEnrollResponse,
     MfaRecoveryCodesResponse,
     MfaVerifyRequest,
+    PasswordActionResponse,
     ReauthRequest,
     RegisterRequest,
+    RegisterResponse,
     ResetPasswordRequest,
     SessionResponse,
     UpdateProfileRequest,
@@ -25,11 +27,27 @@ from src.core.config import COOKIE_SECURE, REFRESH_TOKEN_COOKIE_NAME, REFRESH_TO
 from src.core.exceptions import AuthenticationError
 from src.core.security import create_mfa_challenge_token, decode_mfa_challenge_token
 from src.financial.users import service as user_service
+from src.financial.users.breach_check import is_password_breached
 from src.financial.users.models import User
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 _REFRESH_TOKEN_MAX_AGE_SECONDS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
+
+_BREACHED_PASSWORD_WARNING = (
+    "This password has appeared in a known data breach. "
+    "We recommend choosing a different one, though this one has still been saved."
+)
+
+
+def _password_warning(password: str) -> str | None:
+    """Return the breach warning message for a password, or None.
+
+    Checked only after the password has already been successfully set --
+    this is advisory, never a gate, so a breach lookup never runs (or
+    delays) an about-to-fail validation.
+    """
+    return _BREACHED_PASSWORD_WARNING if is_password_breached(password) else None
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
@@ -59,15 +77,18 @@ def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-@router.post("/register", response_model=UserResponse, status_code=201)
-def register(request: RegisterRequest) -> UserResponse:
+@router.post("/register", response_model=RegisterResponse, status_code=201)
+def register(request: RegisterRequest) -> RegisterResponse:
     """Register a new user account."""
     user = user_service.register_user(
         username=request.username,
         email=request.email,
         password=request.password,
     )
-    return UserResponse.model_validate(user)
+    return RegisterResponse(
+        **UserResponse.model_validate(user).model_dump(),
+        password_warning=_password_warning(request.password),
+    )
 
 
 @router.post("/login", response_model=AccessTokenResponse | MfaChallengeResponse)
@@ -233,17 +254,18 @@ def update_me(
     return UserResponse.model_validate(user)
 
 
-@router.post("/change-password", status_code=204)
+@router.post("/change-password", response_model=PasswordActionResponse)
 def change_password(
     request: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
-) -> None:
+) -> PasswordActionResponse:
     """Change the currently authenticated user's password."""
     user_service.change_password(
         current_user.id,
         current_password=request.current_password,
         new_password=request.new_password,
     )
+    return PasswordActionResponse(password_warning=_password_warning(request.new_password))
 
 
 @router.post("/forgot-password", status_code=202)
@@ -256,10 +278,11 @@ def forgot_password(request: ForgotPasswordRequest) -> None:
     user_service.request_password_reset(email=request.email)
 
 
-@router.post("/reset-password", status_code=204)
-def reset_password(request: ResetPasswordRequest) -> None:
+@router.post("/reset-password", response_model=PasswordActionResponse)
+def reset_password(request: ResetPasswordRequest) -> PasswordActionResponse:
     """Consume a password reset token and set a new password."""
     user_service.reset_password(token=request.token, new_password=request.new_password)
+    return PasswordActionResponse(password_warning=_password_warning(request.new_password))
 
 
 @router.post("/verify-email", status_code=204)
