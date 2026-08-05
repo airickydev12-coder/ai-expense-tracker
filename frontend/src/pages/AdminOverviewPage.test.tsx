@@ -21,6 +21,7 @@ function buildUser(id: number, role: UserResponse['role'], createdAt: string): U
     created_at: createdAt,
     updated_at: createdAt,
     email_verified: true,
+    mfa_enabled: false,
   }
 }
 

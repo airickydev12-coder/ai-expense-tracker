@@ -29,6 +29,17 @@ def get_current_user(
 
     payload = decode_access_token(credentials.credentials)
 
+    # A missing "purpose" defaults to "access" for backward compatibility
+    # with tokens minted before this claim existed -- a real MFA challenge
+    # token (see create_mfa_challenge_token()) always explicitly carries
+    # purpose="mfa_challenge", so this only ever excludes non-access tokens,
+    # never silently rejects an old-but-otherwise-valid access token. Without
+    # this check, an intercepted MFA challenge token -- itself a validly
+    # signed JWT with a "sub" claim -- could be replayed here as a bearer
+    # token and authenticate as that user before they ever complete MFA.
+    if payload.get("purpose", "access") != "access":
+        raise AuthenticationError("Invalid authentication token.")
+
     try:
         user_id = int(payload["sub"])
     except (KeyError, TypeError, ValueError) as error:

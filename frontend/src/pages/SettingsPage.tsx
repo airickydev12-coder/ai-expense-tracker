@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { changePassword, updateProfile } from '../api/auth'
 import { ActiveSessionsSection } from '../components/ActiveSessionsSection'
+import { MfaSection } from '../components/MfaSection'
 import { useAuth } from '../context/AuthContext'
 
 export function SettingsPage() {
@@ -166,6 +167,8 @@ export function SettingsPage() {
           </button>
         </form>
       </section>
+
+      <MfaSection />
 
       <ActiveSessionsSection />
     </div>

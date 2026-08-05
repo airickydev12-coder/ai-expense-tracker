@@ -23,7 +23,17 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    email_verified_at TEXT
+    email_verified_at TEXT,
+    mfa_secret_encrypted TEXT,
+    mfa_enabled_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    code_hash TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
@@ -329,6 +339,19 @@ def _ensure_email_verified_at_column(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE users ADD COLUMN email_verified_at TEXT")
 
 
+def _ensure_mfa_columns(connection: sqlite3.Connection) -> None:
+    """Add mfa_secret_encrypted/mfa_enabled_at columns (both default NULL,
+    i.e. MFA not enrolled/enabled) to `users` if missing. Same idempotent-
+    ALTER-TABLE pattern as _ensure_role_column -- mirrors email_verified_at's
+    "nullable timestamp = feature state" shape exactly.
+    """
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+    if "mfa_secret_encrypted" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN mfa_secret_encrypted TEXT")
+    if "mfa_enabled_at" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN mfa_enabled_at TEXT")
+
+
 def _ensure_refresh_token_metadata_columns(connection: sqlite3.Connection) -> None:
     """Add user_agent/ip_address/auth_time columns to `refresh_tokens` if
     missing -- same idempotent-ALTER-TABLE pattern as _ensure_role_column.
@@ -451,6 +474,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     connection.executescript(SCHEMA)
     _ensure_role_column(connection)
     _ensure_email_verified_at_column(connection)
+    _ensure_mfa_columns(connection)
     _ensure_refresh_token_metadata_columns(connection)
     _ensure_user_id_columns(connection)
     _ensure_composite_primary_keys(connection)

@@ -7,14 +7,20 @@ from src.financial.users.repository import (
     count_recent_email_verification_requests,
     count_recent_failed_attempts,
     count_recent_password_reset_requests,
+    count_unused_recovery_codes,
     create_admin_audit_event,
     create_email_verification_token,
     create_password_reset_token,
+    create_recovery_codes,
     create_refresh_token,
     create_user,
+    disable_mfa,
+    enable_mfa,
     get_email_verification_token,
+    get_mfa_secret_encrypted,
     get_password_reset_token,
     get_refresh_token,
+    get_unused_recovery_code,
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
@@ -23,12 +29,14 @@ from src.financial.users.repository import (
     mark_email_verification_token_used,
     mark_email_verified,
     mark_password_reset_token_used,
+    mark_recovery_code_used,
     record_email_verification_request,
     record_login_attempt,
     record_password_reset_request,
     revoke_all_refresh_tokens_for_user,
     revoke_refresh_token,
     revoke_refresh_token_by_id,
+    set_mfa_secret,
     update_refresh_token_auth_time,
     update_user,
     update_user_active_status,
@@ -603,3 +611,91 @@ def test_revoke_refresh_token_by_id_returns_false_for_unknown_id(db_path) -> Non
     user = create_user("alice", "alice@example.com", "hashed-value", db_path)
 
     assert revoke_refresh_token_by_id(999, user.id, db_path) is False
+
+
+def test_new_user_has_no_mfa_secret_or_enabled_state(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    assert get_mfa_secret_encrypted(user.id, db_path) is None
+    assert user.mfa_enabled is False
+
+
+def test_set_mfa_secret_stores_it_without_enabling(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    set_mfa_secret(user.id, "encrypted-secret", db_path)
+
+    reloaded = get_user_by_id(user.id, db_path)
+    assert reloaded is not None
+    assert get_mfa_secret_encrypted(user.id, db_path) == "encrypted-secret"
+    assert reloaded.mfa_enabled is False
+
+
+def test_set_mfa_secret_overwrites_a_pending_secret(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    set_mfa_secret(user.id, "first-secret", db_path)
+    set_mfa_secret(user.id, "second-secret", db_path)
+
+    assert get_mfa_secret_encrypted(user.id, db_path) == "second-secret"
+
+
+def test_enable_mfa_sets_mfa_enabled(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    set_mfa_secret(user.id, "encrypted-secret", db_path)
+
+    updated = enable_mfa(user.id, db_path)
+
+    assert updated.mfa_enabled is True
+
+
+def test_disable_mfa_clears_secret_enabled_state_and_recovery_codes(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    set_mfa_secret(user.id, "encrypted-secret", db_path)
+    enable_mfa(user.id, db_path)
+    create_recovery_codes(user.id, ["hash-1", "hash-2"], db_path)
+
+    updated = disable_mfa(user.id, db_path)
+
+    assert updated.mfa_enabled is False
+    assert get_mfa_secret_encrypted(user.id, db_path) is None
+    assert count_unused_recovery_codes(user.id, db_path) == 0
+
+
+def test_create_recovery_codes_replaces_any_existing_set(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    create_recovery_codes(user.id, ["old-hash-1", "old-hash-2"], db_path)
+
+    create_recovery_codes(user.id, ["new-hash-1"], db_path)
+
+    assert get_unused_recovery_code(user.id, "old-hash-1", db_path) is None
+    assert get_unused_recovery_code(user.id, "new-hash-1", db_path) is not None
+    assert count_unused_recovery_codes(user.id, db_path) == 1
+
+
+def test_get_unused_recovery_code_returns_none_for_an_unknown_hash(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    create_recovery_codes(user.id, ["a-hash"], db_path)
+
+    assert get_unused_recovery_code(user.id, "not-a-real-hash", db_path) is None
+
+
+def test_mark_recovery_code_used_excludes_it_from_future_lookups(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    create_recovery_codes(user.id, ["a-hash"], db_path)
+    code_row = get_unused_recovery_code(user.id, "a-hash", db_path)
+    assert code_row is not None
+
+    mark_recovery_code_used(code_row["id"], db_path)
+
+    assert get_unused_recovery_code(user.id, "a-hash", db_path) is None
+    assert count_unused_recovery_codes(user.id, db_path) == 0
+
+
+def test_recovery_codes_are_scoped_to_user(db_path) -> None:
+    alice = create_user("alice", "alice@example.com", "hashed-value", db_path)
+    bob = create_user("bob", "bob@example.com", "hashed-value", db_path)
+    create_recovery_codes(alice.id, ["shared-hash"], db_path)
+
+    assert get_unused_recovery_code(bob.id, "shared-hash", db_path) is None
+    assert get_unused_recovery_code(alice.id, "shared-hash", db_path) is not None

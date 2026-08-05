@@ -4,6 +4,11 @@ import type {
   ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  MfaChallengeResponse,
+  MfaConfirmRequest,
+  MfaEnrollResponse,
+  MfaRecoveryCodesResponse,
+  MfaVerifyRequest,
   ReauthRequest,
   RegisterRequest,
   ResetPasswordRequest,
@@ -17,8 +22,36 @@ export function register(request: RegisterRequest): Promise<UserResponse> {
   return apiPost<UserResponse>('/auth/register', request, { skipUnauthorizedHandling: true })
 }
 
-export function login(request: LoginRequest): Promise<AccessTokenResponse> {
-  return apiPost<AccessTokenResponse>('/auth/login', request, { skipUnauthorizedHandling: true })
+export function login(
+  request: LoginRequest,
+): Promise<AccessTokenResponse | MfaChallengeResponse> {
+  return apiPost<AccessTokenResponse | MfaChallengeResponse>('/auth/login', request, {
+    skipUnauthorizedHandling: true,
+  })
+}
+
+export function verifyMfa(request: MfaVerifyRequest): Promise<AccessTokenResponse> {
+  return apiPost<AccessTokenResponse>('/auth/mfa/verify', request, {
+    skipUnauthorizedHandling: true,
+  })
+}
+
+export function beginMfaEnrollment(): Promise<MfaEnrollResponse> {
+  return apiPost<MfaEnrollResponse>('/auth/mfa/enroll', undefined)
+}
+
+export function confirmMfaEnrollment(
+  request: MfaConfirmRequest,
+): Promise<MfaRecoveryCodesResponse> {
+  return apiPost<MfaRecoveryCodesResponse>('/auth/mfa/confirm', request)
+}
+
+export function disableMfa(): Promise<void> {
+  return apiPost<void>('/auth/mfa/disable', undefined)
+}
+
+export function regenerateRecoveryCodes(): Promise<MfaRecoveryCodesResponse> {
+  return apiPost<MfaRecoveryCodesResponse>('/auth/mfa/recovery-codes/regenerate', undefined)
 }
 
 // No request body: the refresh token travels as an HttpOnly cookie the

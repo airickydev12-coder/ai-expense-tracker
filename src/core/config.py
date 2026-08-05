@@ -80,6 +80,23 @@ EMAIL_VERIFICATION_RESEND_LOCKOUT_WINDOW_MINUTES = int(
 # without re-verifying a password, so this can't just be "token still valid."
 STEP_UP_MAX_AGE_MINUTES = int(os.getenv("STEP_UP_MAX_AGE_MINUTES", "10"))
 
+# Symmetric (Fernet) key encrypting each user's TOTP secret at rest -- unlike
+# a password, a TOTP secret must be stored reversibly to verify codes, so
+# hashing isn't an option. The insecure default is a fixed, syntactically
+# valid 32-byte Fernet key (same "obviously a placeholder, but doesn't crash
+# dev" shape as JWT_SECRET_KEY's default) -- see _validate_startup_config()
+# in src/api/main.py for the production fail-fast on this still being unset.
+MFA_ENCRYPTION_KEY = os.getenv(
+    "MFA_ENCRYPTION_KEY", "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+)
+# Short-lived: long enough for a user to grab their phone and read a code,
+# short enough to bound a leaked/intercepted MFA challenge token's window of
+# usefulness (it carries no password, only proof the first factor already
+# succeeded for this user).
+MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES = int(
+    os.getenv("MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES", "5")
+)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = PROJECT_ROOT / "logs"

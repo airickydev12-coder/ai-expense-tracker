@@ -27,6 +27,7 @@ export interface UserResponse {
   created_at: string
   updated_at: string
   email_verified: boolean
+  mfa_enabled: boolean
 }
 
 export interface UpdateProfileRequest {
@@ -63,4 +64,29 @@ export interface SessionResponse {
 
 export interface ReauthRequest {
   password: string
+}
+
+// Returned by POST /auth/login instead of AccessTokenResponse when the
+// account has MFA enabled -- no session/cookie exists yet at this point.
+export interface MfaChallengeResponse {
+  mfa_required: true
+  challenge_token: string
+}
+
+export interface MfaVerifyRequest {
+  challenge_token: string
+  code: string
+}
+
+export interface MfaEnrollResponse {
+  secret: string
+  otpauth_uri: string
+}
+
+export interface MfaConfirmRequest {
+  code: string
+}
+
+export interface MfaRecoveryCodesResponse {
+  recovery_codes: string[]
 }

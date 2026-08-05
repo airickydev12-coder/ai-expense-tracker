@@ -16,6 +16,7 @@ function mockAuth(overrides: Partial<ReturnType<typeof authContext.useAuth>> = {
     status: 'unauthenticated',
     user: null,
     login: vi.fn(),
+    verifyMfa: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
     refreshUser: vi.fn(),
@@ -108,6 +109,7 @@ describe('RegisterPage', () => {
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
         email_verified: true,
+        mfa_enabled: false,
       },
     })
 

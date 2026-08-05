@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 _COLUMNS = (
     "id, username, email, password_hash, is_active, role, created_at, updated_at, "
-    "email_verified_at"
+    "email_verified_at, mfa_enabled_at"
 )
 
 
@@ -674,3 +674,151 @@ def list_active_users(db_path: Path = DB_PATH) -> list[User]:
         raise PersistenceError(f"Failed to load users from {db_path}") from error
 
     return [User.from_dict(dict(row)) for row in rows]
+
+
+def set_mfa_secret(user_id: int, encrypted_secret: str, db_path: Path = DB_PATH) -> None:
+    """Store a user's (encrypted) TOTP secret, without enabling MFA yet.
+
+    Deliberately doesn't touch mfa_enabled_at -- enrollment is two-step (store
+    secret, then confirm one real code before it's ever enabled), so a user
+    can't end up "MFA enabled" against a secret they never actually proved
+    they can generate codes for. Calling this again before confirming just
+    overwrites the pending secret, which is fine -- regenerating during setup
+    is a normal retry path, not a special case.
+    """
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET mfa_secret_encrypted = ? WHERE id = ?",
+                (encrypted_secret, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to store MFA secret for user {user_id} in {db_path}") from error
+
+
+def get_mfa_secret_encrypted(user_id: int, db_path: Path = DB_PATH) -> str | None:
+    """Return a user's encrypted TOTP secret, or None if never enrolled.
+
+    Deliberately a standalone query, not part of _COLUMNS/User.from_dict() --
+    the secret must never end up on a User object that could flow into
+    UserResponse serialization (see models.py).
+    """
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                "SELECT mfa_secret_encrypted FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load MFA secret for user {user_id} in {db_path}") from error
+
+    return row["mfa_secret_encrypted"] if row is not None else None
+
+
+def enable_mfa(user_id: int, db_path: Path = DB_PATH) -> User:
+    """Set a user's mfa_enabled_at to now -- called only after confirm_mfa_enrollment()
+    has verified a real code against the stored secret."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET mfa_enabled_at = ?, updated_at = ? WHERE id = ?",
+                (now, now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to enable MFA for user {user_id} in {db_path}") from error
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
+def disable_mfa(user_id: int, db_path: Path = DB_PATH) -> User:
+    """Clear a user's MFA secret and enabled state, and delete every recovery
+    code they had -- disabling MFA fully resets enrollment, it doesn't leave
+    a stale secret/codes around for a future re-enroll to accidentally reuse.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                """
+                UPDATE users SET mfa_secret_encrypted = NULL, mfa_enabled_at = NULL, updated_at = ?
+                WHERE id = ?
+                """,
+                (now, user_id),
+            )
+            connection.execute("DELETE FROM mfa_recovery_codes WHERE user_id = ?", (user_id,))
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to disable MFA for user {user_id} in {db_path}") from error
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
+def create_recovery_codes(user_id: int, code_hashes: list[str], db_path: Path = DB_PATH) -> None:
+    """Replace a user's recovery codes with a fresh set -- both initial
+    generation (confirm_mfa_enrollment) and regeneration delete any existing
+    rows first, since a regenerated set makes the old codes invalid."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute("DELETE FROM mfa_recovery_codes WHERE user_id = ?", (user_id,))
+            connection.executemany(
+                """
+                INSERT INTO mfa_recovery_codes (user_id, code_hash, used_at, created_at)
+                VALUES (?, ?, NULL, ?)
+                """,
+                [(user_id, code_hash, now) for code_hash in code_hashes],
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to create recovery codes for user {user_id} in {db_path}") from error
+
+
+def get_unused_recovery_code(user_id: int, code_hash: str, db_path: Path = DB_PATH) -> dict | None:
+    """Look up one of a user's recovery codes by hash, only if it hasn't been used yet."""
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT id FROM mfa_recovery_codes
+                WHERE user_id = ? AND code_hash = ? AND used_at IS NULL
+                """,
+                (user_id, code_hash),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to load recovery code for user {user_id} in {db_path}") from error
+
+    return dict(row) if row is not None else None
+
+
+def mark_recovery_code_used(code_id: int, db_path: Path = DB_PATH) -> None:
+    """Mark a recovery code as used, so it can't be redeemed again."""
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE mfa_recovery_codes SET used_at = ? WHERE id = ?", (now, code_id)
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to mark recovery code {code_id} used in {db_path}") from error
+
+
+def count_unused_recovery_codes(user_id: int, db_path: Path = DB_PATH) -> int:
+    """Count how many of a user's recovery codes are still unused."""
+    try:
+        with get_connection(db_path) as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL",
+                (user_id,),
+            ).fetchone()
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to count recovery codes for user {user_id} in {db_path}") from error
+
+    return int(row["count"])

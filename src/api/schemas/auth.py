@@ -61,6 +61,43 @@ class ReauthRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class MfaChallengeResponse(BaseModel):
+    """Returned by POST /auth/login instead of AccessTokenResponse when the
+    account has MFA enabled -- no session/cookie exists yet at this point,
+    only proof the password check already succeeded."""
+
+    mfa_required: bool = True
+    challenge_token: str
+
+
+class MfaVerifyRequest(BaseModel):
+    """Request body for completing an MFA login (POST /auth/mfa/verify)."""
+
+    challenge_token: str = Field(min_length=1)
+    code: str = Field(min_length=1)
+
+
+class MfaEnrollResponse(BaseModel):
+    """Returned by POST /auth/mfa/enroll -- the secret and otpauth_uri to
+    render as a QR code / manual-entry fallback. MFA isn't enabled yet."""
+
+    secret: str
+    otpauth_uri: str
+
+
+class MfaConfirmRequest(BaseModel):
+    """Request body for confirming MFA enrollment (POST /auth/mfa/confirm)."""
+
+    code: str = Field(min_length=1)
+
+
+class MfaRecoveryCodesResponse(BaseModel):
+    """Returned once by confirm/regenerate -- the only time recovery codes
+    are ever available in plaintext."""
+
+    recovery_codes: list[str]
+
+
 class SessionResponse(BaseModel):
     """One active refresh-token-backed session, for the self-service sessions list.
 
@@ -102,3 +139,4 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     email_verified: bool
+    mfa_enabled: bool

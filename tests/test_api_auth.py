@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import pyotp
 import pytest
 
 from fastapi.testclient import TestClient
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 from src.api.main import app
 from src.core.config import DB_PATH, JWT_ALGORITHM, JWT_SECRET_KEY, STEP_UP_MAX_AGE_MINUTES
 from src.core.db import get_connection
+from src.core.security import create_mfa_challenge_token
 from src.financial.users import service as user_service
 
 client = TestClient(app)
@@ -654,3 +656,201 @@ def test_reauth_clears_the_step_up_requirement() -> None:
         "/auth/sessions/revoke-all", headers={"Authorization": f"Bearer {fresh_token}"}
     )
     assert allowed.status_code == 204
+
+
+def _enroll_mfa(
+    username: str = "alice", password: str = "correct-password"
+) -> tuple[str, list[str], str]:
+    """Register, log in, and fully enroll + confirm MFA via the real API.
+    Returns (secret, recovery_codes, access_token) -- the access_token is
+    from the pre-MFA login, still valid to reuse for further authenticated
+    calls in the same test, since _login() from here on returns an MFA
+    challenge instead of a real token for this account."""
+    _register(username, password)
+    access_token = _login(username, password).json()["access_token"]
+
+    enroll_response = client.post(
+        "/auth/mfa/enroll", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    secret = enroll_response.json()["secret"]
+
+    confirm_response = client.post(
+        "/auth/mfa/confirm",
+        json={"code": pyotp.TOTP(secret).now()},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    recovery_codes = confirm_response.json()["recovery_codes"]
+
+    client.cookies.clear()
+    return secret, recovery_codes, access_token
+
+
+def test_mfa_enroll_returns_a_secret_and_otpauth_uri() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+
+    response = client.post(
+        "/auth/mfa/enroll", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["secret"]
+    assert body["otpauth_uri"].startswith("otpauth://totp/")
+
+
+def test_mfa_confirm_enables_mfa_and_returns_recovery_codes() -> None:
+    secret, recovery_codes, access_token = _enroll_mfa()
+
+    assert len(recovery_codes) == 10
+
+    me_response = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert me_response.json()["mfa_enabled"] is True
+
+
+def test_login_returns_an_mfa_challenge_when_enabled() -> None:
+    _enroll_mfa()
+
+    response = _login()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mfa_required"] is True
+    assert body["challenge_token"]
+    assert "access_token" not in body
+    assert client.cookies.get("refresh_token") is None
+
+
+def test_mfa_verify_success_issues_real_tokens() -> None:
+    secret, _, _ = _enroll_mfa()
+    challenge_token = _login().json()["challenge_token"]
+
+    response = client.post(
+        "/auth/mfa/verify",
+        json={"challenge_token": challenge_token, "code": pyotp.TOTP(secret).now()},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"]
+    assert client.cookies.get("refresh_token")
+
+
+def test_mfa_verify_rejects_a_wrong_code() -> None:
+    _enroll_mfa()
+    challenge_token = _login().json()["challenge_token"]
+
+    response = client.post(
+        "/auth/mfa/verify", json={"challenge_token": challenge_token, "code": "000000"}
+    )
+
+    assert response.status_code == 401
+
+
+def test_mfa_verify_accepts_a_recovery_code_exactly_once() -> None:
+    _, recovery_codes, _ = _enroll_mfa()
+    challenge_token = _login().json()["challenge_token"]
+
+    first = client.post(
+        "/auth/mfa/verify", json={"challenge_token": challenge_token, "code": recovery_codes[0]}
+    )
+    assert first.status_code == 200
+
+    challenge_token_2 = _login().json()["challenge_token"]
+    second = client.post(
+        "/auth/mfa/verify",
+        json={"challenge_token": challenge_token_2, "code": recovery_codes[0]},
+    )
+    assert second.status_code == 401
+
+
+def test_mfa_verify_rejects_an_expired_challenge_token() -> None:
+    _, _, access_token = _enroll_mfa()
+    user_id = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    ).json()["id"]
+
+    now = datetime.now(timezone.utc)
+    expired_challenge = jwt.encode(
+        {
+            "sub": str(user_id),
+            "purpose": "mfa_challenge",
+            "iat": now - timedelta(minutes=10),
+            "exp": now - timedelta(minutes=1),
+        },
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
+
+    response = client.post(
+        "/auth/mfa/verify", json={"challenge_token": expired_challenge, "code": "000000"}
+    )
+
+    assert response.status_code == 401
+
+
+def test_mfa_verify_rejects_a_real_access_token_as_the_challenge() -> None:
+    _, _, access_token = _enroll_mfa()
+
+    response = client.post(
+        "/auth/mfa/verify", json={"challenge_token": access_token, "code": "000000"}
+    )
+
+    assert response.status_code == 401
+
+
+def test_mfa_disable_clears_enrollment() -> None:
+    secret, _, access_token = _enroll_mfa()
+
+    response = client.post(
+        "/auth/mfa/disable", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert response.status_code == 204
+
+    login_response = _login()
+    assert login_response.status_code == 200
+    assert "access_token" in login_response.json()
+
+
+def test_mfa_regenerate_recovery_codes_invalidates_the_old_set() -> None:
+    secret, old_codes, access_token = _enroll_mfa()
+
+    response = client.post(
+        "/auth/mfa/recovery-codes/regenerate", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert response.status_code == 200
+    new_codes = response.json()["recovery_codes"]
+    assert set(new_codes).isdisjoint(old_codes)
+
+
+def test_mfa_management_routes_require_recent_auth() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+    user_id = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    ).json()["id"]
+    stale_token = _stale_access_token(user_id)
+
+    response = client.post(
+        "/auth/mfa/enroll", headers={"Authorization": f"Bearer {stale_token}"}
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "step_up_required"
+
+
+def test_get_current_user_rejects_an_mfa_challenge_token_as_a_bearer_token() -> None:
+    _register()
+    access_token = _login().json()["access_token"]
+    user_id = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    ).json()["id"]
+    challenge_token = create_mfa_challenge_token(user_id)
+
+    response = client.get("/auth/me", headers={"Authorization": f"Bearer {challenge_token}"})
+
+    assert response.status_code == 401

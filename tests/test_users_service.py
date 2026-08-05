@@ -752,3 +752,140 @@ def test_logout_all_sessions_sends_a_confirmation_email(
     user_service.logout_all_sessions(registered.id, db_path)
 
     assert sent["to_email"] == "alice@example.com"
+
+
+def _totp_code_for(secret: str) -> str:
+    import pyotp
+
+    return pyotp.TOTP(secret).now()
+
+
+def test_begin_mfa_enrollment_returns_a_secret_and_otpauth_uri(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    secret, otpauth_uri = user_service.begin_mfa_enrollment(registered.id, db_path)
+
+    assert secret
+    assert otpauth_uri.startswith("otpauth://totp/")
+    assert "alice%40example.com" in otpauth_uri
+
+
+def test_begin_mfa_enrollment_does_not_enable_mfa_yet(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    user_service.begin_mfa_enrollment(registered.id, db_path)
+
+    assert get_user(registered.id, db_path).mfa_enabled is False
+
+
+def test_confirm_mfa_enrollment_with_correct_code_enables_mfa(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+
+    recovery_codes = user_service.confirm_mfa_enrollment(
+        registered.id, _totp_code_for(secret), db_path
+    )
+
+    assert get_user(registered.id, db_path).mfa_enabled is True
+    assert len(recovery_codes) == user_service.MFA_RECOVERY_CODE_COUNT
+    assert len(set(recovery_codes)) == user_service.MFA_RECOVERY_CODE_COUNT
+
+
+def test_confirm_mfa_enrollment_rejects_a_wrong_code(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    user_service.begin_mfa_enrollment(registered.id, db_path)
+
+    with pytest.raises(ValidationError):
+        user_service.confirm_mfa_enrollment(registered.id, "000000", db_path)
+
+    assert get_user(registered.id, db_path).mfa_enabled is False
+
+
+def test_confirm_mfa_enrollment_rejects_when_no_enrollment_in_progress(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    with pytest.raises(ValidationError):
+        user_service.confirm_mfa_enrollment(registered.id, "000000", db_path)
+
+
+def test_verify_mfa_code_accepts_a_correct_totp_code(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    user_service.confirm_mfa_enrollment(registered.id, _totp_code_for(secret), db_path)
+
+    assert user_service.verify_mfa_code(registered.id, _totp_code_for(secret), db_path) is True
+
+
+def test_verify_mfa_code_rejects_a_wrong_totp_code(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    user_service.confirm_mfa_enrollment(registered.id, _totp_code_for(secret), db_path)
+
+    assert user_service.verify_mfa_code(registered.id, "000000", db_path) is False
+
+
+def test_verify_mfa_code_accepts_a_recovery_code_exactly_once(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    recovery_codes = user_service.confirm_mfa_enrollment(
+        registered.id, _totp_code_for(secret), db_path
+    )
+
+    assert user_service.verify_mfa_code(registered.id, recovery_codes[0], db_path) is True
+    assert user_service.verify_mfa_code(registered.id, recovery_codes[0], db_path) is False
+
+
+def test_verify_mfa_code_recovery_code_lookup_is_case_insensitive(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    recovery_codes = user_service.confirm_mfa_enrollment(
+        registered.id, _totp_code_for(secret), db_path
+    )
+
+    assert user_service.verify_mfa_code(registered.id, recovery_codes[0].lower(), db_path) is True
+
+
+def test_verify_mfa_code_locks_out_after_max_failed_attempts(db_path) -> None:
+    from src.core.config import LOGIN_LOCKOUT_MAX_ATTEMPTS
+
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    user_service.confirm_mfa_enrollment(registered.id, _totp_code_for(secret), db_path)
+
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        user_service.verify_mfa_code(registered.id, "000000", db_path)
+
+    with pytest.raises(RateLimitError):
+        user_service.verify_mfa_code(registered.id, "000000", db_path)
+
+
+def test_disable_mfa_clears_enrollment(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    recovery_codes = user_service.confirm_mfa_enrollment(
+        registered.id, _totp_code_for(secret), db_path
+    )
+
+    user_service.disable_mfa(registered.id, db_path)
+
+    assert get_user(registered.id, db_path).mfa_enabled is False
+    assert user_service.verify_mfa_code(registered.id, recovery_codes[0], db_path) is False
+
+
+def test_regenerate_recovery_codes_invalidates_the_old_set(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+    secret, _ = user_service.begin_mfa_enrollment(registered.id, db_path)
+    old_codes = user_service.confirm_mfa_enrollment(registered.id, _totp_code_for(secret), db_path)
+
+    new_codes = user_service.regenerate_recovery_codes(registered.id, db_path)
+
+    assert set(new_codes).isdisjoint(old_codes)
+    assert user_service.verify_mfa_code(registered.id, old_codes[0], db_path) is False
+    assert user_service.verify_mfa_code(registered.id, new_codes[0], db_path) is True
+
+
+def test_regenerate_recovery_codes_rejects_when_mfa_not_enabled(db_path) -> None:
+    registered = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    with pytest.raises(ValidationError):
+        user_service.regenerate_recovery_codes(registered.id, db_path)

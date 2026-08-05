@@ -16,6 +16,7 @@ function mockAuth(overrides: Partial<ReturnType<typeof authContext.useAuth>> = {
     status: 'unauthenticated',
     user: null,
     login: vi.fn(),
+    verifyMfa: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
     refreshUser: vi.fn(),
@@ -25,7 +26,7 @@ function mockAuth(overrides: Partial<ReturnType<typeof authContext.useAuth>> = {
 
 describe('LoginPage', () => {
   it('submits the form and navigates to the dashboard on success', async () => {
-    const login = vi.fn().mockResolvedValue(undefined)
+    const login = vi.fn().mockResolvedValue({ status: 'authenticated' })
     mockAuth({ login })
 
     render(
@@ -84,6 +85,7 @@ describe('LoginPage', () => {
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
         email_verified: true,
+        mfa_enabled: false,
       },
     })
 
@@ -94,5 +96,76 @@ describe('LoginPage', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Log In' })).not.toBeInTheDocument()
+  })
+
+  it('shows the MFA code step when login requires a challenge', async () => {
+    const login = vi
+      .fn()
+      .mockResolvedValue({ status: 'mfa_required', challengeToken: 'a-challenge-token' })
+    mockAuth({ login })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
+
+    expect(await screen.findByText('Two-Factor Authentication')).toBeInTheDocument()
+  })
+
+  it('submits the MFA code to verifyMfa', async () => {
+    const login = vi
+      .fn()
+      .mockResolvedValue({ status: 'mfa_required', challengeToken: 'a-challenge-token' })
+    const verifyMfa = vi.fn().mockResolvedValue(undefined)
+    mockAuth({ login, verifyMfa })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
+    await screen.findByText('Two-Factor Authentication')
+
+    fireEvent.change(screen.getByLabelText('Authentication code or recovery code'), {
+      target: { value: '123456' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
+
+    expect(verifyMfa).toHaveBeenCalledWith('a-challenge-token', '123456')
+  })
+
+  it('shows the API error message on a wrong MFA code', async () => {
+    const login = vi
+      .fn()
+      .mockResolvedValue({ status: 'mfa_required', challengeToken: 'a-challenge-token' })
+    const verifyMfa = vi.fn().mockRejectedValue(new Error('Invalid authentication code.'))
+    mockAuth({ login, verifyMfa })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
+    await screen.findByText('Two-Factor Authentication')
+
+    fireEvent.change(screen.getByLabelText('Authentication code or recovery code'), {
+      target: { value: '000000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
+
+    expect(await screen.findByText('Invalid authentication code.')).toBeInTheDocument()
   })
 })

@@ -9,22 +9,21 @@ type AuthState =
   | { status: 'unauthenticated' }
   | { status: 'authenticated'; user: UserResponse }
 
+export type LoginOutcome =
+  | { status: 'authenticated' }
+  | { status: 'mfa_required'; challengeToken: string }
+
 interface AuthContextValue {
   status: AuthState['status']
   user: UserResponse | null
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<LoginOutcome>
+  verifyMfa: (challengeToken: string, code: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
-
-async function establishSession(username: string, password: string): Promise<UserResponse> {
-  const token = await authApi.login({ username, password })
-  setAuthToken(token.access_token)
-  return authApi.me()
-}
 
 let refreshPromise: Promise<boolean> | null = null
 
@@ -91,15 +90,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  async function login(username: string, password: string) {
-    const user = await establishSession(username, password)
+  async function login(username: string, password: string): Promise<LoginOutcome> {
+    const result = await authApi.login({ username, password })
+
+    if ('mfa_required' in result) {
+      // No session/cookie exists yet -- the caller (LoginPage) must collect
+      // a TOTP/recovery code and call verifyMfa() to actually finish.
+      return { status: 'mfa_required', challengeToken: result.challenge_token }
+    }
+
+    setAuthToken(result.access_token)
+    const user = await authApi.me()
+    setState({ status: 'authenticated', user })
+    return { status: 'authenticated' }
+  }
+
+  async function verifyMfa(challengeToken: string, code: string): Promise<void> {
+    const token = await authApi.verifyMfa({ challenge_token: challengeToken, code })
+    setAuthToken(token.access_token)
+    const user = await authApi.me()
     setState({ status: 'authenticated', user })
   }
 
   async function register(username: string, email: string, password: string) {
     await authApi.register({ username, email, password })
-    const user = await establishSession(username, password)
-    setState({ status: 'authenticated', user })
+    // A brand-new account never has MFA enabled (enrollment requires being
+    // logged in first), so this always resolves 'authenticated' -- routed
+    // through login() anyway to keep exactly one place that turns a
+    // successful credential check into session state.
+    await login(username, password)
   }
 
   async function logout() {
@@ -130,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: state.status,
     user: state.status === 'authenticated' ? state.user : null,
     login,
+    verifyMfa,
     register,
     logout,
     refreshUser,

@@ -22,6 +22,7 @@ function buildUser(role: PlatformRole): UserResponse {
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     email_verified: true,
+    mfa_enabled: false,
   }
 }
 
@@ -30,6 +31,7 @@ function mockAuth(user: UserResponse | null) {
     status: 'authenticated',
     user,
     login: vi.fn(),
+    verifyMfa: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
     refreshUser: vi.fn(),

@@ -8,6 +8,11 @@ from src.api.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    MfaChallengeResponse,
+    MfaConfirmRequest,
+    MfaEnrollResponse,
+    MfaRecoveryCodesResponse,
+    MfaVerifyRequest,
     ReauthRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -18,6 +23,7 @@ from src.api.schemas.auth import (
 )
 from src.core.config import COOKIE_SECURE, REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_EXPIRY_DAYS
 from src.core.exceptions import AuthenticationError
+from src.core.security import create_mfa_challenge_token, decode_mfa_challenge_token
 from src.financial.users import service as user_service
 from src.financial.users.models import User
 
@@ -64,13 +70,21 @@ def register(request: RegisterRequest) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-@router.post("/login", response_model=AccessTokenResponse)
-def login(request: LoginRequest, http_request: Request, response: Response) -> AccessTokenResponse:
-    """Authenticate a user, set a refresh-token cookie, and return an access token."""
+@router.post("/login", response_model=AccessTokenResponse | MfaChallengeResponse)
+def login(
+    request: LoginRequest, http_request: Request, response: Response
+) -> AccessTokenResponse | MfaChallengeResponse:
+    """Authenticate a user and either return an access token (refresh-token
+    cookie set) or, if the account has MFA enabled, an MFA challenge instead
+    -- no session/cookie is created until POST /auth/mfa/verify succeeds."""
     user = user_service.authenticate_user(
         username=request.username,
         password=request.password,
     )
+
+    if user.mfa_enabled:
+        return MfaChallengeResponse(challenge_token=create_mfa_challenge_token(user.id))
+
     user_agent = http_request.headers.get("user-agent")
     ip_address = _client_ip(http_request)
     user_service.notify_new_device_if_needed(user, user_agent, ip_address)
@@ -82,6 +96,68 @@ def login(request: LoginRequest, http_request: Request, response: Response) -> A
     )
     _set_refresh_cookie(response, refresh_token)
     return AccessTokenResponse(access_token=access_token)
+
+
+@router.post("/mfa/verify", response_model=AccessTokenResponse)
+def verify_mfa(
+    request: MfaVerifyRequest, http_request: Request, response: Response
+) -> AccessTokenResponse:
+    """Complete an MFA login: consume the challenge token from /auth/login,
+    verify the TOTP/recovery code, and issue real tokens exactly like a
+    normal login would have. Public -- the challenge token is itself the
+    credential proving the password step already succeeded, the same
+    reasoning as the password-reset/email-verification token pattern."""
+    user_id = decode_mfa_challenge_token(request.challenge_token)
+
+    if not user_service.verify_mfa_code(user_id, request.code):
+        raise AuthenticationError("Invalid authentication code.")
+
+    user = user_service.get_user(user_id)
+    user_agent = http_request.headers.get("user-agent")
+    ip_address = _client_ip(http_request)
+    user_service.notify_new_device_if_needed(user, user_agent, ip_address)
+    access_token, refresh_token = user_service.issue_session(
+        user.id,
+        user.username,
+        user_agent=user_agent,
+        ip_address=ip_address,
+    )
+    _set_refresh_cookie(response, refresh_token)
+    return AccessTokenResponse(access_token=access_token)
+
+
+@router.post("/mfa/enroll", response_model=MfaEnrollResponse)
+def enroll_mfa(current_user: User = Depends(require_recent_auth)) -> MfaEnrollResponse:
+    """Begin MFA enrollment: generate and store a new (unconfirmed) TOTP
+    secret, returning it plus an otpauth:// URI for the frontend to render
+    as a QR code / manual-entry fallback."""
+    secret, otpauth_uri = user_service.begin_mfa_enrollment(current_user.id)
+    return MfaEnrollResponse(secret=secret, otpauth_uri=otpauth_uri)
+
+
+@router.post("/mfa/confirm", response_model=MfaRecoveryCodesResponse)
+def confirm_mfa(
+    request: MfaConfirmRequest, current_user: User = Depends(require_recent_auth)
+) -> MfaRecoveryCodesResponse:
+    """Confirm MFA enrollment with a real code, enabling it and returning
+    recovery codes -- the only time they're ever shown."""
+    recovery_codes = user_service.confirm_mfa_enrollment(current_user.id, request.code)
+    return MfaRecoveryCodesResponse(recovery_codes=recovery_codes)
+
+
+@router.post("/mfa/disable", status_code=204)
+def disable_mfa(current_user: User = Depends(require_recent_auth)) -> None:
+    """Disable MFA, clearing the stored secret and every recovery code."""
+    user_service.disable_mfa(current_user.id)
+
+
+@router.post("/mfa/recovery-codes/regenerate", response_model=MfaRecoveryCodesResponse)
+def regenerate_mfa_recovery_codes(
+    current_user: User = Depends(require_recent_auth),
+) -> MfaRecoveryCodesResponse:
+    """Invalidate existing recovery codes and generate a fresh set."""
+    recovery_codes = user_service.regenerate_recovery_codes(current_user.id)
+    return MfaRecoveryCodesResponse(recovery_codes=recovery_codes)
 
 
 @router.post("/reauth", response_model=AccessTokenResponse)

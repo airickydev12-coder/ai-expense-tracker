@@ -1,5 +1,6 @@
 """
-Password hashing and JWT access-token helpers for the Financial Core application.
+Password hashing, JWT access-token, and symmetric-encryption helpers for the
+Financial Core application.
 
 Infrastructure-layer utilities (ADR-001): no domain or FastAPI concepts here,
 just cryptographic primitives used by src/financial/users/service.py and
@@ -15,11 +16,21 @@ from typing import Any
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
+from cryptography.fernet import Fernet, InvalidToken
 
-from src.core.config import JWT_ALGORITHM, JWT_EXPIRY_MINUTES, JWT_SECRET_KEY
+from src.core.config import (
+    JWT_ALGORITHM,
+    JWT_EXPIRY_MINUTES,
+    JWT_SECRET_KEY,
+    MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES,
+    MFA_ENCRYPTION_KEY,
+)
 from src.core.exceptions import AuthenticationError
 
 _hasher = PasswordHasher()
+_fernet = Fernet(MFA_ENCRYPTION_KEY)
+
+_MFA_CHALLENGE_PURPOSE = "mfa_challenge"
 
 
 def hash_password(password: str) -> str:
@@ -59,6 +70,7 @@ def create_access_token(
         "iat": now,
         "exp": now + timedelta(minutes=JWT_EXPIRY_MINUTES),
         "auth_time": int((auth_time or now).timestamp()),
+        "purpose": "access",
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -74,10 +86,77 @@ def create_refresh_token() -> str:
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    """Decode and verify a JWT access token, raising AuthenticationError if invalid."""
+    """Decode and verify a JWT access token, raising AuthenticationError if invalid.
+
+    A pure signature/expiry primitive -- deliberately doesn't check the
+    "purpose" claim itself (see create_access_token()). That check belongs to
+    src/api/dependencies.py's get_current_user(), the FastAPI-facing trust
+    boundary between an access token and other narrowly-scoped tokens (e.g.
+    the MFA challenge token below) that also happen to be valid, signed JWTs.
+    """
     try:
         return jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError as error:
         raise AuthenticationError("Token has expired.") from error
     except jwt.InvalidTokenError as error:
         raise AuthenticationError("Invalid authentication token.") from error
+
+
+def create_mfa_challenge_token(user_id: int) -> str:
+    """Issue a short-lived signed JWT proving a user has passed the first
+    (password) factor of login and is now expected to present a TOTP or
+    recovery code -- returned by POST /auth/login instead of real tokens
+    when MFA is enabled, and consumed once by POST /auth/mfa/verify.
+
+    Deliberately a separate token shape from create_access_token() (its own
+    "purpose" value, no auth_time/username), not merely a differently-scoped
+    access token -- this makes it structurally impossible to eventually
+    conflate the two decode paths.
+    """
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "purpose": _MFA_CHALLENGE_PURPOSE,
+        "iat": now,
+        "exp": now + timedelta(minutes=MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES),
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_mfa_challenge_token(token: str) -> int:
+    """Decode and verify an MFA challenge token, returning the user_id it was
+    issued for. Raises AuthenticationError if invalid, expired, or not
+    actually an MFA challenge token (e.g. someone passing a real access
+    token here instead)."""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError as error:
+        raise AuthenticationError("MFA challenge has expired. Log in again.") from error
+    except jwt.InvalidTokenError as error:
+        raise AuthenticationError("Invalid MFA challenge.") from error
+
+    if payload.get("purpose") != _MFA_CHALLENGE_PURPOSE:
+        raise AuthenticationError("Invalid MFA challenge.")
+
+    try:
+        return int(payload["sub"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise AuthenticationError("Invalid MFA challenge.") from error
+
+
+def encrypt_secret(plaintext: str) -> str:
+    """Symmetrically encrypt a secret (currently: a user's TOTP secret) for
+    storage at rest, using MFA_ENCRYPTION_KEY. Unlike a password, this must
+    be reversible to verify future codes, so it's encrypted, not hashed."""
+    return _fernet.encrypt(plaintext.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_secret(ciphertext: str) -> str:
+    """Reverse encrypt_secret(). Raises AuthenticationError if the ciphertext
+    is invalid or was encrypted under a different MFA_ENCRYPTION_KEY (e.g.
+    the key was rotated) -- treated as an auth failure, not a 500, since the
+    caller's only real recourse at that point is a recovery code."""
+    try:
+        return _fernet.decrypt(ciphertext.encode("utf-8")).decode("utf-8")
+    except InvalidToken as error:
+        raise AuthenticationError("Could not decrypt MFA secret.") from error

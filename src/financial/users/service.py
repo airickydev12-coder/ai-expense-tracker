@@ -1,7 +1,10 @@
 import hashlib
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import pyotp
 
 from src.core.config import (
     DB_PATH,
@@ -26,20 +29,26 @@ from src.core.exceptions import (
 from src.core.logging import get_logger
 from src.core.security import create_access_token
 from src.core.security import create_refresh_token as generate_refresh_token
-from src.core.security import hash_password, verify_password
+from src.core.security import decrypt_secret, encrypt_secret, hash_password, verify_password
 from src.financial.notifications.email_sender import send_notification_email
 from src.financial.users.models import User
 from src.financial.users.repository import (
     count_recent_email_verification_requests,
     count_recent_failed_attempts,
     count_recent_password_reset_requests,
+    count_unused_recovery_codes,
     create_email_verification_token,
     create_password_reset_token,
+    create_recovery_codes,
     create_refresh_token,
     create_user,
+    disable_mfa as _disable_mfa_row,
+    enable_mfa,
     get_email_verification_token,
+    get_mfa_secret_encrypted,
     get_password_reset_token,
     get_refresh_token,
+    get_unused_recovery_code,
     get_user_by_email,
     get_user_by_id,
     get_user_by_username,
@@ -47,12 +56,14 @@ from src.financial.users.repository import (
     mark_email_verification_token_used,
     mark_email_verified,
     mark_password_reset_token_used,
+    mark_recovery_code_used,
     record_email_verification_request,
     record_login_attempt,
     record_password_reset_request,
     revoke_all_refresh_tokens_for_user,
     revoke_refresh_token,
     revoke_refresh_token_by_id,
+    set_mfa_secret,
     update_password_hash,
     update_refresh_token_auth_time,
     update_user,
@@ -61,8 +72,10 @@ from src.financial.users.repository import (
 logger = get_logger(__name__)
 
 MIN_PASSWORD_LENGTH = 8
+MFA_RECOVERY_CODE_COUNT = 10
 
 _INVALID_CREDENTIALS_MESSAGE = "Invalid username or password."
+_TOTP_CODE_PATTERN = re.compile(r"^\d{6}$")
 
 
 def _hash_token(raw_token: str) -> str:
@@ -597,3 +610,130 @@ def verify_email(token: str, db_path: Path = DB_PATH) -> User:
 
     logger.info("Verified email for user %d (%s)", updated_user.id, updated_user.username)
     return updated_user
+
+
+def _generate_recovery_code() -> str:
+    """Generate one recovery code, formatted XXXX-XXXX (8 uppercase hex
+    chars) -- visually distinct from a 6-digit TOTP code so verify_mfa_code()
+    can tell the two apart unambiguously."""
+    raw = secrets.token_hex(4).upper()
+    return f"{raw[:4]}-{raw[4:]}"
+
+
+def _normalize_recovery_code(code: str) -> str:
+    return code.strip().upper()
+
+
+def begin_mfa_enrollment(user_id: int, db_path: Path = DB_PATH) -> tuple[str, str]:
+    """Generate a new TOTP secret for a user and store it, unconfirmed (see
+    set_mfa_secret()) -- MFA isn't enabled until confirm_mfa_enrollment()
+    verifies a real code against it. Returns (secret, otpauth_uri): the
+    otpauth_uri renders as a QR code client-side; the raw secret is the
+    manual-entry fallback. Calling this again before confirming just
+    regenerates -- a normal retry path during setup, not a special case.
+    """
+    user = get_user(user_id, db_path)
+    secret = pyotp.random_base32()
+    set_mfa_secret(user_id, encrypt_secret(secret), db_path)
+    otpauth_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=user.email, issuer_name="AI Expense Tracker"
+    )
+
+    logger.info("Started MFA enrollment for user %d (%s)", user.id, user.username)
+
+    return secret, otpauth_uri
+
+
+def confirm_mfa_enrollment(user_id: int, code: str, db_path: Path = DB_PATH) -> list[str]:
+    """Verify a real code against the just-enrolled (unconfirmed) secret and,
+    on success, enable MFA and generate MFA_RECOVERY_CODE_COUNT recovery
+    codes -- the only time they're ever returned in plaintext by the API.
+    Raises ValidationError if there's no enrollment in progress or the code
+    is wrong (never enables MFA against an unproven secret).
+    """
+    encrypted_secret = get_mfa_secret_encrypted(user_id, db_path)
+    if encrypted_secret is None:
+        raise ValidationError("No MFA enrollment is in progress for this account.")
+
+    secret = decrypt_secret(encrypted_secret)
+    if not pyotp.TOTP(secret).verify(code.strip(), valid_window=1):
+        raise ValidationError("Invalid authentication code.")
+
+    user = enable_mfa(user_id, db_path)
+
+    recovery_codes = [_generate_recovery_code() for _ in range(MFA_RECOVERY_CODE_COUNT)]
+    create_recovery_codes(user_id, [_hash_token(c) for c in recovery_codes], db_path)
+
+    logger.info("Enabled MFA for user %d (%s)", user.id, user.username)
+
+    return recovery_codes
+
+
+def regenerate_recovery_codes(user_id: int, db_path: Path = DB_PATH) -> list[str]:
+    """Invalidate a user's existing recovery codes and generate a fresh set."""
+    user = get_user(user_id, db_path)
+    if not user.mfa_enabled:
+        raise ValidationError("MFA is not enabled for this account.")
+
+    recovery_codes = [_generate_recovery_code() for _ in range(MFA_RECOVERY_CODE_COUNT)]
+    create_recovery_codes(user_id, [_hash_token(c) for c in recovery_codes], db_path)
+
+    logger.info("Regenerated MFA recovery codes for user %d (%s)", user.id, user.username)
+
+    return recovery_codes
+
+
+def disable_mfa(user_id: int, db_path: Path = DB_PATH) -> None:
+    """Disable MFA for a user, clearing their secret and every recovery code."""
+    user = _disable_mfa_row(user_id, db_path)
+
+    logger.info("Disabled MFA for user %d (%s)", user.id, user.username)
+
+
+def _verify_mfa_code_raw(user_id: int, code: str, db_path: Path) -> bool:
+    """The actual TOTP/recovery-code check, with no lockout bookkeeping --
+    see verify_mfa_code() for the lockout-wrapped, login-facing version."""
+    code = code.strip()
+
+    if _TOTP_CODE_PATTERN.fullmatch(code):
+        encrypted_secret = get_mfa_secret_encrypted(user_id, db_path)
+        if encrypted_secret is None:
+            return False
+        secret = decrypt_secret(encrypted_secret)
+        return pyotp.TOTP(secret).verify(code, valid_window=1)
+
+    code_hash = _hash_token(_normalize_recovery_code(code))
+    recovery_code_row = get_unused_recovery_code(user_id, code_hash, db_path)
+    if recovery_code_row is None:
+        return False
+
+    mark_recovery_code_used(recovery_code_row["id"], db_path)
+    return True
+
+
+def verify_mfa_code(user_id: int, code: str, db_path: Path = DB_PATH) -> bool:
+    """Verify a TOTP or recovery code during MFA login, applying the same
+    lockout bookkeeping authenticate_user() uses for passwords (shared budget,
+    keyed by username) -- a 6-digit TOTP space is practically brute-forceable
+    without *some* lockout, and this app already has the exact mechanism.
+
+    Raises RateLimitError if the account is already locked out from recent
+    failures (password or MFA). Returns False (not an exception) for a wrong
+    code, mirroring how a wrong password is handled one layer up.
+    """
+    user = get_user(user_id, db_path)
+
+    if (
+        count_recent_failed_attempts(user.username, LOGIN_LOCKOUT_WINDOW_MINUTES, db_path)
+        >= LOGIN_LOCKOUT_MAX_ATTEMPTS
+    ):
+        raise RateLimitError(
+            f"Too many failed login attempts. Try again in {LOGIN_LOCKOUT_WINDOW_MINUTES} minutes."
+        )
+
+    if _verify_mfa_code_raw(user_id, code, db_path):
+        record_login_attempt(user.username, succeeded=True, db_path=db_path)
+        return True
+
+    record_login_attempt(user.username, succeeded=False, db_path=db_path)
+    return False

@@ -6,11 +6,15 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 
-from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY, MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES
 from src.core.exceptions import AuthenticationError
 from src.core.security import (
     create_access_token,
+    create_mfa_challenge_token,
     decode_access_token,
+    decode_mfa_challenge_token,
+    decrypt_secret,
+    encrypt_secret,
     hash_password,
     verify_password,
 )
@@ -70,6 +74,71 @@ def test_create_access_token_accepts_an_explicit_auth_time() -> None:
     auth_time = datetime.fromtimestamp(payload["auth_time"], tz=timezone.utc)
 
     assert abs((auth_time - original_auth_time).total_seconds()) < 1
+
+
+def test_create_access_token_sets_purpose_to_access() -> None:
+    token = create_access_token(user_id=42, username="alice")
+
+    payload = decode_access_token(token)
+
+    assert payload["purpose"] == "access"
+
+
+def test_encrypt_and_decrypt_secret_round_trip() -> None:
+    ciphertext = encrypt_secret("a-totp-secret")
+
+    assert ciphertext != "a-totp-secret"
+    assert decrypt_secret(ciphertext) == "a-totp-secret"
+
+
+def test_decrypt_secret_rejects_tampered_ciphertext() -> None:
+    ciphertext = encrypt_secret("a-totp-secret")
+    tampered = ciphertext[:-4] + "abcd"
+
+    with pytest.raises(AuthenticationError):
+        decrypt_secret(tampered)
+
+
+def test_create_and_decode_mfa_challenge_token_round_trip() -> None:
+    token = create_mfa_challenge_token(user_id=42)
+
+    assert decode_mfa_challenge_token(token) == 42
+
+
+def test_decode_mfa_challenge_token_rejects_expired_token() -> None:
+    now = datetime.now(timezone.utc)
+    expired_token = jwt.encode(
+        {
+            "sub": "42",
+            "purpose": "mfa_challenge",
+            "iat": now - timedelta(minutes=MFA_CHALLENGE_TOKEN_EXPIRY_MINUTES + 10),
+            "exp": now - timedelta(minutes=1),
+        },
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
+
+    with pytest.raises(AuthenticationError):
+        decode_mfa_challenge_token(expired_token)
+
+
+def test_decode_mfa_challenge_token_rejects_a_real_access_token() -> None:
+    access_token = create_access_token(user_id=42, username="alice")
+
+    with pytest.raises(AuthenticationError):
+        decode_mfa_challenge_token(access_token)
+
+
+def test_decode_mfa_challenge_token_rejects_a_token_with_no_purpose_claim() -> None:
+    now = datetime.now(timezone.utc)
+    bare_token = jwt.encode(
+        {"sub": "42", "iat": now, "exp": now + timedelta(minutes=5)},
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
+
+    with pytest.raises(AuthenticationError):
+        decode_mfa_challenge_token(bare_token)
 
 
 def test_decode_access_token_rejects_wrong_signature() -> None:

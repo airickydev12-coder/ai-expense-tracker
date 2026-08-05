@@ -43,10 +43,10 @@ today on the operator's LAN, not exposed to the public internet.
 
 ## Current sprint
 
-Sprint 3 item 4b (security-event notifications + recent-auth "step-up" requirement) just
-shipped — see Security work below, item 4b. What's left of Sprint 3 is now just MFA design and
-breached-password screening, or begin Sprint 5 (Family/child foundation, the first
-*implementation* sprint against ADR-007), depending on priority when picked up.
+Sprint 3 item 5 (optional MFA — TOTP + recovery codes) just shipped — see Security work below,
+item 5. What's left of Sprint 3 is now just breached-password screening (low priority), or begin
+Sprint 5 (Family/child foundation, the first *implementation* sprint against ADR-007), depending
+on priority when picked up.
 
 ## Next sprint
 
@@ -94,6 +94,17 @@ sequenced against each other.
   admin paths, plus reuse detection; no visual browser check this pass (no Playwright/
   chromium-cli available in this environment — covered instead by `StepUpAuthContext.test.tsx`'s
   real-DOM RTL interactions). See Security work below, item 4b.
+- **Sprint 3 item 5 — Optional MFA (TOTP + recovery codes).** Self-service enroll (`POST
+  /auth/mfa/enroll`/`confirm`) via any TOTP authenticator app, 10 single-use recovery codes
+  shown once at confirmation, self-service disable/regenerate — all four gated by the existing
+  step-up (`require_recent_auth`) dependency from item 4b, exactly the reuse the roadmap
+  anticipated. Login gains a second step (`POST /auth/mfa/verify`) when enabled, via a
+  short-lived, purpose-scoped challenge token distinct from a real access token. TOTP secrets
+  are encrypted at rest (new `MFA_ENCRYPTION_KEY`, Fernet) rather than stored plaintext. Opt-in
+  for every user; enforcement for admins deliberately deferred (needs its own grace-period/
+  forced-enrollment UX). Live-verified over real HTTP (`curl`) end-to-end, including step-up
+  gating and the production fail-fast on an unset `MFA_ENCRYPTION_KEY`; no visual browser check
+  this pass, same tooling gap as item 4b.
 
 ## Completed capabilities
 
@@ -145,9 +156,12 @@ Real gaps in what's shipped, not aspirational — flag these if they become rele
   `admin_audit_events` already has the data an Audit Log page needs; it just has no viewer.
 - **Notification configuration is global**, not per-user (no per-user channel/quiet-hours/
   digest preferences yet).
-- **No MFA or breached-password screening** yet — see Security work below, items 5–6. (Email
-  verification, the session/device list, security-event notifications, and the recent-auth
-  "step-up" requirement have all shipped and are no longer gaps.)
+- **No breached-password screening** yet — see Security work below, item 6. (Email verification,
+  session/device list, security-event notifications, recent-auth "step-up", and MFA have all
+  shipped and are no longer gaps.)
+- **MFA is opt-in for everyone, not required for admins/guardians yet** — the roadmap's original
+  "strongly encouraged/required for admins" framing needs its own grace-period/forced-enrollment
+  UX and product decision, deliberately deferred from this pass.
 - **Email verification is soft only** — it never blocks login, registration, or any feature.
   There's no path today to require it before, say, using the AI coach or exporting data; that
   would be a deliberate future product decision, not an oversight to silently fix.
@@ -213,9 +227,16 @@ Ordered roughly by risk, not necessarily by implementation order:
     reauth succeeds. Change-password was deliberately **not** gated by the same check — it
     already re-verifies the current password inline, so a separate step-up prompt would just be
     a second back-to-back password entry with no added security value.
-5. Optional MFA — strongly encouraged/required for admins and (once it exists) guardians.
-   **Planned**, no design started. Can reuse the `auth_time`/step-up primitive from item 4b for
-   its own "require recent auth before enrolling/disabling MFA" step.
+5. Optional MFA (TOTP + 10 single-use recovery codes). **Implemented.** Self-service enroll/
+   confirm/disable/regenerate, all gated by the `auth_time`/step-up primitive from item 4b (the
+   reuse the roadmap called for) rather than a separate password field — except change-password,
+   deliberately excluded for the same "already re-verifies inline" reason item 4b excluded it.
+   Login gains a `POST /auth/mfa/verify` second step via a short-lived, purpose-scoped challenge
+   token (`purpose: "mfa_challenge"`, distinct from a real access token's `purpose: "access"` —
+   `get_current_user` rejects anything else, closing off a token-confusion replay). TOTP secrets
+   are Fernet-encrypted at rest (`MFA_ENCRYPTION_KEY`, same production fail-fast pattern as
+   `JWT_SECRET_KEY`), not stored plaintext. **Not** yet required for admins/guardians — opt-in
+   for everyone this pass, see Known limitations.
 6. Breached-password screening. **Planned**, low priority.
 
 ## Admin console
@@ -352,8 +373,8 @@ rediscovered later as a surprise.
   product-domain relationships are deliberately different axes (see Adult/child learning
   model above).
 - Any household/child feature work ahead of the dedicated design pass for that domain.
-- Public/commercial launch on the current security posture (no MFA, no TLS on the LAN
-  deployment yet) — see Security work for what has to land first.
+- Public/commercial launch on the current security posture (MFA opt-in but not required, no TLS
+  on the LAN deployment yet) — see Security work for what has to land first.
 
 ## Execution order
 
@@ -362,8 +383,8 @@ rediscovered later as a surprise.
    pages still open).
 3. **Sprint 3 — Security hardening** — mostly done: cookie-based refresh tokens, prod secret
    fail-fast validation, the `is_active` re-check, email verification, session/device
-   management, and item 4b's security-event notifications + step-up auth all shipped. Still
-   open: MFA design, breached-password screening.
+   management, item 4b's security-event notifications + step-up auth, and item 5's MFA all
+   shipped. Still open: breached-password screening (low priority).
 4. **Sprint 4 — Family/child domain design** — done. See
    [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt).
 5. **Sprint 5 — Family/child foundation** *(next candidate, alongside Sprint 3's remaining

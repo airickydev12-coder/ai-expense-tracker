@@ -4,6 +4,54 @@ Dated history of major milestones, grouped by phase. This summarizes; it does no
 `git log` — each entry names representative commits, not every commit in the phase. Newest
 first.
 
+## 2026-08-04 — Optional MFA: TOTP + recovery codes (Sprint 3 item 5)
+
+- Self-service MFA: `POST /auth/mfa/enroll` generates and stores an unconfirmed TOTP secret
+  (`pyotp.random_base32()`) plus an `otpauth://` provisioning URI; `POST /auth/mfa/confirm`
+  verifies a real code before ever enabling it (`users.mfa_enabled_at`) and generates 10
+  single-use recovery codes (`XXXX-XXXX` format, SHA-256 hashed for storage like refresh/reset
+  tokens), returned in plaintext exactly once. `POST /auth/mfa/disable` and
+  `POST /auth/mfa/recovery-codes/regenerate` round out self-service management. All four are
+  gated by the `require_recent_auth` step-up dependency from item 4b — not a separate password
+  field — the exact reuse the roadmap called for. Change-password stayed ungated, same
+  reasoning item 4b used: its own inline current-password check is already at least as strong.
+- Login gains a second step when MFA is enabled: `POST /auth/login` returns a short-lived
+  (5-minute), purpose-scoped `mfa_challenge` JWT instead of real tokens; `POST /auth/mfa/verify`
+  consumes it plus a TOTP or recovery code and, on success, proceeds exactly like a normal login
+  (session issue, refresh cookie, new-device notification). A wrong code counts toward the same
+  `login_attempts` lockout budget passwords already use, since a 6-digit TOTP space is
+  practically brute-forceable without one.
+- `create_access_token` gained a `purpose: "access"` claim; `get_current_user` now rejects any
+  token whose purpose isn't `"access"` (defaulting a missing claim to `"access"` for backward
+  compatibility) — closes a real token-confusion bug class where an intercepted `mfa_challenge`
+  token, a validly-signed JWT with its own `sub` claim, could otherwise be replayed as a bearer
+  token and authenticate as that user before MFA was ever completed.
+- TOTP secrets are encrypted at rest (`src/core/security.py`'s new `encrypt_secret`/
+  `decrypt_secret`, Fernet via the `cryptography` package) under a new `MFA_ENCRYPTION_KEY`,
+  never stored plaintext — a password can be one-way hashed, but a TOTP secret must be
+  reversible to verify future codes, so hashing wasn't an option. Same production fail-fast
+  pattern as `JWT_SECRET_KEY`: `ENVIRONMENT=production` with the insecure default key refuses
+  to start; development only warns.
+- Frontend: `MfaSection.tsx` (new, in Settings) handles enroll → QR code (new `qrcode` npm
+  dependency, rendered client-side from the `otpauth://` URI — no backend image generation) →
+  confirm → recovery codes shown once, and disable/regenerate for an already-enabled account,
+  all wrapped in `runWithStepUp`. `LoginPage.tsx` gains a second step for the code prompt when
+  `login()` resolves `mfa_required` instead of `authenticated`.
+- Two bugs caught by running the test suite immediately after writing it, not by any test
+  written first: (1) `create_refresh_token`'s `auth_time` parameter was accidentally made
+  required with no default during an earlier pass this session, breaking every fixture/test that
+  didn't pass it explicitly — unrelated to MFA but surfaced again as a reminder to default
+  optional-seeming parameters; (2) `QRCode.toDataURL`'s TypeScript overloads (promise vs.
+  callback style) made `vi.mocked()` infer the wrong resolved type in the new component test —
+  fixed with a narrow `as never` cast on the mock's resolved value, isolated to test code.
+- Live-verified end-to-end over real HTTP (`curl` against a throwaway backend instance): full
+  enroll → confirm → MFA-required login → verify (TOTP and recovery-code paths, including
+  single-use enforcement) → step-up gating on all four management routes (stale token → 403
+  `step_up_required` → `POST /auth/reauth` → retry succeeds) → the `MFA_ENCRYPTION_KEY`
+  production fail-fast actually refusing to start. No visual browser check this pass — same
+  tooling gap as item 4b (no `chromium-cli`/Playwright in this environment) — covered instead by
+  RTL tests exercising the real enrollment/login-challenge DOM flows.
+
 ## 2026-08-04 — Security-event notifications & step-up auth (Sprint 3 item 4b)
 
 - Security-event notification emails via the existing `send_notification_email`: new device/IP

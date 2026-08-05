@@ -14,6 +14,7 @@ const alice = {
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
   email_verified: true,
+  mfa_enabled: false,
 }
 
 afterEach(() => {
@@ -70,6 +71,42 @@ describe('AuthProvider', () => {
 
     expect(result.current.status).toBe('authenticated')
     expect(authApi.login).toHaveBeenCalledWith({ username: 'alice', password: 'correct-password' })
+  })
+
+  it('login resolves mfa_required without authenticating when MFA is enabled', async () => {
+    vi.mocked(authApi.refresh).mockRejectedValue(new Error('no session'))
+    vi.mocked(authApi.login).mockResolvedValue({
+      mfa_required: true,
+      challenge_token: 'a-challenge-token',
+    })
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+    await waitFor(() => expect(result.current.status).toBe('unauthenticated'))
+
+    const outcome = await act(() => result.current.login('alice', 'correct-password'))
+
+    expect(outcome).toEqual({ status: 'mfa_required', challengeToken: 'a-challenge-token' })
+    expect(result.current.status).toBe('unauthenticated')
+  })
+
+  it('verifyMfa authenticates after a successful code', async () => {
+    vi.mocked(authApi.refresh).mockRejectedValue(new Error('no session'))
+    vi.mocked(authApi.verifyMfa).mockResolvedValue({
+      access_token: 'access-token',
+      token_type: 'bearer',
+    })
+    vi.mocked(authApi.me).mockResolvedValue(alice)
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+    await waitFor(() => expect(result.current.status).toBe('unauthenticated'))
+
+    await act(() => result.current.verifyMfa('a-challenge-token', '123456'))
+
+    expect(result.current.status).toBe('authenticated')
+    expect(authApi.verifyMfa).toHaveBeenCalledWith({
+      challenge_token: 'a-challenge-token',
+      code: '123456',
+    })
   })
 
   it('logout clears the session and revokes server-side with no arguments', async () => {

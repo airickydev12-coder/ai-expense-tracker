@@ -41,6 +41,7 @@ from src.core.config import (
     COOKIE_SECURE,
     ENVIRONMENT,
     JWT_SECRET_KEY,
+    MFA_ENCRYPTION_KEY,
     NOTIFICATION_CHECK_INTERVAL_MINUTES,
 )
 from src.core.db import initialize_database
@@ -66,6 +67,7 @@ logger = get_logger(__name__)
 
 
 _INSECURE_JWT_SECRET = "dev-insecure-secret-change-me"
+_INSECURE_MFA_ENCRYPTION_KEY = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
 
 def _validate_startup_config() -> None:
@@ -91,6 +93,19 @@ def _validate_startup_config() -> None:
         logger.warning(
             "JWT_SECRET_KEY is using the insecure default — set a real secret "
             "in .env before relying on auth for anything real."
+        )
+
+    if ENVIRONMENT == "production" and MFA_ENCRYPTION_KEY == _INSECURE_MFA_ENCRYPTION_KEY:
+        raise RuntimeError(
+            "Refusing to start: MFA_ENCRYPTION_KEY is still the insecure default while "
+            "ENVIRONMENT=production. Set a real key, e.g. "
+            'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+        )
+
+    if MFA_ENCRYPTION_KEY == _INSECURE_MFA_ENCRYPTION_KEY:
+        logger.warning(
+            "MFA_ENCRYPTION_KEY is using the insecure default — set a real key "
+            "in .env before relying on MFA for anything real."
         )
 
     if not COOKIE_SECURE:

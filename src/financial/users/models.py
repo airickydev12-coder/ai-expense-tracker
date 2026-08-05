@@ -18,6 +18,7 @@ class User:
     created_at: datetime
     updated_at: datetime
     email_verified_at: datetime | None = None
+    mfa_enabled_at: datetime | None = None
 
     def __post_init__(self) -> None:
         """Validate the user after initialization."""
@@ -38,6 +39,11 @@ class User:
         """Whether the user has completed email verification."""
         return self.email_verified_at is not None
 
+    @property
+    def mfa_enabled(self) -> bool:
+        """Whether the user has completed MFA enrollment and enabled it."""
+        return self.mfa_enabled_at is not None
+
     def to_dict(self) -> dict:
         """Convert the user to a dictionary for JSON storage."""
         return {
@@ -51,6 +57,9 @@ class User:
             "updated_at": self.updated_at.isoformat(),
             "email_verified_at": (
                 self.email_verified_at.isoformat() if self.email_verified_at else None
+            ),
+            "mfa_enabled_at": (
+                self.mfa_enabled_at.isoformat() if self.mfa_enabled_at else None
             ),
         }
 
@@ -69,6 +78,11 @@ class User:
             email_verified_at=(
                 datetime.fromisoformat(data["email_verified_at"])
                 if data.get("email_verified_at")
+                else None
+            ),
+            mfa_enabled_at=(
+                datetime.fromisoformat(data["mfa_enabled_at"])
+                if data.get("mfa_enabled_at")
                 else None
             ),
         )
