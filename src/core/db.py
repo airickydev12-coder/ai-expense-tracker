@@ -130,6 +130,51 @@ CREATE TABLE IF NOT EXISTS goal_ledger_entries (
     correlation_id TEXT,
     reverses_entry_id TEXT
 );
+
+CREATE TABLE IF NOT EXISTS households (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS household_memberships (
+    household_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    household_role TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (household_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS guardian_child_relationships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guardian_user_id INTEGER NOT NULL,
+    child_user_id INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS consent_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_user_id INTEGER NOT NULL,
+    consented_by_user_id INTEGER,
+    consent_type TEXT NOT NULL,
+    policy_version TEXT NOT NULL,
+    status TEXT NOT NULL,
+    granted_at TEXT,
+    revoked_at TEXT,
+    evidence TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS learning_profiles (
+    user_id INTEGER PRIMARY KEY,
+    age_band TEXT NOT NULL,
+    ai_coach_enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 # Tables whose own id/key is assigned by the app itself (a per-list max+1
@@ -352,6 +397,20 @@ def _ensure_mfa_columns(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE users ADD COLUMN mfa_enabled_at TEXT")
 
 
+def _ensure_account_type_column(connection: sqlite3.Connection) -> None:
+    """Add an account_type column (default 'adult') to `users` if missing.
+
+    Same idempotent-ALTER-TABLE pattern as _ensure_role_column -- every
+    pre-existing row becomes an ADULT account, zero behavior change for the
+    current userbase (see ADR-007).
+    """
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+    if "account_type" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN account_type TEXT NOT NULL DEFAULT 'adult'"
+        )
+
+
 def _ensure_refresh_token_metadata_columns(connection: sqlite3.Connection) -> None:
     """Add user_agent/ip_address/auth_time columns to `refresh_tokens` if
     missing -- same idempotent-ALTER-TABLE pattern as _ensure_role_column.
@@ -475,6 +534,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     _ensure_role_column(connection)
     _ensure_email_verified_at_column(connection)
     _ensure_mfa_columns(connection)
+    _ensure_account_type_column(connection)
     _ensure_refresh_token_metadata_columns(connection)
     _ensure_user_id_columns(connection)
     _ensure_composite_primary_keys(connection)

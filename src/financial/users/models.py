@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from src.core.exceptions import ValidationError
+from src.financial.users.account_type import AccountType
 from src.financial.users.role import PlatformRole
 
 
@@ -19,6 +20,7 @@ class User:
     updated_at: datetime
     email_verified_at: datetime | None = None
     mfa_enabled_at: datetime | None = None
+    account_type: AccountType = AccountType.ADULT
 
     def __post_init__(self) -> None:
         """Validate the user after initialization."""
@@ -61,6 +63,7 @@ class User:
             "mfa_enabled_at": (
                 self.mfa_enabled_at.isoformat() if self.mfa_enabled_at else None
             ),
+            "account_type": self.account_type.value,
         }
 
     @classmethod
@@ -85,4 +88,5 @@ class User:
                 if data.get("mfa_enabled_at")
                 else None
             ),
+            account_type=AccountType(data.get("account_type", "adult")),
         )

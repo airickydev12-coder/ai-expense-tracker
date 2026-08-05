@@ -31,6 +31,7 @@ from src.core.security import create_access_token
 from src.core.security import create_refresh_token as generate_refresh_token
 from src.core.security import decrypt_secret, encrypt_secret, hash_password, verify_password
 from src.financial.notifications.email_sender import send_notification_email
+from src.financial.users.account_type import AccountType
 from src.financial.users.models import User
 from src.financial.users.repository import (
     count_recent_email_verification_requests,
@@ -88,13 +89,24 @@ def _hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
-def register_user(
+def create_user_account(
     username: str,
     email: str,
     password: str,
+    *,
+    account_type: AccountType = AccountType.ADULT,
     db_path: Path = DB_PATH,
 ) -> User:
-    """Validate, hash, and persist a new user account."""
+    """Validate, hash, and persist a new user row -- no side effects (no
+    verification email).
+
+    register_user() (self-service registration) wraps this and adds the
+    verification-email send; guardian-initiated child account creation
+    (src/financial/households/service.py's create_child_account) calls this
+    directly instead, since automatically emailing a guardian-supplied
+    address before a lawyer has reviewed child email handling (see ADR-007)
+    would be premature.
+    """
     normalized_username = username.strip().lower()
     normalized_email = email.strip().lower()
 
@@ -105,7 +117,19 @@ def register_user(
         raise ValidationError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters long.")
 
     password_hash = hash_password(password)
-    user = create_user(normalized_username, normalized_email, password_hash, db_path)
+    return create_user(
+        normalized_username, normalized_email, password_hash, db_path, account_type=account_type
+    )
+
+
+def register_user(
+    username: str,
+    email: str,
+    password: str,
+    db_path: Path = DB_PATH,
+) -> User:
+    """Validate, hash, and persist a new user account."""
+    user = create_user_account(username, email, password, db_path=db_path)
 
     logger.info("Registered user %d (%s)", user.id, user.username)
 

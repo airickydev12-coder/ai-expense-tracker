@@ -4,6 +4,60 @@ Dated history of major milestones, grouped by phase. This summarizes; it does no
 `git log` — each entry names representative commits, not every commit in the phase. Newest
 first.
 
+## 2026-08-04 — Family/child domain backend foundation (Sprint 5, first ADR-007 code pass)
+
+- First code pass against [ADR-007](Architecture/ADR-007-family-child-domain.md.txt), scoped
+  backend-only: no frontend, no dashboards, no approval queue (needs Sprint 6's not-yet-designed
+  `learning_progress` domain). Explicitly dev/test scaffolding — no real child's personal data
+  should be entered until a lawyer reviews the consent flow (ADR-007's own legal-review gate).
+- `users.account_type` (`ADULT`/`MINOR`, default `ADULT`) plus 5 new tables exactly as designed:
+  `households`, `household_memberships` (composite `(household_id, user_id)` PK, no denormalized
+  `owner_user_id` — ownership is derived from the one `OWNER`-role membership row),
+  `guardian_child_relationships` (deliberately separate from household membership — a
+  non-custodial guardian may need visibility outside their household), `consent_records`
+  (append-only, mirrors `admin_audit_events`'s shape), `learning_profiles` (age-banded, never an
+  exact birthdate — data minimization).
+- `src/financial/households/`: household CRUD + selection (`POST/GET /households`,
+  `POST /households/{id}/members`, `DELETE /households/{id}/members/{user_id}` — self-removal
+  always allowed, removing someone else requires owner/guardian membership, removing the owner
+  is blocked entirely, no ownership-transfer flow yet); guardian-initiated child account creation
+  (`POST /households/{id}/children` — one call creates the MINOR user, household membership,
+  guardian relationship, learning profile, and initial `ACCOUNT_CREATION` consent record — 5
+  separate writes, not one transaction, matching this codebase's existing non-atomic-multi-write
+  pattern); `GET /guardian/children`; self-initiated adult transition
+  (`POST /account/request-adult-transition` — flips `account_type` and revokes every guardian
+  relationship for that child in the same call, per ADR-007's age-transition policy; consent
+  records are left untouched as historical record).
+- `src/financial/consent/`: grant/revoke (`POST /consent/grant`, `POST /consent/revoke`) —
+  self-consent for adults, guardian-for-child only with an active relationship, minors can never
+  grant their own consent, per ADR-007's permission matrix.
+- Child-account creation, consent actions, and adult transition are all gated by the existing
+  `require_recent_auth` step-up dependency (same one MFA disable/revoke-all-sessions/admin
+  role-change already use) — a judgment call, not ADR-mandated, since each creates a durable
+  account or a legally-relevant record.
+- Known, accepted gaps (see `ROADMAP.md`'s Known limitations): MINOR accounts aren't yet blocked
+  from the ~14 existing adult financial endpoints (would need touching every one, out of this
+  sprint's scope); no cross-repository-call transactions anywhere in this domain; no
+  household-ownership-transfer flow; `learning_profiles.ai_coach_enabled` has no update endpoint
+  yet.
+- 1602/1602 backend tests passing (up from 1516), 0 pyright errors.
+
+## 2026-08-04 — Breached-password screening (Sprint 3 item 6 — closes out Sprint 3)
+
+- Soft warning only (registration, change-password, reset-password all still succeed either way)
+  via HaveIBeenPwned's k-anonymity range API (`src/financial/users/breach_check.py`) — only a
+  truncated SHA-1 hash prefix is ever sent, the plaintext password never leaves the server. Fails
+  open (logs and treats as "not breached") on any network/API error, so this check can never
+  block or delay a password-set action.
+- Called from the API router layer, after the underlying password-set call already succeeded —
+  not from `service.py`'s `register_user`/`change_password`/`reset_password`, avoiding a
+  signature change across ~72 existing test call sites for no behavioral benefit.
+- New `password_warning: str | None` field: additive on `RegisterResponse` (subclasses
+  `UserResponse`) and a new `PasswordActionResponse` for change/reset-password (which moved from
+  `204 No Content` to `200` with a body — confirmed non-breaking for the frontend, whose calls to
+  those two endpoints are typed `Promise<void>` and never read the body).
+- This was the last open Sprint 3 Security-work item — all 6 are now implemented.
+
 ## 2026-08-04 — Optional MFA: TOTP + recovery codes (Sprint 3 item 5)
 
 - Self-service MFA: `POST /auth/mfa/enroll` generates and stores an unconfirmed TOTP secret

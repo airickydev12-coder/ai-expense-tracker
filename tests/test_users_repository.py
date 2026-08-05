@@ -37,11 +37,13 @@ from src.financial.users.repository import (
     revoke_refresh_token,
     revoke_refresh_token_by_id,
     set_mfa_secret,
+    update_account_type,
     update_refresh_token_auth_time,
     update_user,
     update_user_active_status,
     update_user_role,
 )
+from src.financial.users.account_type import AccountType
 from src.financial.users.role import PlatformRole
 
 
@@ -54,6 +56,30 @@ def test_create_user_returns_user_with_assigned_id(db_path) -> None:
     assert user.password_hash == "hashed-value"
     assert user.is_active is True
     assert user.role == PlatformRole.USER
+    assert user.account_type == AccountType.ADULT
+
+
+def test_create_user_with_minor_account_type(db_path) -> None:
+    user = create_user(
+        "kiddo", "kiddo@example.com", "hashed-value", db_path, account_type=AccountType.MINOR
+    )
+
+    assert user.account_type == AccountType.MINOR
+    reloaded = get_user_by_id(user.id, db_path)
+    assert reloaded is not None
+    assert reloaded.account_type == AccountType.MINOR
+
+
+def test_update_account_type_changes_account_type(db_path) -> None:
+    user = create_user("alice", "alice@example.com", "hashed-value", db_path)
+
+    updated = update_account_type(user.id, AccountType.MINOR, db_path)
+
+    assert updated.account_type == AccountType.MINOR
+
+    reloaded = get_user_by_id(user.id, db_path)
+    assert reloaded is not None
+    assert reloaded.account_type == AccountType.MINOR
 
 
 def test_update_user_role_changes_role(db_path) -> None:

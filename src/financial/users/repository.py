@@ -7,6 +7,7 @@ from src.core.config import DB_PATH
 from src.core.db import get_connection
 from src.core.exceptions import PersistenceError, ValidationError
 from src.core.logging import get_logger
+from src.financial.users.account_type import AccountType
 from src.financial.users.models import User
 from src.financial.users.role import PlatformRole
 
@@ -14,7 +15,7 @@ logger = get_logger(__name__)
 
 _COLUMNS = (
     "id, username, email, password_hash, is_active, role, created_at, updated_at, "
-    "email_verified_at, mfa_enabled_at"
+    "email_verified_at, mfa_enabled_at, account_type"
 )
 
 
@@ -23,18 +24,26 @@ def create_user(
     email: str,
     password_hash: str,
     db_path: Path = DB_PATH,
+    *,
+    account_type: AccountType = AccountType.ADULT,
 ) -> User:
-    """Insert a new user row, raising ValidationError on a duplicate username/email."""
+    """Insert a new user row, raising ValidationError on a duplicate username/email.
+
+    account_type is keyword-only, defaulting to ADULT, so every existing
+    positional call site (create_user(username, email, password_hash,
+    db_path)) keeps working unchanged -- only guardian-initiated child
+    creation (see src/financial/households/service.py) ever passes MINOR.
+    """
     now = datetime.now(timezone.utc).isoformat()
 
     try:
         with get_connection(db_path) as connection:
             cursor = connection.execute(
                 """
-                INSERT INTO users (username, email, password_hash, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, 1, ?, ?)
+                INSERT INTO users (username, email, password_hash, is_active, created_at, updated_at, account_type)
+                VALUES (?, ?, ?, 1, ?, ?, ?)
                 """,
-                (username, email, password_hash, now, now),
+                (username, email, password_hash, now, now, account_type.value),
             )
             user_id = cursor.lastrowid
     except sqlite3.IntegrityError as error:
@@ -133,6 +142,33 @@ def update_user_role(user_id: int, role: PlatformRole, db_path: Path = DB_PATH) 
         raise PersistenceError(f"Failed to update role for user {user_id} in {db_path}") from error
 
     logger.debug("Updated role for user %d to %s in %s", user_id, role.value, db_path)
+
+    updated_user = get_user_by_id(user_id, db_path)
+    if updated_user is None:
+        raise PersistenceError(f"Failed to reload updated user {user_id} in {db_path}")
+    return updated_user
+
+
+def update_account_type(user_id: int, account_type: AccountType, db_path: Path = DB_PATH) -> User:
+    """Overwrite a user's account_type.
+
+    Deliberately separate from update_user(), mirroring update_user_role()'s
+    exact shape -- used only by the self-initiated adult-transition action
+    (src/financial/households/service.py's request_adult_transition), not a
+    self-service profile edit.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_connection(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET account_type = ?, updated_at = ? WHERE id = ?",
+                (account_type.value, now, user_id),
+            )
+    except sqlite3.Error as error:
+        raise PersistenceError(f"Failed to update account_type for user {user_id} in {db_path}") from error
+
+    logger.debug("Updated account_type for user %d to %s in %s", user_id, account_type.value, db_path)
 
     updated_user = get_user_by_id(user_id, db_path)
     if updated_user is None:

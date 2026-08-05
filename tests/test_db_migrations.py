@@ -161,3 +161,70 @@ def test_fresh_database_users_table_already_has_role_column(tmp_path) -> None:
         columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
 
     assert "role" in columns
+
+
+def test_account_type_column_migration_adds_column_with_default(tmp_path) -> None:
+    """An old-shape users table (no account_type column) gets one added,
+    defaulting every pre-existing row to 'adult'."""
+    db_path = tmp_path / "legacy_no_account_type.db"
+    _create_old_shape_database(db_path)
+
+    with get_connection(db_path) as connection:
+        row = connection.execute("SELECT account_type FROM users WHERE id = 7").fetchone()
+
+    assert row["account_type"] == "adult"
+
+
+def test_account_type_column_migration_is_idempotent(tmp_path) -> None:
+    db_path = tmp_path / "legacy_no_account_type.db"
+    _create_old_shape_database(db_path)
+
+    with get_connection(db_path):
+        pass  # first connection performs the migration
+
+    with get_connection(db_path) as connection:
+        row = connection.execute("SELECT account_type FROM users WHERE id = 7").fetchone()
+
+    assert row["account_type"] == "adult"
+
+
+def test_fresh_database_users_table_already_has_account_type_column(tmp_path) -> None:
+    db_path = tmp_path / "fresh_account_type.db"
+
+    with get_connection(db_path) as connection:
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+
+    assert "account_type" in columns
+
+
+def test_fresh_database_has_household_and_consent_tables(tmp_path) -> None:
+    """A brand-new database gets all 5 ADR-007 tables directly from SCHEMA,
+    with the right primary-key shape (composite on household_memberships,
+    single user_id on learning_profiles)."""
+    db_path = tmp_path / "fresh_family_domain.db"
+
+    with get_connection(db_path) as connection:
+        tables = {
+            row["name"]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        membership_pk = [
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(household_memberships)")
+            if row["pk"] > 0
+        ]
+        learning_profile_pk = [
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(learning_profiles)")
+            if row["pk"] > 0
+        ]
+
+    assert {
+        "households",
+        "household_memberships",
+        "guardian_child_relationships",
+        "consent_records",
+        "learning_profiles",
+    } <= tables
+    assert set(membership_pk) == {"household_id", "user_id"}
+    assert learning_profile_pk == ["user_id"]

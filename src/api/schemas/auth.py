@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from src.financial.users.account_type import AccountType
 from src.financial.users.role import PlatformRole
 
 
@@ -140,6 +141,7 @@ class UserResponse(BaseModel):
     updated_at: datetime
     email_verified: bool
     mfa_enabled: bool
+    account_type: AccountType
 
 
 class RegisterResponse(UserResponse):

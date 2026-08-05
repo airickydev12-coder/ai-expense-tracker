@@ -66,6 +66,7 @@ def test_register_success() -> None:
     assert body["email"] == "alice@example.com"
     assert body["role"] == "user"
     assert body["password_warning"] is None
+    assert body["account_type"] == "adult"
     assert "password" not in body
     assert "password_hash" not in body
 

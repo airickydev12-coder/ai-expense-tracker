@@ -9,9 +9,11 @@ from src.core.exceptions import (
     ValidationError,
 )
 from src.financial.users import service as user_service
+from src.financial.users.account_type import AccountType
 from src.financial.users.service import (
     authenticate_user,
     change_password,
+    create_user_account,
     get_user,
     issue_session,
     logout,
@@ -28,6 +30,22 @@ def test_register_user_normalizes_username_and_email_case(db_path) -> None:
 
     assert user.username == "alice"
     assert user.email == "alice@example.com"
+
+
+def test_register_user_still_defaults_to_adult_account_type(db_path) -> None:
+    """Regression check on the create_user_account() extraction -- ordinary
+    registration must keep defaulting to ADULT."""
+    user = register_user("alice", "alice@example.com", "correct-password", db_path)
+
+    assert user.account_type == AccountType.ADULT
+
+
+def test_create_user_account_supports_minor_account_type(db_path) -> None:
+    user = create_user_account(
+        "kiddo", "kiddo@example.com", "correct-password", account_type=AccountType.MINOR, db_path=db_path
+    )
+
+    assert user.account_type == AccountType.MINOR
 
 
 def test_register_user_rejects_empty_username(db_path) -> None:

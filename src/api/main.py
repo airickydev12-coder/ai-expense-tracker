@@ -16,18 +16,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api.routers import dashboard
+from src.api.routers.account_transition import router as account_transition_router
 from src.api.routers.accounts import router as accounts_router
 from src.api.routers.admin import router as admin_router
 from src.api.routers.auth import router as auth_router
 from src.api.routers.bills import router as bills_router
 from src.api.routers.budgets import router as budgets_router
 from src.api.routers.coach import router as coach_router
+from src.api.routers.consent import router as consent_router
 from src.api.routers.debt import router as debt_router
 from src.api.routers.expenses import router as expenses_router
 from src.api.routers.forecasting import router as forecasting_router
 from src.api.routers.goals import router as goals_router
+from src.api.routers.guardian import router as guardian_router
 from src.api.routers.health import router as health_router
 from src.api.routers.history import router as history_router
+from src.api.routers.households import router as households_router
 from src.api.routers.income import router as income_router
 from src.api.routers.notifications import router as notifications_router
 from src.api.routers.recommendations import (
@@ -265,4 +269,8 @@ app.include_router(dashboard.router)
 app.include_router(recommendations_router)
 app.include_router(recurring_expenses_router)
 app.include_router(notifications_router)
+app.include_router(households_router)
+app.include_router(guardian_router)
+app.include_router(consent_router)
+app.include_router(account_transition_router)
 app.include_router(admin_router)

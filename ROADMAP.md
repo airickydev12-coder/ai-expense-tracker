@@ -37,21 +37,22 @@ today on the operator's LAN, not exposed to the public internet.
 | Per-user data isolation | Implemented |
 | Admin authorization foundation + user-ops backend | Implemented |
 | Admin console frontend | Implemented but incomplete (Overview + Users done, Security/Audit/System-health not started) |
-| Adult/child learning model | Designed (ADR-007), not implemented |
+| Adult/child learning model | Backend implemented (Sprint 5, dev/test scaffolding only), no dashboards/frontend yet |
 | Production operations (backups, observability, staging) | Partial |
 | Commercial SaaS readiness | Not implemented |
 
 ## Current sprint
 
-Sprint 3 item 5 (optional MFA — TOTP + recovery codes) just shipped — see Security work below,
-item 5. What's left of Sprint 3 is now just breached-password screening (low priority), or begin
-Sprint 5 (Family/child foundation, the first *implementation* sprint against ADR-007), depending
-on priority when picked up.
+Sprint 5 (Family/child foundation, the first *implementation* sprint against ADR-007) just
+shipped its backend — see Adult/child learning model below. Sprint 3 is now fully complete
+(item 6, breached-password screening, shipped earlier the same day — see Security work, item 6).
 
 ## Next sprint
 
-See "Current sprint" above — both remaining candidates are already fully scoped, just not yet
-sequenced against each other.
+Unsequenced — candidates are the Sprint 5 frontend (household selector, guardian/child dashboard
+shells — deliberately deferred from the backend-only pass just shipped) and Sprint 6
+(educational-content system, which the child dashboard needs before it has anything to show).
+Ask before picking one; neither has been scoped in detail yet.
 
 ## Completed sprints
 
@@ -105,6 +106,28 @@ sequenced against each other.
   forced-enrollment UX). Live-verified over real HTTP (`curl`) end-to-end, including step-up
   gating and the production fail-fast on an unset `MFA_ENCRYPTION_KEY`; no visual browser check
   this pass, same tooling gap as item 4b.
+- **Sprint 3 item 6 — Breached-password screening.** Soft warning (never blocks) at registration,
+  change-password, and reset-password, checked via HaveIBeenPwned's k-anonymity range API (only a
+  truncated SHA-1 hash prefix ever leaves the server). Fails open on any network/API error —
+  never delays or blocks a password-set action. **This closes out Sprint 3 entirely** — all 6
+  Security-work items are now implemented.
+- **Sprint 5 — Family/child domain backend foundation.** The first code pass against
+  [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt), explicitly scoped as
+  backend-only, dev/test scaffolding (no real child's personal data — the ADR's legal-review gate
+  still stands). `account_type` (`ADULT`/`MINOR`) on `users`; 5 new tables (`households`,
+  `household_memberships`, `guardian_child_relationships`, `consent_records`,
+  `learning_profiles`); household CRUD + selection (`POST/GET /households`,
+  `POST /households/{id}/members`, `DELETE /households/{id}/members/{user_id}`);
+  guardian-initiated child account creation (`POST /households/{id}/children` — one call creates
+  the MINOR account, household membership, guardian relationship, learning profile, and initial
+  consent record); `GET /guardian/children`; consent grant/revoke (`POST /consent/grant`,
+  `POST /consent/revoke`); self-initiated adult transition (`POST
+  /account/request-adult-transition` — flips `account_type` and revokes every guardian
+  relationship atomically-in-intent). Child-account-creation, consent actions, and adult
+  transition are all step-up (`require_recent_auth`) gated. Deliberately deferred: household
+  selector UI, guardian/child dashboard shells, the approval queue (needs Sprint 6's
+  not-yet-designed `learning_progress` domain). See Adult/child learning model below and Known
+  limitations for what's intentionally left open.
 
 ## Completed capabilities
 
@@ -156,9 +179,28 @@ Real gaps in what's shipped, not aspirational — flag these if they become rele
   `admin_audit_events` already has the data an Audit Log page needs; it just has no viewer.
 - **Notification configuration is global**, not per-user (no per-user channel/quiet-hours/
   digest preferences yet).
-- **No breached-password screening** yet — see Security work below, item 6. (Email verification,
-  session/device list, security-event notifications, recent-auth "step-up", and MFA have all
-  shipped and are no longer gaps.)
+- **Sprint 3's Security work is fully shipped** — email verification, session/device list,
+  security-event notifications, recent-auth "step-up", MFA, and breached-password screening are
+  all implemented; no items remain open in that list.
+- **MINOR accounts aren't blocked from ordinary adult financial endpoints yet.** Sprint 5's
+  permission matrix says a child gets a learning dashboard "instead of" the adult financial one,
+  but enforcing that would mean an `account_type` check on every one of the ~14 existing
+  financial routers — out of Sprint 5's declared backend-foundation scope, and naturally belongs
+  alongside the (also deferred) dashboard shells and AI-governance work. Not a real risk yet
+  since no real child accounts exist (dev/test scaffolding only).
+- **Sprint 5's multi-table writes aren't transactional.** Guardian-initiated child account
+  creation (5 writes across 3 tables) and adult transition (2 writes) each commit independently,
+  matching this codebase's existing pattern (`register_user()` isn't atomic with its
+  verification-email send either) — a failure partway through leaves partial state. Not fixed
+  this pass; would need new cross-repository-call transaction machinery.
+- **No household-ownership-transfer flow.** A household's `OWNER` can never leave or be removed
+  in Sprint 5 — deliberately deferred, not designed yet.
+- **`learning_profiles.ai_coach_enabled`** (the guardian's AI-coach kill switch) is set once at
+  child-account-creation time with no update endpoint yet — nothing in Sprint 5's scope calls it.
+- **Family/child domain data still requires legal review before real use** — see Adult/child
+  learning model below. Sprint 5 is dev/test scaffolding only; no real child's personal data
+  should be entered until a lawyer reviews the consent flow, evidence-capture mechanism, and
+  overall data-handling practice.
 - **MFA is opt-in for everyone, not required for admins/guardians yet** — the roadmap's original
   "strongly encouraged/required for admins" framing needs its own grace-period/forced-enrollment
   UX and product decision, deliberately deferred from this pass.
@@ -237,7 +279,10 @@ Ordered roughly by risk, not necessarily by implementation order:
    are Fernet-encrypted at rest (`MFA_ENCRYPTION_KEY`, same production fail-fast pattern as
    `JWT_SECRET_KEY`), not stored plaintext. **Not** yet required for admins/guardians — opt-in
    for everyone this pass, see Known limitations.
-6. Breached-password screening. **Planned**, low priority.
+6. Breached-password screening. **Implemented.** Soft warning only (registration, change-password,
+   reset-password all still succeed either way) via HaveIBeenPwned's k-anonymity API — only a
+   truncated SHA-1 hash prefix is ever sent, and any API/network failure fails open silently.
+   **This was the last open Security-work item — the list above is now fully shipped.**
 
 ## Admin console
 
@@ -271,10 +316,22 @@ Users/Overview show account metadata only, never financial data).
 
 ## Adult/child learning model
 
-**Status: designed, not implemented.** The design pass (Sprint 4) is done — see
-[ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt) for the full data model,
-permission matrix, and age-transition policy. Do not begin coding against assumptions from
-this section — read the ADR itself, this is now a summary of it, not the source of truth.
+**Status: backend implemented (Sprint 5), dev/test scaffolding only — no dashboards/frontend
+yet.** The design pass (Sprint 4) produced [ADR-007](docs/Architecture/ADR-007-family-child-domain.md.txt);
+Sprint 5 implemented it — household CRUD + selection, guardian-initiated child account creation,
+consent grant/revoke, and self-initiated adult transition are all real, tested API endpoints
+today (`src/financial/households/`, `src/financial/consent/`). Do not begin further coding
+against assumptions from this section — read the ADR itself for the data model/permission
+matrix/age-transition policy, this is a summary, not the source of truth.
+
+**Shipped in Sprint 5**: `POST/GET /households`, `GET /households/{id}`,
+`POST /households/{id}/members`, `DELETE /households/{id}/members/{user_id}`,
+`POST /households/{id}/children` (guardian-initiated MINOR account creation), `GET
+/guardian/children`, `POST /consent/grant`, `POST /consent/revoke`,
+`POST /account/request-adult-transition`. **Not** shipped: any frontend, the household
+selector UI, guardian/child dashboard shells, the approval queue, or `account_type`-based
+gating of the existing adult financial endpoints (a MINOR account isn't technically blocked from
+calling them yet — see Known limitations).
 
 **Confirmed and now designed:**
 - `PlatformRole` (`USER`/`ADMIN`/`SUPER_ADMIN`) stays exactly what it is — *platform operator
@@ -295,7 +352,7 @@ this section — read the ADR itself, this is now a summary of it, not the sourc
   accounts — the design accounts for COPPA-shaped requirements (data minimization, evidence-
   backed consent) but does not itself constitute legal clearance.
 
-**Planned child-specific product surface** (Sprint 5+, once the data model is implemented):
+**Planned child-specific product surface** (frontend, now that the Sprint 5 backend exists):
 age-appropriate dashboard, simulated budgets/allowance tracking, needs-vs-wants exercises,
 savings goals, challenges/achievements, financial-literacy lessons, guardian approvals, a
 restricted-policy AI coach (`learning_profiles.ai_coach_enabled` is the guardian toggle;
